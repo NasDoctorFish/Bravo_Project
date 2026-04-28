@@ -10,7 +10,24 @@ Duration: Apr 4th, 2026 ~ May 18th, 2026 (Estimated)
 - Carissa
 - Lynette
 
+# How to run
+```nvm install 20 && nvm use 20 && npm run dev```
+- requires node version 20 or more
 
+# Branch naming scheme
+- for every user story, use feature/{user_story_shortened} naming.
+- Manage and Update branch commands
+```git
+# 1. After one work
+git add .
+git commit -m "feat: basic frontend setup"
+
+# 2. push to github website
+git push -u origin feature/basic_frontend
+
+# 3. Later
+Merge to main on Github website
+```
 
 # Links
 Team Bravo Notion Link: 
