@@ -29,6 +29,10 @@ git push -u origin feature/basic_frontend
 Merge to main on Github website
 ```
 
+
+Other useful Commands
+```git log --oneline --graph --all``` check push history and branch logs
+
 # Links
 Team Bravo Notion Link: 
 https://www.notion.so/CSIT314-Bravo-3363e76457e7809bade0ddfea4310978
