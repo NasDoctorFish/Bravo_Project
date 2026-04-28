@@ -14,8 +14,15 @@ Duration: Apr 4th, 2026 ~ May 18th, 2026 (Estimated)
 ```nvm install 20 && nvm use 20 && npm run dev```
 - requires node version 20 or more
 
-# Branch naming scheme
+# Github branch work
 - for every user story, use feature/{user_story_shortened} naming.
+- Branch creation steps
+```
+git switch dev
+git pull origin dev
+git switch -c feature/something
+```
+all development branches should be under dev
 - Manage and Update branch commands
 ```git
 # 1. After one work
