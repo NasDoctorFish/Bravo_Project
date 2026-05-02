@@ -289,7 +289,7 @@ a {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 20px 0;
+  padding: 20px 32px;
   background: white;
   border-bottom: 1px solid #e2e8f0;
   position: sticky;
@@ -372,7 +372,7 @@ a {
 
 .hero {
   position: relative;
-  padding: 120px 0 120px;
+  padding: 120px 32px 120px;
   background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 45%, #4338ca 100%);
   color: white;
   overflow: hidden;
@@ -457,7 +457,7 @@ a {
 }
 
 .features {
-  padding: 88px 0 0;
+  padding: 88px 32px 0;
   width: 100%;
 }
 
@@ -525,7 +525,7 @@ a {
 }
 
 .campaigns {
-  padding: 88px 0 0;
+  padding: 88px 32px 0;
   width: 100%;
 }
 
@@ -547,12 +547,15 @@ a {
 
 .campaigns-grid {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
   gap: 24px;
+  justify-items: center;
   margin-bottom: 48px;
 }
 
 .campaign-card {
+  width: 100%;
+  max-width: 360px;
   background: white;
   border-radius: 12px;
   overflow: hidden;
@@ -686,7 +689,7 @@ a {
 }
 
 .cta-section {
-  padding: 88px 0 76px;
+  padding: 88px 32px 76px;
   text-align: center;
   background: #f8fafc;
   width: 100%;
