@@ -289,7 +289,7 @@ a {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 20px 32px;
+  padding: 20px 0;
   background: white;
   border-bottom: 1px solid #e2e8f0;
   position: sticky;
@@ -372,7 +372,7 @@ a {
 
 .hero {
   position: relative;
-  padding: 120px 32px 120px;
+  padding: 120px 0 120px;
   background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 45%, #4338ca 100%);
   color: white;
   overflow: hidden;
@@ -457,9 +457,7 @@ a {
 }
 
 .features {
-  padding: 88px 32px 0;
-  max-width: 1200px;
-  margin: 0 auto;
+  padding: 88px 0 0;
   width: 100%;
 }
 
@@ -527,9 +525,7 @@ a {
 }
 
 .campaigns {
-  padding: 88px 32px 0;
-  max-width: 1200px;
-  margin: 0 auto;
+  padding: 88px 0 0;
   width: 100%;
 }
 
@@ -690,11 +686,9 @@ a {
 }
 
 .cta-section {
-  padding: 88px 32px 76px;
+  padding: 88px 0 76px;
   text-align: center;
   background: #f8fafc;
-  max-width: 1200px;
-  margin: 0 auto;
   width: 100%;
 }
 
@@ -725,7 +719,7 @@ a {
 }
 
 .footer {
-  padding: 26px 32px;
+  padding: 26px 0;
   text-align: center;
   background: #0f172a;
   color: #e2e8f0;
@@ -748,7 +742,7 @@ a {
   align-items: center;
   justify-content: center;
   min-height: calc(100vh - 80px);
-  padding: 40px 32px;
+  padding: 40px 0;
 }
 
 .login-card,
