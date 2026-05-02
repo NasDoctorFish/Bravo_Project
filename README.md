@@ -14,8 +14,54 @@ Duration: Apr 4th, 2026 ~ May 18th, 2026 (Estimated)
 ```nvm install 20 && nvm use 20 && npm run dev```
 - requires node version 20 or more
 
-# Branch naming scheme
+# Github branch work
 - for every user story, use feature/{user_story_shortened} naming.
+- First time setting
+```
+**First time only (one person does this):**
+```bash
+# Clone the repository from GitHub
+git clone https://github.com/your-team/Project_Bravo.git
+
+# Go into the folder
+cd Project_Bravo
+
+# Check available branches
+git branch -a
+```
+
+**Then everyone else on the team:**
+```bash
+# Clone the same repo
+git clone https://github.com/NasDoctorFish/Bravo_Project.git
+cd Project_Bravo
+
+# Switch to dev branch
+git switch dev
+
+# Pull latest changes
+git pull origin dev
+```
+
+**Before starting work each day:**
+```bash
+# Make sure you're on dev
+git switch dev
+
+# Get latest updates
+git pull origin dev
+
+# Create your feature branch
+git switch -c feature/your-feature-name
+```
+```
+- Branch creation steps
+```
+git switch dev
+git pull origin dev
+git switch -c feature/something
+```
+all development branches should be under dev
 - Manage and Update branch commands
 ```git
 # 1. After one work
@@ -28,6 +74,10 @@ git push -u origin feature/basic_frontend
 # 3. Later
 Merge to main on Github website
 ```
+
+
+Other useful Commands
+```git log --oneline --graph --all``` check push history and branch logs
 
 # Links
 Team Bravo Notion Link: 
