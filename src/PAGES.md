@@ -1,0 +1,9 @@
+loginPage
+signupPage
+dashboardPage
+fraCreationPage
+fraDetailPage
+fraSearchPage
+adminManagementPage
+reportDashboardPage
+platformManagementPage
