@@ -1,7 +1,6 @@
 <script setup>
 import { ref } from 'vue'
-
-const emit = defineEmits(['go-home', 'go-login'])
+const emit = defineEmits(['go-home', 'go-login', 'go-search'])
 
 const selectedRole = ref('donor')
 
@@ -22,7 +21,7 @@ function handleSignup(event) {
       </a>
 
       <nav class="nav">
-        <a href="#" class="nav-link">Donate</a>
+        <a href="#" class="nav-link" @click.prevent="emit('go-search')">⌕ Donate</a>
         <a href="#" class="nav-link">Fundraising</a>
       </nav>
 

@@ -1,11 +1,47 @@
 <script setup>
-const emit = defineEmits(['go-home', 'go-signup'])
+import { ref } from 'vue'
+const emit = defineEmits(['go-home', 'go-signup', 'go-search'])
 
-function handleLogin(event) {
+const email = ref('')
+const password = ref('')
+const isLoading = ref(false)
+const errorMessage = ref('')
+
+async function handleLogin(event) {
   event.preventDefault()
 
-  // TODO: later connect backend login API
-  console.log('Sign in clicked')
+  isLoading.value = true
+  errorMessage.value = ''
+
+  try {
+    const response = await fetch('http://localhost:3000/api/login', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        email: email.value,
+        password: password.value,
+      }),
+    })
+
+    const data = await response.json().catch(() => ({}))
+
+    if (!response.ok) {
+      throw new Error(data.message || 'Unable to sign in. Please try again.')
+    }
+
+    if (data.token) {
+      localStorage.setItem('authToken', data.token)
+    }
+
+    emit('go-home')
+  } catch (error) {
+    errorMessage.value =
+      error instanceof Error ? error.message : 'Unable to sign in. Please try again.'
+  } finally {
+    isLoading.value = false
+  }
 }
 </script>
 
@@ -18,7 +54,7 @@ function handleLogin(event) {
       </a>
 
       <nav class="nav">
-        <a href="#" class="nav-link">Donate</a>
+        <a href="#" class="nav-link" @click.prevent="emit('go-search')">⌕ Donate</a>
         <a href="#" class="nav-link">Fundraising</a>
       </nav>
 
@@ -40,16 +76,18 @@ function handleLogin(event) {
         <form class="login-form" @submit="handleLogin">
           <label>
             Email
-            <input type="email" placeholder="your@email.com" />
+            <input v-model="email" type="email" placeholder="your@email.com" required />
           </label>
 
           <label>
             Password
-            <input type="password" placeholder="••••••••" />
+            <input v-model="password" type="password" placeholder="••••••••" required />
           </label>
 
-          <button type="submit" class="btn btn-primary btn-submit">
-            Sign In
+          <p v-if="errorMessage" class="form-error">{{ errorMessage }}</p>
+
+          <button type="submit" class="btn btn-primary btn-submit" :disabled="isLoading">
+            {{ isLoading ? 'Signing In...' : 'Sign In' }}
           </button>
         </form>
 

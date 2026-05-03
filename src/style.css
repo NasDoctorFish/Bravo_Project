@@ -424,7 +424,7 @@ a {
 
 .hero {
   position: relative;
-  padding: 120px 32px 120px;
+  padding: 100px 32px 100px;
   background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 45%, #4338ca 100%);
   color: white;
   overflow: hidden;
@@ -787,7 +787,8 @@ a {
 }
 
 .login-page,
-.signup-page {
+.signup-page,
+.search-page {
   min-height: 100vh;
   background: #f8fafc;
 }
@@ -1029,3 +1030,127 @@ a {
     grid-template-columns: repeat(1, 1fr);
   }
 }
+
+/* ===== FraSearchPage ===== */
+.search-hero-content {
+  position: relative;
+  padding: 60px 32px; 
+  background:  #1d4ed8;
+  color: white;
+  overflow: hidden;
+}
+
+.search-hero h1 {
+  text-align: left;
+  padding: 20px 60px;
+  margin: 0;
+}
+
+.search-hero p {
+  text-align: left;
+  padding: 20px 60px;
+  margin: 0;
+}
+
+/* Search Filters */
+.search-filters {
+  display: flex;
+  justify-content: center;
+  padding: 40px 20px;
+  background: #f7f7f6;
+}
+
+.filters-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: nowrap;
+  overflow-x: auto;
+}
+.search-pill {
+  display: flex;
+  align-items: center;
+  padding: 8px 12px;
+  background: #f5f5f5;
+  border-radius: 999px;
+  min-width: 320px;
+  border: 1px solid #e5e5e5;
+}
+
+.search-pill input {
+  border: none;
+  outline: none;
+  background: transparent;
+  margin-left: 8px;
+  width: 100%;
+  color: black;
+}
+
+.filter-row {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.filter-card {
+  display: flex;
+  align-items: center;
+  padding: 8px 12px;
+  background: #f5f5f5;
+  border-radius: 999px;
+  min-width: 320px;
+  border: 1px solid #e5e5e5;
+}
+
+.filter-card select {
+  border: none;
+  outline: none;
+  background: transparent;
+  color: black;
+}
+.pill-select {
+  flex: 1;
+  min-width: 180px;
+  background: #000000;
+  border-radius: 14px;
+  padding: 10px 12px;
+  border: 1px solid #eaeaea;
+  box-shadow: 0 1px 6px rgba(255, 255, 255, 0.04);
+
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.pill-select label {
+  font-size: 11px;
+  color: #888;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.pill-select select {
+  border: none;
+  outline: none;
+  font-size: 14px;
+  background: transparent;
+  cursor: pointer;
+}
+
+.actions {
+  display: flex;
+  align-items: center;
+}
+
+.filter-btn {
+  padding: 10px 16px;
+  border: none;
+  background: #1d4ed8;
+  color: white;
+  border-radius: 8px;
+  cursor: pointer;
+}
+.filter-btn:hover {
+  background: #183ea5;
+}
+/*Search End*/

@@ -1,5 +1,5 @@
 <script setup>
-const emit = defineEmits(['go-home', 'go-login', 'go-signup'])
+const emit = defineEmits(['go-home', 'go-login', 'go-signup', 'go-search'])
 </script>
 
 <template>
@@ -11,15 +11,13 @@ const emit = defineEmits(['go-home', 'go-login', 'go-signup'])
       </a>
 
       <nav class="nav">
-        <a href="#" class="nav-link">Donate</a>
+        <a href="#" class="nav-link" @click.prevent="emit('go-search')">⌕ Donate</a>
         <a href="#" class="nav-link">Fundraising</a>
       </nav>
 
       <nav class="nav-actions">
         <a href="#" class="nav-link" @click.prevent="emit('go-login')">Sign In</a>
-        <a href="#" class="btn btn-primary" @click.prevent="emit('go-signup')">
-          Start Campaign
-        </a>
+        <a href="#" class="btn btn-primary" @click.prevent="emit('go-signup')">Start Campaign</a>
       </nav>
     </header>
 
@@ -29,9 +27,7 @@ const emit = defineEmits(['go-home', 'go-login', 'go-signup'])
         <p>Support meaningful causes and help people achieve their goals</p>
 
         <div class="hero-buttons">
-          <a href="#" class="btn btn-white" @click.prevent="emit('go-signup')">
-            Start Fundraising
-          </a>
+          <a href="#" class="btn btn-white" @click.prevent="emit('go-signup')">Start Fundraising</a>
           <a href="#" class="btn btn-outline">
             Start Donating
           </a>
