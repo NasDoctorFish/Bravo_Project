@@ -5,6 +5,7 @@ import HomePage from './pages/HomePage.vue'
 import LoginPage from './pages/LoginPage.vue'
 import SignupPage from './pages/SignupPage.vue'
 import FraSearchPage from './pages/FraSearchPage.vue'
+import FraCreationPage from './pages/FraCreationPage.vue'
 
 const page = ref('home')
 
@@ -23,6 +24,19 @@ function goSignup() {
 function goSearch() {
   page.value = 'search'
 }
+
+function goCreate() {
+  page.value = 'creation'
+}
+
+function goLogout() {
+  page.value = 'home'
+}
+
+function handleCampaignCreated(campaignData) {
+  console.log('New campaign created:', campaignData)
+  page.value = 'search'
+}
 </script>
 
 <template>
@@ -32,6 +46,7 @@ function goSearch() {
     @go-login="goLogin"
     @go-signup="goSignup"
     @go-search="goSearch"
+    @go-create="goCreate"
   />
 
   <LoginPage
@@ -54,5 +69,14 @@ function goSearch() {
     @go-login="goLogin"
     @go-signup="goSignup"
     @go-search="goSearch"
+  />
+
+  <FraCreationPage
+    v-else-if="page === 'creation'"
+    @go-home="goHome"
+    @go-login="goLogin"
+    @go-signup="goSignup"
+    @go-search="goSearch"
+    @campaign-created="handleCampaignCreated"
   />
 </template>
