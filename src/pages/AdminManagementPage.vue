@@ -257,16 +257,17 @@ function confirmDelete(user) {
 }
 
 .page-title {
-  font-size: 1.5rem;
+  font-size: 2rem;
   font-weight: 700;
+  margin: 0 0 4px;
   color: #111;
-  margin: 0 0 2px;
+  text-align: left;
 }
 
 .page-subtitle {
-  font-size: 0.88rem;
-  color: #64748b;
+  color: #666;
   margin: 0;
+  text-align: left;
 }
 
 /* ── Invite Button ── */

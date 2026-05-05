@@ -434,6 +434,9 @@ async function handleSubmit() {
   font-size: 0.88rem;
   text-align: left;
 }
+.form-group p {
+  text-align: center;
+}
 
 .optional-label {
   font-size: 0.75rem;
@@ -624,11 +627,24 @@ async function handleSubmit() {
 }
 .spacer { flex: 1; }
 
+.step-actions .btn {
+  padding: 10px 22px;
+  border-radius: 8px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
 /* Small Continue / Submit button */
 .step-btn {
   flex: unset !important;
-  padding: 8px 20px !important;
-  font-size: 0.85rem !important;
+  display: block;
+  text-align: left;
+  font-size: 0.85rem;
+  text-decoration: none;
+  font-weight: 600;
+  margin-bottom: 16px;
 }
 
 /* ── Spinner ── */

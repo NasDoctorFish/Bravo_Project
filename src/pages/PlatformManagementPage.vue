@@ -425,6 +425,7 @@ function suspend(c)     { c.status = 'rejected' }
   gap: 14px;
   flex: 1;
   min-width: 0;
+  text-align: left;
 }
 
 .campaign-thumb {
@@ -445,6 +446,7 @@ function suspend(c)     { c.status = 'rejected' }
   color: #111;
   margin: 0 0 4px;
   font-size: 0.95rem;
+  text-align: left;
 }
 
 .campaign-meta {
@@ -454,6 +456,7 @@ function suspend(c)     { c.status = 'rejected' }
   font-size: 0.78rem;
   color: #6b7280;
   margin-bottom: 6px;
+  text-align: left;
 }
 
 .dot {

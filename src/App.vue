@@ -11,9 +11,10 @@ import DashboardPage from './pages/DashboardPage.vue'
 import PlatformManagementPage from './pages/PlatformManagementPage.vue'
 import AdminManagementPage from './pages/AdminManagementPage.vue'
 import DoneeDashboardPage from './pages/DoneeDashboardPage.vue'
+import ReportDashboardPage from './pages/ReportDashboardPage.vue'
 import FavouritesPage from './pages/FavouritesPage.vue'
 
-const page = ref('dashboard')
+const page = ref('home')
 
 function goHome() {
   page.value = 'home'
@@ -62,6 +63,10 @@ function goLogout() {
 function handleCampaignCreated(campaignData) {
   console.log('New campaign created:', campaignData)
   page.value = 'search'
+}
+
+function goReportDashboard() {
+  page.value = 'reportdashboard'
 }
 
 function goFavourites() {
@@ -157,6 +162,16 @@ function goFavourites() {
     @go-search="goSearch"
     @go-creation="goCreate"
     @go-favourites="goFavourites"
+    @go-campaigndetail="goDetail"
+  />
+
+  <ReportDashboardPage
+    v-else-if="page === 'reportdashboard'"
+    @go-home="goHome"
+    @go-login="goLogin"
+    @go-signup="goSignup"
+    @go-search="goSearch"
+    @go-creation="goCreate"
     @go-campaigndetail="goDetail"
   />
 
