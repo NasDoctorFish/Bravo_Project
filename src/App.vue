@@ -6,6 +6,7 @@ import LoginPage from './pages/LoginPage.vue'
 import SignupPage from './pages/SignupPage.vue'
 import FraSearchPage from './pages/FraSearchPage.vue'
 import FraCreationPage from './pages/FraCreationPage.vue'
+import PADashboardPage from './pages/PADashboardPage.vue'
 
 const page = ref('home')
 
@@ -27,6 +28,10 @@ function goSearch() {
 
 function goCreate() {
   page.value = 'creation'
+}
+
+function goPADashboard() {
+  page.value = 'padashboard'
 }
 
 function goLogout() {
@@ -78,5 +83,14 @@ function handleCampaignCreated(campaignData) {
     @go-signup="goSignup"
     @go-search="goSearch"
     @campaign-created="handleCampaignCreated"
+  />
+
+  <PADashboardPage
+    v-else-if="page === 'padashboard'"
+    @go-home="goHome"
+    @go-login="goLogin"
+    @go-signup="goSignup"
+    @go-search="goSearch"
+    @go-creation="goCreate"
   />
 </template>

@@ -25,9 +25,7 @@ const campaigns = ref([])
 
       <nav class="nav-actions">
         <a href="#" class="nav-link" @click.prevent="emit('go-home')">Home</a>
-        <a href="#" class="btn btn-primary" @click.prevent="emit('go-creation')">
-          Start Campaign
-        </a>
+        <a href="#" class="btn btn-primary" @click.prevent="emit('go-creation')">Start Campaign</a>
       </nav>
     </header>
 
