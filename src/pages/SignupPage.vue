@@ -26,8 +26,8 @@ function handleSignup(event) {
       </nav>
 
       <nav class="nav-actions">
-        <a href="#" class="nav-link" @click.prevent="emit('go-home')">Home</a>
-        <a href="#" class="nav-link" @click.prevent="emit('go-login')">Sign In</a>
+        <a href="#" class="nav-link" @click.prevent="emit('go-login')">Login</a>
+        <a href="#" class="btn btn-primary" @click.prevent="emit('go-signup')">Sign Up</a>
       </nav>
     </header>
 
@@ -75,7 +75,7 @@ function handleSignup(event) {
                 :class="{ 'role-card-active': selectedRole === 'fundraiser' }"
                 @click="selectedRole = 'fundraiser'"
               >
-                <span class="role-icon">♥</span>
+                <span class="role-icon">❤️</span>
                 <span class="role-name">Fundraise</span>
                 <span class="role-desc">Create campaigns</span>
               </button>

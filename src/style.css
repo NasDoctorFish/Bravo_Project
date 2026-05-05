@@ -400,7 +400,7 @@ a {
 }
 
 .nav-link:hover {
-  color: #0f172a;
+  color: #2563eb;
 }
 
 .btn {
@@ -466,7 +466,7 @@ a {
 
 .hero h1 {
   margin: 0;
-  font-size: clamp(3rem, 5vw, 4.5rem);
+  font-size: 56px;
   line-height: 1;
 }
 

@@ -59,10 +59,8 @@ async function handleLogin(event) {
       </nav>
 
       <nav class="nav-actions">
-        <a href="#" class="nav-link" @click.prevent="emit('go-home')">Home</a>
-        <a href="#" class="btn btn-primary" @click.prevent="emit('go-signup')">
-          Start Campaign
-        </a>
+        <a href="#" class="nav-link" @click.prevent="emit('go-home')">Login</a>
+        <a href="#" class="btn btn-primary" @click.prevent="emit('go-signup')">Sign Up</a>
       </nav>
     </header>
 

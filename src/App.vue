@@ -9,7 +9,7 @@ import FraCreationPage from './pages/FraCreationPage.vue'
 import PADashboardPage from './pages/PADashboardPage.vue'
 import DoneeDashboardPage from './pages/DoneeDashboardPage.vue'
 
-const page = ref('home')
+const page = ref('doneedashboard')
 
 function goHome() {
   page.value = 'home'

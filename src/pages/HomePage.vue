@@ -16,8 +16,8 @@ const emit = defineEmits(['go-home', 'go-login', 'go-signup', 'go-search'])
       </nav>
 
       <nav class="nav-actions">
-        <a href="#" class="nav-link" @click.prevent="emit('go-login')">Sign In</a>
-        <a href="#" class="btn btn-primary" @click.prevent="emit('go-signup')">Start Campaign</a>
+        <a href="#" class="nav-link" @click.prevent="emit('go-login')">Login</a>
+        <a href="#" class="btn btn-primary" @click.prevent="emit('go-signup')">Sign Up</a>
       </nav>
     </header>
 
