@@ -14,7 +14,7 @@ import DonationHistoryPage from './pages/DonationHistoryPage.vue'
 import ReportDashboardPage from './pages/ReportDashboardPage.vue'
 import FavouritesPage from './pages/FavouritesPage.vue'
 
-const page = ref('favourites')
+const page = ref('home')
 
 function goHome() {
   page.value = 'home'
