@@ -12,7 +12,7 @@ import PlatformManagementPage from './pages/PlatformManagementPage.vue'
 import DoneeDashboardPage from './pages/DoneeDashboardPage.vue'
 import FavouritesPage from './pages/FavouritesPage.vue'
 
-const page = ref('campaigndetail')
+const page = ref('creation')
 
 function goHome() {
   page.value = 'home'
