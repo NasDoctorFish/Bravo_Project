@@ -8,7 +8,7 @@ import FraSearchPage from './pages/FraSearchPage.vue'
 import FraCreationPage from './pages/FraCreationPage.vue'
 import PADashboardPage from './pages/PADashboardPage.vue'
 import DoneeDashboardPage from './pages/DoneeDashboardPage.vue'
-import Favourites from './pages/Favourites.vue'
+import FavouritesPage from './pages/FavouritesPage.vue'
 
 const page = ref('home')
 
@@ -113,7 +113,7 @@ function goFavourites() {
     @go-creation="goCreate"
   />
 
-  <Favourites
+  <FavouritesPage
     v-else-if="page === 'favourites'"
     @go-home="goHome"
     @go-login="goLogin"
