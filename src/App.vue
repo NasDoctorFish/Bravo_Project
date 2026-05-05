@@ -9,6 +9,7 @@ import FraCreationPage from './pages/FraCreationPage.vue'
 import FraDetailPage from './pages/FraDetailPage.vue'
 import DashboardPage from './pages/DashboardPage.vue'
 import PlatformManagementPage from './pages/PlatformManagementPage.vue'
+import AdminManagementPage from './pages/AdminManagementPage.vue'
 import DoneeDashboardPage from './pages/DoneeDashboardPage.vue'
 import FavouritesPage from './pages/FavouritesPage.vue'
 
@@ -44,6 +45,10 @@ function goPlatformManagement() {
 
 function goDashboard() {
   page.value = 'dashboard'
+}
+
+function goAdminManagement() {
+  page.value = 'adminmanagement'
 }
 
 function goDoneeDashboard() {
@@ -123,8 +128,19 @@ function goFavourites() {
     @go-creation="goCreate"
     @go-campaigndetail="goDetail"
   />
+  
   <DashboardPage
     v-else-if="page === 'dashboard'"
+    @go-home="goHome"
+    @go-login="goLogin"
+    @go-signup="goSignup"
+    @go-search="goSearch"
+    @go-creation="goCreate"
+    @go-campaigndetail="goDetail"
+  />
+
+  <AdminManagementPage
+    v-else-if="page === 'adminmanagement'"
     @go-home="goHome"
     @go-login="goLogin"
     @go-signup="goSignup"

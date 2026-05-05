@@ -166,14 +166,15 @@ const activity = [
 }
 
 .dash-title {
-  font-size: 1.5rem;
+  font-size: 2rem;
   font-weight: 700;
+  margin: 0 0 4px;
   color: #111;
-  margin: 0 0 2px;
+  text-align: left;
 }
 
 .dash-subtitle {
-  font-size: 0.88rem;
+  font-size: 1rem;
   color: #64748b;
   margin: 0;
 }
