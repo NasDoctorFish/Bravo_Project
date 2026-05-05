@@ -10,11 +10,11 @@ import FraDetailPage from './pages/FraDetailPage.vue'
 import DashboardPage from './pages/DashboardPage.vue'
 import PlatformManagementPage from './pages/PlatformManagementPage.vue'
 import AdminManagementPage from './pages/AdminManagementPage.vue'
-import DoneeDashboardPage from './pages/DoneeDashboardPage.vue'
+import DonationHistoryPage from './pages/DonationHistoryPage.vue'
 import ReportDashboardPage from './pages/ReportDashboardPage.vue'
 import FavouritesPage from './pages/FavouritesPage.vue'
 
-const page = ref('home')
+const page = ref('favourites')
 
 function goHome() {
   page.value = 'home'
@@ -52,8 +52,8 @@ function goAdminManagement() {
   page.value = 'adminmanagement'
 }
 
-function goDoneeDashboard() {
-  page.value = 'doneedashboard'
+function goDonationHistory() {
+  page.value = 'donationhistory'
 }
 
 function goLogout() {
@@ -154,8 +154,8 @@ function goFavourites() {
     @go-campaigndetail="goDetail"
   />
 
-  <DoneeDashboardPage
-    v-else-if="page === 'doneedashboard'"
+  <DonationHistoryPage
+    v-else-if="page === 'donationhistory'"
     @go-home="goHome"
     @go-login="goLogin"
     @go-signup="goSignup"

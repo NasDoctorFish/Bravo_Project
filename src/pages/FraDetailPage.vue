@@ -12,6 +12,7 @@ const copied = ref(false)
 const tabs = ['About', 'Updates', 'Donors']
 
 const campaign = {
+  id: 1,
   title: 'Clean Water for Rural Schools',
   organizer: 'Jane Doe',
   category: 'Education',
@@ -41,6 +42,37 @@ const campaign = {
 
 const pct = computed(() => Math.round((campaign.raised / campaign.goal) * 100))
 const daysLeft = computed(() => 60)
+const FAVORITES_KEY = 'fundrise-favorites'
+
+const getSavedFavorites = () => {
+  try {
+    return JSON.parse(localStorage.getItem(FAVORITES_KEY) || '[]')
+  } catch {
+    return []
+  }
+}
+
+const favoriteList = ref(getSavedFavorites())
+
+const saveFavorites = (list) => {
+  localStorage.setItem(FAVORITES_KEY, JSON.stringify(list))
+}
+
+const isFavorited = computed(() =>
+  favoriteList.value.some(item => item.id === campaign.id)
+)
+
+function toggleFavorite() {
+  const exists = favoriteList.value.some(item => item.id === campaign.id)
+  const updated = exists
+    ? favoriteList.value.filter(item => item.id !== campaign.id)
+    : [...favoriteList.value, campaign]
+
+  saveFavorites(updated)
+  favoriteList.value = updated
+  favoriteMessage.value = exists ? 'Removed from favourites' : 'Saved to favourites'
+  setTimeout(() => { favoriteMessage.value = '' }, 2200)
+}
 
 async function handleDonate() {
   if (!donateAmount.value) return
@@ -93,12 +125,22 @@ function copyLink() {
         />
         <div class="hero-overlay">
           <span :class="['status-badge', 'status-' + campaign.status]">{{ campaign.status }}</span>
+          <button
+            class="favorite-btn"
+            :class="{ saved: isFavorited }"
+            type="button"
+            @click="toggleFavorite"
+          >
+            <span class="favorite-icon">{{ isFavorited ? '♥' : '♡' }}</span>
+            {{ isFavorited ? 'Saved' : 'Save' }}
+          </button>
           <h1>{{ campaign.title }}</h1>
           <p class="hero-meta">
             By <strong>{{ campaign.organizer }}</strong>
             · {{ campaign.category }}
             · Ends {{ campaign.endDate }}
           </p>
+          <p v-if="favoriteMessage" class="favorite-message">{{ favoriteMessage }}</p>
         </div>
       </div>
 
@@ -711,5 +753,44 @@ function copyLink() {
 
 @keyframes spin {
   to { transform: rotate(360deg); }
+}
+
+.favorite-btn {
+  position: absolute;
+  top: 24px;
+  right: 24px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  border: 1px solid rgba(255,255,255,0.9);
+  border-radius: 999px;
+  background: rgba(255,255,255,0.18);
+  color: #fff;
+  backdrop-filter: blur(10px);
+  cursor: pointer;
+  font-size: 0.92rem;
+  font-weight: 700;
+  transition: transform 0.15s, background 0.15s, border-color 0.15s;
+}
+
+.favorite-btn:hover {
+  transform: translateY(-1px);
+  background: rgba(255,255,255,0.26);
+}
+
+.favorite-btn.saved {
+  background: rgba(220,38,38,0.92);
+  border-color: rgba(220,38,38,0.92);
+}
+
+.favorite-icon {
+  font-size: 1rem;
+}
+
+.favorite-message {
+  color: #d1fae5;
+  margin-top: 10px;
+  font-size: 0.88rem;
 }
 </style>

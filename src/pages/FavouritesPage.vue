@@ -5,11 +5,27 @@ const emit = defineEmits(['go-home', 'go-logout', 'go-search', 'go-campaigndetai
 
 const favorites = ref([])
 const loading = ref(true)
+const FAVORITES_KEY = 'fundrise-favorites'
 
-const projectId = import.meta.env.VITE_SUPABASE_PROJECT_ID
-const accessToken = ref(localStorage.getItem('accessToken') || '')
+const getLocalFavorites = () => {
+  try {
+    return JSON.parse(localStorage.getItem(FAVORITES_KEY) || '[]')
+  } catch {
+    return []
+  }
+}
 
 const fetchFavorites = async () => {
+  const localData = getLocalFavorites()
+  if (localData.length) {
+    favorites.value = localData
+    loading.value = false
+    return
+  }
+
+  const projectId = import.meta.env.VITE_SUPABASE_PROJECT_ID
+  const accessToken = ref(localStorage.getItem('accessToken') || '')
+
   try {
     const response = await fetch(
       `https://${projectId}.supabase.co/functions/v1/make-server-f9d90081/favorites`,
