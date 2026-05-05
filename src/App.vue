@@ -6,12 +6,13 @@ import LoginPage from './pages/LoginPage.vue'
 import SignupPage from './pages/SignupPage.vue'
 import FraSearchPage from './pages/FraSearchPage.vue'
 import FraCreationPage from './pages/FraCreationPage.vue'
+import FraDetailPage from './pages/FraDetailPage.vue'
 import PADashboardPage from './pages/PADashboardPage.vue'
 import PlatformManagementPage from './pages/PlatformManagementPage.vue'
 import DoneeDashboardPage from './pages/DoneeDashboardPage.vue'
 import FavouritesPage from './pages/FavouritesPage.vue'
 
-const page = ref('home')
+const page = ref('campaigndetail')
 
 function goHome() {
   page.value = 'home'
@@ -31,6 +32,10 @@ function goSearch() {
 
 function goCreate() {
   page.value = 'creation'
+}
+
+function goDetail() {
+  page.value = 'campaigndetail'
 }
 
 function goPlatformManagement() {
@@ -67,6 +72,7 @@ function goFavourites() {
     @go-signup="goSignup"
     @go-search="goSearch"
     @go-create="goCreate"
+    @go-campaigndetail="goDetail"
   />
 
   <LoginPage
@@ -89,6 +95,7 @@ function goFavourites() {
     @go-login="goLogin"
     @go-signup="goSignup"
     @go-search="goSearch"
+    @go-campaigndetail="goDetail"
   />
 
   <FraCreationPage
@@ -99,6 +106,14 @@ function goFavourites() {
     @go-search="goSearch"
     @campaign-created="handleCampaignCreated"
   />
+
+  <FraDetailPage
+  v-else-if="page === 'campaigndetail'"
+  @go-home="goHome"
+  @go-logout="goLogout"
+  @go-search="goSearch"
+  />
+  
   <PlatformManagementPage
     v-else-if="page === 'platformmanagement'"
     @go-home="goHome"
@@ -106,6 +121,7 @@ function goFavourites() {
     @go-signup="goSignup"
     @go-search="goSearch"
     @go-creation="goCreate"
+    @go-campaigndetail="goDetail"
   />
   <PADashboardPage
     v-else-if="page === 'padashboard'"
@@ -114,6 +130,7 @@ function goFavourites() {
     @go-signup="goSignup"
     @go-search="goSearch"
     @go-creation="goCreate"
+    @go-campaigndetail="goDetail"
   />
 
   <DoneeDashboardPage
@@ -124,6 +141,7 @@ function goFavourites() {
     @go-search="goSearch"
     @go-creation="goCreate"
     @go-favourites="goFavourites"
+    @go-campaigndetail="goDetail"
   />
 
   <FavouritesPage
@@ -133,5 +151,6 @@ function goFavourites() {
     @go-signup="goSignup"
     @go-search="goSearch"
     @go-creation="goCreate"
+    @go-campaigndetail="goDetail"
   />
 </template>

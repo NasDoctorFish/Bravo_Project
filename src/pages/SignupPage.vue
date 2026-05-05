@@ -51,7 +51,7 @@ async function handleSignup() {
       </a>
 
       <nav class="nav">
-        <a href="#" class="nav-link">Donate</a>
+        <a href="#" class="nav-link">⌕ Donate</a>
         <a href="#" class="nav-link">Fundraising</a>
       </nav>
 

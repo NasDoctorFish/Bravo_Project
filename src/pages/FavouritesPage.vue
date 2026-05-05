@@ -1,7 +1,7 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 
-const emit = defineEmits(['go-home', 'go-logout', 'go-search', 'go-campaign'])
+const emit = defineEmits(['go-home', 'go-logout', 'go-search', 'go-campaigndetail'])
 
 const favorites = ref([])
 const loading = ref(true)
@@ -92,7 +92,7 @@ onMounted(() => {
             v-for="campaign in favorites"
             :key="campaign.id"
             class="campaign-card"
-            @click="emit('go-campaign', campaign)"
+            @click="emit('go-campaigndetail', campaign)"
           >
             <!-- Image -->
             <div class="campaign-image-wrap">

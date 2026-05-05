@@ -1,7 +1,7 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 
-const emit = defineEmits(['go-home', 'go-login', 'go-logout', 'go-search', 'go-favorites', 'go-history', 'go-campaign'])
+const emit = defineEmits(['go-home', 'go-login', 'go-logout', 'go-search', 'go-favorites', 'go-history', 'go-campaigndetail'])
 
 const campaigns = ref([])
 const donations = ref([])
@@ -169,7 +169,7 @@ onMounted(() => {
           v-for="campaign in campaigns"
           :key="campaign.id"
           class="campaign-card"
-          @click="emit('go-campaign', campaign)"
+          @click="emit('go-campaigndetail', campaign)"
         >
           <div class="campaign-image-wrap">
             <img
