@@ -7,6 +7,7 @@ import SignupPage from './pages/SignupPage.vue'
 import FraSearchPage from './pages/FraSearchPage.vue'
 import FraCreationPage from './pages/FraCreationPage.vue'
 import PADashboardPage from './pages/PADashboardPage.vue'
+import PlatformManagementPage from './pages/PlatformManagementPage.vue'
 import DoneeDashboardPage from './pages/DoneeDashboardPage.vue'
 import FavouritesPage from './pages/FavouritesPage.vue'
 
@@ -30,6 +31,10 @@ function goSearch() {
 
 function goCreate() {
   page.value = 'creation'
+}
+
+function goPlatformManagement() {
+  page.value = 'platformmanagement'
 }
 
 function goPADashboard() {
@@ -94,7 +99,14 @@ function goFavourites() {
     @go-search="goSearch"
     @campaign-created="handleCampaignCreated"
   />
-
+  <PlatformManagementPage
+    v-else-if="page === 'platformmanagement'"
+    @go-home="goHome"
+    @go-login="goLogin"
+    @go-signup="goSignup"
+    @go-search="goSearch"
+    @go-creation="goCreate"
+  />
   <PADashboardPage
     v-else-if="page === 'padashboard'"
     @go-home="goHome"
@@ -111,6 +123,7 @@ function goFavourites() {
     @go-signup="goSignup"
     @go-search="goSearch"
     @go-creation="goCreate"
+    @go-favourites="goFavourites"
   />
 
   <FavouritesPage
