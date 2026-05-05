@@ -109,7 +109,7 @@ const handleCancel = () => {
   <div class="creation-page">
     <header class="header">
       <a href="#" class="brand" @click.prevent="emit('go-home')">
-        <span class="logo"></span>
+        <span class="logo">♥</span>
         <span>FundRise</span>
       </a>
 
@@ -122,8 +122,7 @@ const handleCancel = () => {
         <a href="#" class="nav-link">Dashboard</a>
         <span class="user-info">{user} (fundraiser)</span>
         <a href="#" class="nav-link logout-link" @click.prevent="emit('go-logout')">
-          <span class="logout-icon">⇢</span> Logout
-        </a>
+          <span class="logout-icon">⇢</span> Logout</a>
       </nav>
     </header>
 
