@@ -8,8 +8,9 @@ import FraSearchPage from './pages/FraSearchPage.vue'
 import FraCreationPage from './pages/FraCreationPage.vue'
 import PADashboardPage from './pages/PADashboardPage.vue'
 import DoneeDashboardPage from './pages/DoneeDashboardPage.vue'
+import Favourites from './pages/Favourites.vue'
 
-const page = ref('doneedashboard')
+const page = ref('home')
 
 function goHome() {
   page.value = 'home'
@@ -46,6 +47,10 @@ function goLogout() {
 function handleCampaignCreated(campaignData) {
   console.log('New campaign created:', campaignData)
   page.value = 'search'
+}
+
+function goFavourites() {
+  page.value = 'favourites'
 }
 </script>
 
@@ -101,6 +106,15 @@ function handleCampaignCreated(campaignData) {
 
   <DoneeDashboardPage
     v-else-if="page === 'doneedashboard'"
+    @go-home="goHome"
+    @go-login="goLogin"
+    @go-signup="goSignup"
+    @go-search="goSearch"
+    @go-creation="goCreate"
+  />
+
+  <Favourites
+    v-else-if="page === 'favourites'"
     @go-home="goHome"
     @go-login="goLogin"
     @go-signup="goSignup"
