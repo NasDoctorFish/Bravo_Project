@@ -303,7 +303,7 @@ function suspend(c)     { c.status = 'rejected' }
 .dashboard-section {
   background: #fff;
   border-radius: 12px;
-  padding: 28px;
+  padding: 24px;
   box-shadow: 0 2px 8px rgba(0,0,0,0.06);
 }
 

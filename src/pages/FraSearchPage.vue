@@ -270,8 +270,7 @@ const progressPercent = (c) => Math.min(Math.round((c.raised / c.goal) * 100), 1
 .dashboard-section {
   background: #fff;
   border-radius: 12px;
-  padding: 20px 24px;
-  margin-bottom: 20px;
+  padding: 24px;
   box-shadow: 0 2px 8px rgba(0,0,0,0.06);
 }
 
