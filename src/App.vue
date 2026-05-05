@@ -7,12 +7,12 @@ import SignupPage from './pages/SignupPage.vue'
 import FraSearchPage from './pages/FraSearchPage.vue'
 import FraCreationPage from './pages/FraCreationPage.vue'
 import FraDetailPage from './pages/FraDetailPage.vue'
-import PADashboardPage from './pages/PADashboardPage.vue'
+import DashboardPage from './pages/DashboardPage.vue'
 import PlatformManagementPage from './pages/PlatformManagementPage.vue'
 import DoneeDashboardPage from './pages/DoneeDashboardPage.vue'
 import FavouritesPage from './pages/FavouritesPage.vue'
 
-const page = ref('creation')
+const page = ref('dashboard')
 
 function goHome() {
   page.value = 'home'
@@ -42,8 +42,8 @@ function goPlatformManagement() {
   page.value = 'platformmanagement'
 }
 
-function goPADashboard() {
-  page.value = 'padashboard'
+function goDashboard() {
+  page.value = 'dashboard'
 }
 
 function goDoneeDashboard() {
@@ -123,8 +123,8 @@ function goFavourites() {
     @go-creation="goCreate"
     @go-campaigndetail="goDetail"
   />
-  <PADashboardPage
-    v-else-if="page === 'padashboard'"
+  <DashboardPage
+    v-else-if="page === 'dashboard'"
     @go-home="goHome"
     @go-login="goLogin"
     @go-signup="goSignup"
