@@ -1244,6 +1244,7 @@ a {
   font-weight: 500;
   color: #1f2937;
   font-size: 0.9rem;
+  text-align: left;
 }
 
 .required {
