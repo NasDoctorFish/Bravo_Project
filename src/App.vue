@@ -75,6 +75,10 @@ function goFavourites() {
 </script>
 
 <template>
+
+   <!-- Added for router -->
+  <RouterView />
+  <!---->
   <HomePage
     v-if="page === 'home'"
     @go-home="goHome"
