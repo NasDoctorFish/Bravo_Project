@@ -1,142 +1,69 @@
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed } from 'vue'
 
 const emit = defineEmits(['go-home', 'go-login', 'go-logout', 'go-search', 'go-favorites', 'go-history', 'go-campaigndetail'])
 
-const campaigns = ref([])
-const donations = ref([])
-const favorites = ref([])
-const loading = ref(true)
+const donations = ref([
+  { donationId: 'D001', fsaName: 'Clean Water Initiative',  category: 'Environment', amount: 150, donatedAt: '2026-04-01', progress: 74,  fsaStatus: 'active'    },
+  { donationId: 'D002', fsaName: 'School Supplies Drive',   category: 'Education',   amount: 200, donatedAt: '2026-03-15', progress: 100, fsaStatus: 'completed' },
+  { donationId: 'D003', fsaName: 'Medical Aid Fund',        category: 'Health',      amount: 500, donatedAt: '2026-02-20', progress: 46,  fsaStatus: 'active'    },
+  { donationId: 'D004', fsaName: 'Elderly Care Program',    category: 'Social',      amount: 100, donatedAt: '2026-01-10', progress: 15,  fsaStatus: 'pending'   },
+  { donationId: 'D005', fsaName: 'Food Bank Support',       category: 'Social',      amount: 75,  donatedAt: '2026-03-28', progress: 60,  fsaStatus: 'active'    },
+  { donationId: 'D006', fsaName: 'Tree Planting Project',   category: 'Environment', amount: 250, donatedAt: '2026-04-05', progress: 88,  fsaStatus: 'active'    },
+  { donationId: 'D007', fsaName: 'Scholarship Fund',        category: 'Education',   amount: 300, donatedAt: '2026-02-01', progress: 100, fsaStatus: 'completed' },
+])
 
+const searchKeyword   = ref('')
 const selectedCategory = ref('')
-const startDate = ref('')
-const endDate = ref('')
-const query = ref('')
-const filters = ref({ category: '', status: '', sort: 'recent' })
+const startDate       = ref('')
+const endDate         = ref('')
+const sortBy          = ref('date-desc')
+const selectedDonation = ref(null)
 
-const projectId = import.meta.env.VITE_SUPABASE_PROJECT_ID
-const publicAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY
-const accessToken = ref(localStorage.getItem('accessToken') || '')
-
-const fetchData = async () => {
-  try {
-    const [campaignsRes, donationsRes, favoritesRes] = await Promise.all([
-      fetch(
-        `https://${projectId}.supabase.co/functions/v1/make-server-f9d90081/campaigns`,
-        { headers: { Authorization: `Bearer ${publicAnonKey}` } }
-      ),
-      fetch(
-        `https://${projectId}.supabase.co/functions/v1/make-server-f9d90081/donations`,
-        { headers: { Authorization: `Bearer ${accessToken.value}` } }
-      ),
-      fetch(
-        `https://${projectId}.supabase.co/functions/v1/make-server-f9d90081/favorites`,
-        { headers: { Authorization: `Bearer ${accessToken.value}` } }
-      ),
-    ])
-
-    if (campaignsRes.ok) {
-      const data = await campaignsRes.json()
-      campaigns.value = data.campaigns
-    }
-
-    if (donationsRes.ok) {
-      const data = await donationsRes.json()
-      donations.value = data.donations
-    }
-
-    if (favoritesRes.ok) {
-      const data = await favoritesRes.json()
-      favorites.value = data.campaigns
-    }
-  } catch (err) {
-    console.error('Error fetching data:', err)
-  } finally {
-    loading.value = false
-  }
-}
-
-const totalDonated = computed(() =>
-  donations.value.reduce((sum, d) => sum + d.amount, 0)
-)
-
-const campaignsSupported = computed(() =>
-  new Set(donations.value.map((d) => d.campaignId)).size
-)
-
-const categories = computed(() =>
-  [...new Set(campaigns.value.map(c => c.category))]
-)
+const categories = computed(() => [...new Set(donations.value.map(d => d.category))])
+const totalAmount = computed(() => donations.value.reduce((sum, d) => sum + d.amount, 0))
+const completedCount = computed(() => donations.value.filter(d => d.fsaStatus === 'completed').length)
 
 const filteredDonations = computed(() => {
   let result = [...donations.value]
 
-  // Search filter
-  if (query.value) {
-    const q = query.value.toLowerCase()
-    result = result.filter(donation => {
-      const campaign = campaigns.value.find(c => c.id === donation.campaignId)
-      return campaign && (
-        campaign.title.toLowerCase().includes(q) ||
-        campaign.category.toLowerCase().includes(q) ||
-        campaign.organizer?.toLowerCase().includes(q)
-      )
-    })
-  }
+  if (searchKeyword.value)
+    result = result.filter(d => d.fsaName.toLowerCase().includes(searchKeyword.value.toLowerCase()))
+  if (selectedCategory.value)
+    result = result.filter(d => d.category === selectedCategory.value)
+  if (startDate.value)
+    result = result.filter(d => d.donatedAt >= startDate.value)
+  if (endDate.value)
+    result = result.filter(d => d.donatedAt <= endDate.value)
 
-  // Category filter
-  if (filters.value.category) {
-    result = result.filter(donation => {
-      const campaign = campaigns.value.find(c => c.id === donation.campaignId)
-      return campaign && campaign.category === filters.value.category
-    })
-  }
-
-  // Status filter
-  if (filters.value.status) {
-    result = result.filter(donation => {
-      const campaign = campaigns.value.find(c => c.id === donation.campaignId)
-      return campaign && campaign.status === filters.value.status
-    })
-  }
-
-  // Date range filter
-  if (startDate.value) {
-    result = result.filter(donation => new Date(donation.date) >= new Date(startDate.value))
-  }
-  if (endDate.value) {
-    result = result.filter(donation => new Date(donation.date) <= new Date(endDate.value))
-  }
-
-  // Sort
-  if (filters.value.sort === 'amount') {
-    result.sort((a, b) => b.amount - a.amount)
-  } else if (filters.value.sort === 'recent') {
-    result.sort((a, b) => new Date(b.date) - new Date(a.date))
-  }
+  result.sort((a, b) => {
+    if (sortBy.value === 'date-desc')   return b.donatedAt.localeCompare(a.donatedAt)
+    if (sortBy.value === 'date-asc')    return a.donatedAt.localeCompare(b.donatedAt)
+    if (sortBy.value === 'amount-desc') return b.amount - a.amount
+    if (sortBy.value === 'amount-asc')  return a.amount - b.amount
+    return 0
+  })
 
   return result
 })
 
-const progressPercent = (campaign) =>
-  Math.min(Math.round((campaign.raised / campaign.goal) * 100), 100)
-
-const getCampaign = (campaignId) => campaigns.value.find(c => c.id === campaignId)
-
-function clearFilters() {
-  filters.value = { category: '', status: '', sort: 'recent' }
-  query.value = ''
-  startDate.value = ''
-  endDate.value = ''
+function resetFilters() {
+  searchKeyword.value    = ''
+  selectedCategory.value = ''
+  startDate.value        = ''
+  endDate.value          = ''
+  sortBy.value           = 'date-desc'
 }
 
-onMounted(() => {
-  fetchData()
-})
+function selectDonation(d) { selectedDonation.value = d }
+
+function formatDate(dateStr) {
+  return new Date(dateStr).toLocaleDateString('en-AU', { day: 'numeric', month: 'short', year: 'numeric' })
+}
 </script>
 
 <template>
-  <div class="donee-page">
+  <div class="history-page">
 
     <!-- Header -->
     <header class="header">
@@ -151,6 +78,7 @@ onMounted(() => {
       </nav>
 
       <nav class="nav-actions">
+        <a href="#" class="nav-link" @click.prevent="emit('go-favourites')">♥ Favourites</a>
         <a href="#" class="nav-link" @click.prevent="emit('go-home')">Home</a>
         <a href="#" class="nav-link logout-link" @click.prevent="emit('go-logout')">
           <span class="logout-icon">⇢</span> Logout
@@ -158,125 +86,124 @@ onMounted(() => {
       </nav>
     </header>
 
-    <!-- Loading -->
-    <div v-if="loading" class="loading-screen">
-      <p>Loading...</p>
-    </div>
-
-    <div v-else class="donee-container">
+    <div class="history-container">
 
       <!-- Page Title -->
       <div class="dashboard-header">
         <h1>Donation History</h1>
-        <p>View your past donations</p>
+        <p>Track all your past donations</p>
       </div>
 
-      <!-- Search Bar -->
-      <div class="search-bar-wrap">
-        <span class="search-icon">⌕</span>
-        <input
-          v-model="query"
-          type="text"
-          class="search-input"
-          placeholder="Search by campaign title, category, or organizer…"
-        />
-        <button v-if="query" class="clear-btn" @click="query = ''">✕</button>
+      <!-- Summary Cards -->
+      <div class="stats-grid">
+        <div class="stat-card">
+          <div class="stat-icon-wrap stat-icon-green">💰</div>
+          <div class="stat-info">
+            <p class="stat-label">Total Donated</p>
+            <p class="stat-value">${{ totalAmount.toLocaleString() }}</p>
+          </div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon-wrap stat-icon-blue">📋</div>
+          <div class="stat-info">
+            <p class="stat-label">Total Donations</p>
+            <p class="stat-value">{{ donations.length }}</p>
+          </div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon-wrap stat-icon-purple">🏆</div>
+          <div class="stat-info">
+            <p class="stat-label">Completed FSAs</p>
+            <p class="stat-value">{{ completedCount }}</p>
+          </div>
+        </div>
       </div>
 
       <!-- Filters -->
       <section class="dashboard-section filters-section">
         <div class="filters-row">
-          <div class="form-group">
-            <label>Category</label>
-            <select v-model="filters.category" class="form-select">
-              <option value="">All Categories</option>
-              <option v-for="cat in categories" :key="cat" :value="cat">{{ cat }}</option>
-            </select>
+
+          <div class="search-pill search-pill-filter">
+            <span class="search-icon">⌕</span>
+            <input
+              v-model="searchKeyword"
+              type="text"
+              placeholder="Search donations…"
+            />
           </div>
 
-          <div class="form-group">
-            <label>Status</label>
-            <select v-model="filters.status" class="form-select">
-              <option value="">Any Status</option>
-              <option value="active">Active</option>
-              <option value="completed">Completed</option>
-              <option value="pending">Pending</option>
-            </select>
-          </div>
+          <select v-model="selectedCategory" class="form-select filter-select">
+            <option value="">All Categories</option>
+            <option v-for="cat in categories" :key="cat" :value="cat">{{ cat }}</option>
+          </select>
 
-          <div class="form-group">
-            <label>Sort By</label>
-            <select v-model="filters.sort" class="form-select">
-              <option value="recent">Most Recent</option>
-              <option value="amount">Highest Amount</option>
-            </select>
-          </div>
+          <input v-model="startDate" type="date" class="form-input date-input" />
+          <span class="date-sep">to</span>
+          <input v-model="endDate" type="date" class="form-input date-input" />
 
-          <div class="form-group">
-            <label>Start Date</label>
-            <input type="date" v-model="startDate" class="form-select">
-          </div>
+          <select v-model="sortBy" class="form-select filter-select">
+            <option value="date-desc">Date (Newest)</option>
+            <option value="date-asc">Date (Oldest)</option>
+            <option value="amount-desc">Amount (Highest)</option>
+            <option value="amount-asc">Amount (Lowest)</option>
+          </select>
 
-          <div class="form-group">
-            <label>End Date</label>
-            <input type="date" v-model="endDate" class="form-select">
-          </div>
-
-          <div class="form-group filter-btn-group">
-            <label>&nbsp;</label>
-            <button class="btn btn-cancel" @click="clearFilters">Clear Filters</button>
-          </div>
+          <button class="btn btn-cancel" @click="resetFilters">Reset</button>
         </div>
       </section>
 
-      <!-- Results Count -->
-      <p class="results-count">
-        {{ filteredDonations.length }} donation{{ filteredDonations.length !== 1 ? 's' : '' }} found
-      </p>
-
-      <!-- Donation History -->
-      <div v-if="filteredDonations.length === 0" class="empty-state">
-        <p>No donations found matching the filters</p>
-      </div>
-
-      <div v-else class="donations-list">
-        <div
-          v-for="donation in filteredDonations"
-          :key="donation.id"
-          class="donation-item"
-        >
-          <div class="donation-header">
-            <div class="donation-image-wrap">
-              <img
-                v-if="getCampaign(donation.campaignId)?.imageUrl"
-                :src="getCampaign(donation.campaignId).imageUrl"
-                :alt="getCampaign(donation.campaignId).title"
-                class="donation-image"
-              />
-              <div v-else class="donation-image-placeholder">🎯</div>
-            </div>
-            <div class="donation-details">
-              <h4 class="donation-title">{{ getCampaign(donation.campaignId)?.title }}</h4>
-              <p class="donation-category">{{ getCampaign(donation.campaignId)?.category }}</p>
-              <p class="donation-amount">Donated: ${{ donation.amount.toLocaleString() }}</p>
-              <p class="donation-date">Date: {{ new Date(donation.date).toLocaleDateString() }}</p>
-            </div>
-          </div>
-          <div class="campaign-progress">
-            <div class="progress-bar">
-              <div
-                class="progress-fill"
-                :style="{ width: progressPercent(getCampaign(donation.campaignId)) + '%' }"
-              ></div>
-            </div>
-            <div class="progress-labels">
-              <span class="progress-raised">${{ getCampaign(donation.campaignId)?.raised?.toLocaleString() }} raised</span>
-              <span class="progress-pct">{{ progressPercent(getCampaign(donation.campaignId)) }}%</span>
-            </div>
-            <p class="campaign-goal">Goal: ${{ getCampaign(donation.campaignId)?.goal?.toLocaleString() }}</p>
-          </div>
+      <!-- Donations Table -->
+      <section class="dashboard-section">
+        <div class="section-title-row">
+          <h2>Donations ({{ filteredDonations.length }})</h2>
         </div>
-      </div>
+
+        <div class="table-wrapper">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>FSA Name</th>
+                <th>Category</th>
+                <th>Amount</th>
+                <th>Date</th>
+                <th>Progress</th>
+                <th>Status</th>
+                <th>Details</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-if="filteredDonations.length === 0">
+                <td colspan="7" class="empty-row">No records found.</td>
+              </tr>
+              <tr
+                v-for="d in filteredDonations"
+                :key="d.donationId"
+                class="clickable-row"
+                @click="selectDonation(d)"
+              >
+                <td class="td-name">{{ d.fsaName }}</td>
+                <td><span class="cat-tag">{{ d.category }}</span></td>
+                <td class="td-green">${{ d.amount.toLocaleString() }}</td>
+                <td>{{ formatDate(d.donatedAt) }}</td>
+                <td>
+                  <div class="mini-progress-wrap">
+                    <div class="mini-progress">
+                      <div class="mini-fill" :style="{ width: d.progress + '%' }"></div>
+                    </div>
+                    <span class="mini-pct">{{ d.progress }}%</span>
+                  </div>
+                </td>
+                <td>
+                  <span :class="['status-badge', 'status-' + d.fsaStatus]">{{ d.fsaStatus }}</span>
+                </td>
+                <td>
+                  <button class="btn btn-detail" @click.stop="selectDonation(d)">View</button>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
 
     </div>
 
@@ -284,40 +211,65 @@ onMounted(() => {
     <footer class="footer">
       <p>© 2026 FundRise. Supporting dreams, one donation at a time.</p>
     </footer>
+
+    <!-- Detail Modal -->
+    <div v-if="selectedDonation" class="drawer-overlay" @click.self="selectedDonation = null">
+      <div class="drawer">
+        <div class="drawer-header">
+          <h3>Donation Detail</h3>
+          <button class="drawer-close" @click="selectedDonation = null">✕</button>
+        </div>
+        <div class="drawer-body">
+
+          <div class="drawer-section">
+            <div class="dl"><span class="dt">FSA Name</span><span class="dd">{{ selectedDonation.fsaName }}</span></div>
+            <div class="dl"><span class="dt">Category</span><span class="dd">{{ selectedDonation.category }}</span></div>
+            <div class="dl"><span class="dt">Amount Donated</span><span class="dd td-green">${{ selectedDonation.amount.toLocaleString() }}</span></div>
+            <div class="dl"><span class="dt">Date</span><span class="dd">{{ formatDate(selectedDonation.donatedAt) }}</span></div>
+            <div class="dl">
+              <span class="dt">Status</span>
+              <span class="dd"><span :class="['status-badge', 'status-' + selectedDonation.fsaStatus]">{{ selectedDonation.fsaStatus }}</span></span>
+            </div>
+          </div>
+
+          <div class="drawer-section">
+            <p class="dt" style="margin-bottom: 8px;">FSA Progress</p>
+            <div class="mini-progress-wrap">
+              <div class="mini-progress mini-progress-lg">
+                <div class="mini-fill" :style="{ width: selectedDonation.progress + '%' }"></div>
+              </div>
+              <span class="mini-pct">{{ selectedDonation.progress }}%</span>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+
   </div>
 </template>
 
 <style scoped>
 /* ── Layout ── */
-.donee-page {
+.history-page {
   min-height: 100vh;
   display: flex;
   flex-direction: column;
   background: #f5f5f5;
 }
 
-.donee-container {
+.history-container {
   max-width: 1100px;
   margin: 0 auto;
-  padding: 40px 24px;
+  padding: 40px 24px 60px;
   flex: 1;
   width: 100%;
   box-sizing: border-box;
 }
 
-/* ── Loading ── */
-.loading-screen {
-  flex: 1;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 1.1rem;
-  color: #666;
-}
-
 /* ── Page Title ── */
 .dashboard-header {
-  margin-bottom: 28px;
+  margin-bottom: 24px;
 }
 
 .dashboard-header h1 {
@@ -372,7 +324,6 @@ onMounted(() => {
   color: #6b7280;
   margin: 0 0 4px;
   font-weight: 500;
-  text-align: left;
 }
 
 .stat-value {
@@ -380,431 +331,277 @@ onMounted(() => {
   font-weight: 700;
   color: #111827;
   margin: 0;
-  text-align: left;
 }
 
-/* ── Action Cards ── */
-.action-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: 16px;
-  margin-bottom: 36px;
-}
-
-.action-card {
-  display: flex;
-  flex-direction: column;
-  padding: 24px;
-  border-radius: 12px;
-  text-decoration: none;
-  color: #fff;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.12);
-  transition: box-shadow 0.2s, transform 0.2s;
-}
-
-.action-card:hover {
-  box-shadow: 0 8px 20px rgba(0,0,0,0.18);
-  transform: translateY(-2px);
-}
-
-.action-blue   { background: linear-gradient(135deg, #3b82f6, #2563eb); }
-.action-purple { background: linear-gradient(135deg, #a855f7, #9333ea); }
-.action-green  { background: linear-gradient(135deg, #22c55e, #16a34a); }
-
-.action-icon {
-  font-size: 1.8rem;
-  margin-bottom: 12px;
-}
-
-.action-card h3 {
-  font-size: 1.1rem;
-  font-weight: 700;
-  margin: 0 0 6px;
-}
-
-.action-card p {
-  font-size: 0.85rem;
-  margin: 0;
-  opacity: 0.85;
-}
-
-/* ── Section Header ── */
-.section-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 16px;
-}
-
-.section-header h2 {
-  font-size: 1.5rem;
-  font-weight: 700;
-  margin: 0;
-  color: #111;
-}
-
-.view-all-link {
-  font-size: 0.9rem;
-  color: #2563eb;
-  text-decoration: none;
-}
-
-.view-all-link:hover {
-  text-decoration: underline;
-}
-
-/* ── Empty State ── */
-.empty-state {
-  background: #fff;
-  border-radius: 12px;
-  padding: 48px 24px;
-  text-align: center;
-  box-shadow: 0 1px 6px rgba(0,0,0,0.06);
-  color: #666;
-  font-size: 1rem;
-}
-
-/* ── Campaign Cards ── */
-.campaigns-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-  gap: 20px;
-}
-
-.campaign-card {
-  background: #fff;
-  border-radius: 12px;
-  overflow: hidden;
-  box-shadow: 0 1px 6px rgba(0,0,0,0.08);
-  cursor: pointer;
-  transition: box-shadow 0.2s, transform 0.2s;
-}
-
-.campaign-card:hover {
-  box-shadow: 0 6px 18px rgba(0,0,0,0.13);
-  transform: translateY(-2px);
-}
-
-.campaign-image-wrap {
-  position: relative;
-  height: 180px;
-  background: #f0f0f0;
-}
-
-.campaign-image {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-}
-
-.campaign-image-placeholder {
-  width: 100%;
-  height: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 3rem;
-  background: #f3f4f6;
-}
-
-.campaign-category {
-  position: absolute;
-  top: 10px;
-  left: 10px;
-  background: rgba(0,0,0,0.55);
-  color: #fff;
-  font-size: 0.72rem;
-  font-weight: 600;
-  text-transform: uppercase;
-  padding: 3px 10px;
-  border-radius: 20px;
-}
-
-.campaign-body {
-  padding: 16px;
-}
-
-.campaign-title {
-  font-size: 1rem;
-  font-weight: 700;
-  color: #111;
-  margin: 0 0 6px;
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-}
-
-.campaign-desc {
-  font-size: 0.82rem;
-  color: #666;
-  margin: 0 0 14px;
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-}
-
-.progress-bar {
-  background: #e5e7eb;
-  border-radius: 99px;
-  height: 7px;
-  overflow: hidden;
-  margin-bottom: 6px;
-}
-
-.progress-fill {
-  background: linear-gradient(90deg, #3b82f6, #2563eb);
-  height: 100%;
-  border-radius: 99px;
-  transition: width 0.4s;
-}
-
-.progress-labels {
-  display: flex;
-  justify-content: space-between;
-  font-size: 0.78rem;
-  color: #6b7280;
-  margin-bottom: 6px;
-}
-
-.progress-raised {
-  font-weight: 600;
-  color: #16a34a;
-}
-
-.campaign-goal {
-  font-size: 0.78rem;
-  color: #9ca3af;
-  margin: 0;
-}
-
-/* ── Filters ── */
-.filters {
-  display: flex;
-  gap: 16px;
-  margin-bottom: 24px;
-  flex-wrap: wrap;
-}
-
-.filter-group {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
-.filter-group label {
-  font-size: 0.9rem;
-  font-weight: 500;
-  color: #374151;
-}
-
-.filter-group select,
-.filter-group input {
-  padding: 8px 12px;
-  border: 1px solid #d1d5db;
-  border-radius: 6px;
-  font-size: 0.9rem;
-}
-
-/* ── Search Bar ── */
-.search-bar-wrap {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  background: #fff;
-  border: 1px solid #e5e7eb;
-  border-radius: 10px;
-  padding: 0 16px;
-  margin-bottom: 16px;
-  box-shadow: 0 1px 4px rgba(0,0,0,0.06);
-}
-
-.search-icon {
-  color: #9ca3af;
-  font-size: 1.1rem;
-  flex-shrink: 0;
-}
-
-.search-input {
-  flex: 1;
-  border: none;
-  outline: none;
-  background: transparent;
-  padding: 14px 0;
-  font-size: 0.95rem;
-  color: #111;
-}
-
-.search-input::placeholder {
-  color: #b0b7c3;
-}
-
-.clear-btn {
-  background: none;
-  border: none;
-  color: #9ca3af;
-  font-size: 0.9rem;
-  cursor: pointer;
-  padding: 4px 6px;
-  border-radius: 6px;
-  transition: background 0.15s;
-}
-
-.clear-btn:hover {
-  background: #f3f4f6;
-  color: #374151;
-}
-
-/* ── Filters Section ── */
+/* ── Section Card ── */
 .dashboard-section {
   background: #fff;
   border-radius: 12px;
   padding: 24px;
   box-shadow: 0 2px 8px rgba(0,0,0,0.06);
-  margin-bottom: 16px;
+  margin-bottom: 20px;
 }
 
+/* ── Filters ── */
 .filters-row {
   display: flex;
-  gap: 16px;
+  gap: 10px;
   flex-wrap: wrap;
-  align-items: flex-end;
+  align-items: center;
 }
 
-.filters-row .form-group {
+.search-pill-filter {
+  display: flex;
+  align-items: center;
+  gap: 8px;
   flex: 1;
-  min-width: 140px;
-  margin-bottom: 0;
-}
-
-.filter-btn-group {
-  flex: 0 0 auto;
-}
-
-.form-group {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
-.form-group label {
-  font-size: 0.9rem;
-  font-weight: 500;
-  color: #374151;
-}
-
-.form-select {
-  padding: 8px 12px;
-  border: 1px solid #d1d5db;
-  border-radius: 6px;
-  font-size: 0.9rem;
-  background: #fff;
-}
-
-.btn {
-  padding: 8px 16px;
-  border: none;
-  border-radius: 6px;
-  font-size: 0.9rem;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.15s;
-}
-
-.btn-cancel {
-  background: #f3f4f6;
-  color: #374151;
-}
-
-.btn-cancel:hover {
-  background: #e5e7eb;
-}
-
-/* ── Results Count ── */
-.results-count {
-  font-size: 0.9rem;
-  color: #6b7280;
-  margin: 0 0 16px;
-}
-
-/* ── Donations List ── */
-.donations-list {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-}
-
-.donation-item {
-  background: #fff;
-  border-radius: 12px;
-  padding: 20px;
-  box-shadow: 0 1px 6px rgba(0,0,0,0.08);
-}
-
-.donation-header {
-  display: flex;
-  gap: 16px;
-  margin-bottom: 16px;
-}
-
-.donation-image-wrap {
-  width: 80px;
-  height: 80px;
+  min-width: 180px;
+  background: #f9fafb;
+  border: 1px solid #e5e7eb;
   border-radius: 8px;
-  overflow: hidden;
+  padding: 0 14px;
+}
+
+.search-pill-filter input {
+  border: none;
+  background: transparent;
+  outline: none;
+  width: 100%;
+  padding: 10px 0;
+  font-size: 0.88rem;
+  color: #111;
+}
+
+.search-icon { color: #9ca3af; font-size: 1rem; }
+
+.filter-select { width: auto; min-width: 140px; padding: 8px 12px; }
+
+.date-input { width: 140px; padding: 8px 12px; }
+
+.date-sep {
+  font-size: 0.85rem;
+  color: #6b7280;
   flex-shrink: 0;
 }
 
-.donation-image {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-}
-
-.donation-image-placeholder {
-  width: 100%;
-  height: 100%;
+/* ── Section Title Row ── */
+.section-title-row {
   display: flex;
   align-items: center;
-  justify-content: center;
-  font-size: 2rem;
-  background: #f3f4f6;
+  justify-content: space-between;
+  margin-bottom: 16px;
 }
 
-.donation-details {
-  flex: 1;
-}
-
-.donation-title {
-  font-size: 1.1rem;
+.section-title-row h2 {
+  font-size: 1.05rem;
   font-weight: 700;
   color: #111;
-  margin: 0 0 4px;
-}
-
-.donation-category {
-  font-size: 0.85rem;
-  color: #6b7280;
-  margin: 0 0 8px;
-  text-transform: uppercase;
-  font-weight: 600;
-}
-
-.donation-amount {
-  font-size: 1rem;
-  font-weight: 600;
-  color: #16a34a;
-  margin: 0 0 4px;
-}
-
-.donation-date {
-  font-size: 0.85rem;
-  color: #6b7280;
   margin: 0;
 }
 
-.campaign-progress {
-  margin-top: 16px;
+/* ── Table ── */
+.table-wrapper { overflow-x: auto; }
+
+.data-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.data-table thead tr {
+  background: #f9fafb;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.data-table th {
+  padding: 10px 16px;
+  text-align: left;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #6b7280;
+  font-weight: 600;
+}
+
+.data-table td {
+  padding: 12px 16px;
+  font-size: 0.88rem;
+  color: #555;
+  border-top: 1px solid #f0f0f0;
+}
+
+.clickable-row { cursor: pointer; transition: background 0.15s; }
+.clickable-row:hover { background: #f9fafb; }
+
+.td-name  { font-weight: 600; color: #111; }
+.td-green { color: #16a34a; font-weight: 600; }
+
+.empty-row {
+  text-align: center;
+  color: #9ca3af;
+  padding: 32px !important;
+}
+
+/* ── Category Tag ── */
+.cat-tag {
+  background: #f3f4f6;
+  color: #374151;
+  font-size: 0.72rem;
+  font-weight: 600;
+  padding: 3px 10px;
+  border-radius: 99px;
+  white-space: nowrap;
+}
+
+/* ── Status Badge ── */
+.status-badge {
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  padding: 3px 10px;
+  border-radius: 99px;
+  letter-spacing: 0.04em;
+}
+
+.status-active    { background: #f0fdf4; color: #15803d; border: 1px solid #bbf7d0; }
+.status-completed { background: #eff6ff; color: #1d4ed8; border: 1px solid #bfdbfe; }
+.status-pending   { background: #fff7ed; color: #c2410c; border: 1px solid #fed7aa; }
+
+/* ── Mini Progress ── */
+.mini-progress-wrap {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.mini-progress {
+  flex: 1;
+  background: #e5e7eb;
+  border-radius: 99px;
+  height: 6px;
+  overflow: hidden;
+  min-width: 60px;
+}
+
+.mini-progress-lg { height: 10px; }
+
+.mini-fill {
+  background: linear-gradient(90deg, #3b82f6, #2563eb);
+  height: 100%;
+  border-radius: 99px;
+}
+
+.mini-pct {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #374151;
+  white-space: nowrap;
+}
+
+/* ── Detail Button ── */
+.btn-detail {
+  background: #f3f4f6;
+  color: #374151;
+  border: 1px solid #e5e7eb;
+  font-size: 0.78rem;
+  padding: 5px 12px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.btn-detail:hover { background: #e5e7eb; }
+
+/* ── Drawer ── */
+.drawer-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.35);
+  z-index: 100;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.drawer {
+  width: 400px;
+  max-width: 100vw;
+  background: #fff;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  box-shadow: -4px 0 24px rgba(0,0,0,0.15);
+  animation: slideIn 0.22s ease;
+}
+
+@keyframes slideIn {
+  from { transform: translateX(100%); }
+  to   { transform: translateX(0); }
+}
+
+.drawer-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20px 24px;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.drawer-header h3 {
+  font-size: 1.1rem;
+  font-weight: 700;
+  margin: 0;
+  color: #111;
+}
+
+.drawer-close {
+  background: none;
+  border: none;
+  font-size: 1.1rem;
+  color: #6b7280;
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 6px;
+  transition: background 0.15s;
+}
+
+.drawer-close:hover { background: #f3f4f6; }
+
+.drawer-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 20px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.drawer-section {
+  background: #f9fafb;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.dl {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+}
+
+.dt {
+  font-size: 0.8rem;
+  color: #9ca3af;
+  font-weight: 500;
+  flex-shrink: 0;
+}
+
+.dd {
+  font-size: 0.88rem;
+  color: #111;
+  font-weight: 600;
+  text-align: right;
 }
 </style>

@@ -25,7 +25,7 @@ const routes = [
   { path: '/fra/create',         component: FraCreationPage },
   { path: '/fra/search',         component: FraSearchPage },
   { path: '/fra/:id',            component: FraDetailPage },  //:id get every kinds of string, hence should be after actual string route
-  { path: '/platform',          component: PlatformManagementPage },
+  { path: '/platform',           component: PlatformManagementPage },
   { path: '/reports',            component: ReportDashboardPage },
 ]
 
