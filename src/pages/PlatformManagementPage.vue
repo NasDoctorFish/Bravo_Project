@@ -1,17 +1,36 @@
-<script setup>
+<script setup lang="ts">
 import { ref, computed } from 'vue'
+// import categoryController
+import { create, type CategoryData } from '../controllers/categoryController'
 
 const emit = defineEmits(['go-home', 'go-logout', 'go-search'])
 
 const activeTab = ref('Pending')
 const searchQuery = ref('')
 const filterCategory = ref('')
-const selectedCampaign = ref(null)
 
 const tabs = ['Pending', 'Active', 'Rejected', 'Flagged', 'All']
 const categories = ['Education', 'Healthcare', 'Environment', 'Disaster Relief', 'Community']
 
-const campaigns = ref([
+
+type CampaignStatus = 'pending' | 'active' | 'rejected' | 'flagged'
+
+type Campaign = {
+  id: number
+  title: string
+  organizer: string
+  category: string
+  goal: number
+  status: CampaignStatus
+  submitted: string
+  description: string
+  image: string
+  flags: string[]
+}
+
+const selectedCampaign = ref<Campaign | null>(null)
+
+const campaigns = ref<Campaign[]>([
   { id: 1, title: 'Solar Panels for Remote Villages', organizer: 'EcoFund SG', category: 'Environment', goal: 25000, status: 'pending', submitted: '2 days ago', description: 'Installing solar panels in 10 off-grid villages to provide clean electricity to 500+ families.', image: 'https://placehold.co/80x60/d8f3dc/2d6a4f?text=Solar', flags: [] },
   { id: 2, title: 'Free Coding Bootcamp for Youth', organizer: 'TechBridge', category: 'Education', goal: 12000, status: 'pending', submitted: '1 day ago', description: 'A 3-month intensive coding program for underprivileged youth aged 16-24.', image: 'https://placehold.co/80x60/ebf8ff/2b6cb0?text=Code', flags: [] },
   { id: 3, title: 'Flood Relief Nairobi', organizer: 'GlobalAid', category: 'Disaster Relief', goal: 50000, status: 'pending', submitted: '5 hours ago', description: 'Emergency shelter and food for 1,200 families displaced by severe flooding.', image: 'https://placehold.co/80x60/fffbeb/b7791f?text=Relief', flags: ['Unverified organizer'] },
@@ -19,7 +38,6 @@ const campaigns = ref([
   { id: 5, title: 'Suspicious Fundraiser XYZ', organizer: 'Unknown', category: 'Community', goal: 99999, status: 'flagged', submitted: '3 days ago', description: 'Vague description with no verifiable information about fund usage.', image: 'https://placehold.co/80x60/fff5f5/c53030?text=Flag', flags: ['Duplicate campaign', 'No beneficiary info'] },
   { id: 6, title: 'Pet Shelter Renovation', organizer: 'PawsCare', category: 'Community', goal: 8000, status: 'rejected', submitted: '1 week ago', description: 'Renovating our animal shelter to accommodate 50 more rescued pets.', image: 'https://placehold.co/80x60/fefcbf/b7791f?text=Pets', flags: [] },
 ])
-
 const tabCounts = computed(() => ({
   Pending:  campaigns.value.filter(c => c.status === 'pending').length,
   Active:   campaigns.value.filter(c => c.status === 'active').length,
@@ -42,11 +60,97 @@ const filteredCampaigns = computed(() => {
   return result
 })
 
-function openDetail(c)  { selectedCampaign.value = c }
-function approve(c)     { c.status = 'active' }
-function reject(c)      { c.status = 'rejected' }
-function flag(c)        { c.status = 'flagged' }
-function suspend(c)     { c.status = 'rejected' }
+
+
+
+
+function openDetail(c: Campaign)  { selectedCampaign.value = c }
+function approve(c: Campaign)     { c.status = 'active' }
+function reject(c: Campaign)      { c.status = 'rejected' }
+function flag(c: Campaign)        { c.status = 'flagged' }
+function suspend(c: Campaign)     { c.status = 'rejected' }
+
+
+// DEV PM-7-01
+// function enterCategoryTitle(title: string) {
+//   console.log('Hello')
+// }
+
+// function entercategorydescription(description: string) {
+//   console.log("Description")
+// }
+
+const showForm = ref(false)
+
+const newCategory = ref({
+  categoryname: '',
+  categorydescription: ''
+})
+
+const errorMessage = ref('')
+
+function openForm() {
+  showForm.value = true
+}
+
+function closeForm() {
+  showForm.value = false
+}
+
+async function submitCategory() {
+  const categoryData: CategoryData = {
+    categoryname: newCategory.value.categoryname.trim(),
+    categorydescription: newCategory.value.categorydescription.trim()
+  }
+
+  await handleCreateCategory(categoryData)
+}
+
+const notificationMessage = ref('')
+const showNotification = ref(false)
+
+async function handleCreateCategory(categoryData: CategoryData) {
+  console.log('Category Data:', categoryData)
+
+  try {
+    const result = await create(
+      categoryData.categoryname,
+      categoryData.categorydescription
+    )
+
+    console.log('Created category:', result)
+
+    displayCategoryMessage('Category created successfully')
+
+    newCategory.value.categoryname = ''
+    newCategory.value.categorydescription = ''
+    errorMessage.value = ''
+    closeForm()
+  } catch (error) {
+    console.error(error)
+
+    if (error instanceof Error) {
+      errorMessage.value = error.message
+      displayCategoryMessage(error.message)
+    } else {
+      errorMessage.value = 'Failed to create category'
+      displayCategoryMessage('Failed to create category')
+    }
+  }
+}
+
+function displayCategoryMessage(message: string) {
+  notificationMessage.value = message
+  showNotification.value = true
+
+  setTimeout(() => {
+    showNotification.value = false
+    notificationMessage.value = ''
+  }, 3000)
+}
+// DEV END PM-7-01
+
+
 </script>
 
 <template>
@@ -111,6 +215,11 @@ function suspend(c)     { c.status = 'rejected' }
 
         <!-- Toolbar -->
         <div class="toolbar">
+          <!-- DEV PM-7-01 -->
+          <button class="toolbar-btn" @click="openForm">
+            New Category
+          </button>
+          <!-- DEV PM-7-01 -->
           <div class="search-pill">
             <span class="search-icon">⌕</span>
             <input
@@ -175,6 +284,42 @@ function suspend(c)     { c.status = 'rejected' }
         </div>
       </section>
     </div>
+    <!-- DEV PM-7-01 -->
+    <div v-if="showForm" class="modal-overlay">
+      <div class="modal-box">
+        <h2>Add Category</h2>
+        <input
+        v-model="newCategory.categoryname"
+        type="text"
+        placeholder="Category title"
+        class="modal-input"
+        />
+
+        <textarea
+        v-model="newCategory.categorydescription"
+        placeholder="Description"
+        class="modal-textarea"
+        ></textarea>
+        <p v-if="errorMessage" class="error-message">
+          {{ errorMessage }}
+        </p>
+        <div class="modal-actions">
+          <button @click="closeForm" class="cancel-btn">
+            Cancel
+          </button>
+
+          <button @click="submitCategory" class="submit-btn">
+            Submit
+          </button>
+        </div>
+      </div>
+    </div>
+    <!--  -->
+
+
+
+
+
 
     <!-- Footer -->
     <footer class="footer">
@@ -228,6 +373,70 @@ function suspend(c)     { c.status = 'rejected' }
 </template>
 
 <style scoped>
+/* --- Modal Overlay --- */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.35);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
+
+.modal-box {
+  width: 420px;
+  background: white;
+  padding: 24px;
+  border-radius: 18px;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
+}
+
+.modal-box h2 {
+  margin-bottom: 16px;
+}
+
+.modal-input,
+.modal-textarea {
+  width: 100%;
+  padding: 12px;
+  margin-bottom: 12px;
+  border: 1px solid #d1d5db;
+  border-radius: 10px;
+}
+
+.modal-textarea {
+  min-height: 100px;
+  resize: vertical;
+}
+
+.modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.cancel-btn {
+  padding: 10px 14px;
+  border: none;
+  border-radius: 10px;
+  background: #e5e7eb;
+  cursor: pointer;
+}
+
+.submit-btn {
+  padding: 10px 14px;
+  border: none;
+  border-radius: 10px;
+  background: #2563eb;
+  color: white;
+  cursor: pointer;
+}
+
+
 /* ── Layout ── */
 .pm-page {
   min-height: 100vh;
@@ -382,6 +591,16 @@ function suspend(c)     { c.status = 'rejected' }
   padding: 10px 0;
   font-size: 0.9rem;
   color: #111;
+}
+
+.toolbar-btn {
+  padding: 10px 16px;
+  border: none;
+  border-radius: 999px;
+  background: #111827;
+  color: white;
+  cursor: pointer;
+  font-weight: 600;
 }
 
 .search-icon {
