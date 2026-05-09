@@ -15,7 +15,7 @@ import ReportDashboardPage    from '../pages/ReportDashboardPage.vue'
 import SignupPage             from '../pages/SignupPage.vue'
 
 const routes = [
-  { path: '/',                   component: HomePage },
+  { path: '/',                   component: HomePage }, 
   { path: '/login',              component: LoginPage },
   { path: '/signup',             component: SignupPage },
   { path: '/dashboard',          component: DashboardPage },
@@ -33,5 +33,6 @@ const router = createRouter({
   history: createWebHistory(),
   routes,
 })
+
 
 export default router
