@@ -76,9 +76,9 @@ function goFavourites() {
 
 <template>
 
-   <!-- Added for router -->
+   <!-- Added for router, this will automatically route pages -->
   <RouterView />
-  <!---->
+<!--   
   <HomePage
     v-if="page === 'home'"
     @go-home="goHome"
@@ -187,5 +187,5 @@ function goFavourites() {
     @go-search="goSearch"
     @go-creation="goCreate"
     @go-campaigndetail="goDetail"
-  />
+  /> -->
 </template>
