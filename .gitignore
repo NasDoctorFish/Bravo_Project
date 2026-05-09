@@ -27,3 +27,8 @@ dist/
 *.njsproj
 *.sln
 *.sw?
+
+# Database
+.env
+.env.local
+.env.*.local

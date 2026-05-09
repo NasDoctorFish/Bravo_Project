@@ -1,39 +1,62 @@
+<script setup>
+const emit = defineEmits(['go-home', 'go-logout', 'go-search', 'go-create'])
+
+const stats = [
+  { icon: '💰', value: '$48,200', label: 'Total Raised',     change: '12% this month', positive: true },
+  { icon: '📋', value: '7',       label: 'Active Campaigns', change: '2 new',           positive: true },
+  { icon: '👥', value: '324',     label: 'Total Donors',     change: '8% this month',   positive: true },
+  { icon: '✅', value: '3',       label: 'Goals Reached',    change: '1 this week',     positive: true },
+]
+
+const campaigns = [
+  { name: 'Clean Water Initiative', goal: 10000, raised: 7400, status: 'active' },
+  { name: 'School Supplies Drive',  goal: 5000,  raised: 5000, status: 'completed' },
+  { name: 'Medical Aid Fund',       goal: 20000, raised: 9200, status: 'active' },
+  { name: 'Elderly Care Program',   goal: 8000,  raised: 1200, status: 'pending' },
+]
+
+const activity = [
+  { icon: '💳', text: 'New donation of $250 received for Clean Water Initiative', time: '2 mins ago' },
+  { icon: '✅', text: 'School Supplies Drive reached its goal!',                  time: '1 hour ago' },
+  { icon: '👤', text: 'New donor registered: michael.t@gmail.com',               time: '3 hours ago' },
+  { icon: '📋', text: 'Medical Aid Fund campaign approved',                       time: 'Yesterday' },
+]
+</script>
+
 <template>
-  <div class="layout">
-    <!-- Sidebar -->
-    <aside class="sidebar">
-      <div class="sidebar-brand">
-        <span class="logo">🤝</span>
-        <span class="brand-name">FundBridge</span>
-      </div>
+  <div class="dashboard-page">
+
+    <!-- Header -->
+    <header class="header">
+      <a href="#" class="brand" @click.prevent="emit('go-home')">
+        <span class="logo">♥</span>
+        <span>FundRise</span>
+      </a>
       <nav class="nav">
-        <a v-for="item in navItems" :key="item.label"
-           :class="['nav-item', { active: activeNav === item.label }]"
-           @click="activeNav = item.label" href="#">
-          <span class="nav-icon">{{ item.icon }}</span>
-          {{ item.label }}
+        <a href="#" class="nav-link" @click.prevent="emit('go-search')">⌕ Donate</a>
+        <a href="#" class="nav-link">Fundraising</a>
+      </nav>
+      <nav class="nav-actions">
+        <a href="#" class="nav-link" @click.prevent="emit('go-home')">Home</a>
+        <a href="#" class="nav-link logout-link" @click.prevent="emit('go-logout')">
+          <span class="logout-icon">⇢</span> Logout
         </a>
       </nav>
-      <div class="sidebar-user">
-        <div class="avatar">JD</div>
-        <div class="user-info">
-          <span class="user-name">Jane Doe</span>
-          <span class="user-role">Fund Raiser</span>
-        </div>
-      </div>
-    </aside>
+    </header>
 
-    <!-- Main -->
-    <main class="main">
-      <header class="topbar">
+    <!-- Main Content -->
+    <main class="dash-main">
+
+      <!-- Topbar -->
+      <div class="dash-topbar">
         <div>
-          <h2>Dashboard</h2>
-          <p class="subtitle">Welcome back, Jane 👋</p>
+          <h2 class="dash-title">Dashboard</h2>
+          <p class="dash-subtitle">Welcome back, Jane 👋</p>
         </div>
-        <button class="btn-create">+ New Campaign</button>
-      </header>
+        <button class="btn-create" @click="emit('go-create')">+ New Campaign</button>
+      </div>
 
-      <!-- Stats -->
+      <!-- Stats Grid -->
       <div class="stats-grid">
         <div class="stat-card" v-for="stat in stats" :key="stat.label">
           <div class="stat-icon">{{ stat.icon }}</div>
@@ -46,10 +69,10 @@
       </div>
 
       <!-- Recent Campaigns -->
-      <section class="section">
+      <section class="dashboard-section">
         <div class="section-header">
           <h3>Recent Campaigns</h3>
-          <a href="#" class="view-all">View all →</a>
+          <a href="#" class="view-all" @click.prevent="emit('go-search')">View all →</a>
         </div>
         <div class="table-wrap">
           <table class="table">
@@ -70,12 +93,16 @@
                 <td>
                   <div class="progress-wrap">
                     <div class="progress-bar">
-                      <div class="progress-fill" :style="{ width: (c.raised/c.goal*100) + '%' }"></div>
+                      <div class="progress-fill"
+                        :style="{ width: (c.raised / c.goal * 100) + '%' }">
+                      </div>
                     </div>
-                    <span class="progress-pct">{{ Math.round(c.raised/c.goal*100) }}%</span>
+                    <span class="progress-pct">{{ Math.round(c.raised / c.goal * 100) }}%</span>
                   </div>
                 </td>
-                <td><span :class="['badge', c.status]">{{ c.status }}</span></td>
+                <td>
+                  <span :class="['badge', 'badge-' + c.status]">{{ c.status }}</span>
+                </td>
               </tr>
             </tbody>
           </table>
@@ -83,7 +110,7 @@
       </section>
 
       <!-- Recent Activity -->
-      <section class="section">
+      <section class="dashboard-section">
         <div class="section-header">
           <h3>Recent Activity</h3>
         </div>
@@ -97,242 +124,272 @@
           </div>
         </div>
       </section>
+
     </main>
+
+    <!-- Footer -->
+    <footer class="footer">
+      <p>© 2026 FundRise. Supporting dreams, one donation at a time.</p>
+    </footer>
+
   </div>
 </template>
 
-<script setup>
-import { ref } from 'vue'
-
-const activeNav = ref('Dashboard')
-
-const navItems = [
-  { icon: '🏠', label: 'Dashboard' },
-  { icon: '📋', label: 'Campaigns' },
-  { icon: '🔍', label: 'Search' },
-  { icon: '📊', label: 'Reports' },
-  { icon: '⚙️', label: 'Settings' },
-]
-
-const stats = [
-  { icon: '💰', value: '$48,200', label: 'Total Raised', change: '12% this month', positive: true },
-  { icon: '📋', value: '7', label: 'Active Campaigns', change: '2 new', positive: true },
-  { icon: '👥', value: '324', label: 'Total Donors', change: '8% this month', positive: true },
-  { icon: '✅', value: '3', label: 'Goals Reached', change: '1 this week', positive: true },
-]
-
-const campaigns = [
-  { name: 'Clean Water Initiative', goal: 10000, raised: 7400, status: 'active' },
-  { name: 'School Supplies Drive', goal: 5000, raised: 5000, status: 'completed' },
-  { name: 'Medical Aid Fund', goal: 20000, raised: 9200, status: 'active' },
-  { name: 'Elderly Care Program', goal: 8000, raised: 1200, status: 'pending' },
-]
-
-const activity = [
-  { icon: '💳', text: 'New donation of $250 received for Clean Water Initiative', time: '2 mins ago' },
-  { icon: '✅', text: 'School Supplies Drive reached its goal!', time: '1 hour ago' },
-  { icon: '👤', text: 'New donor registered: michael.t@gmail.com', time: '3 hours ago' },
-  { icon: '📋', text: 'Medical Aid Fund campaign approved', time: 'Yesterday' },
-]
-</script>
-
 <style scoped>
-@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&family=Fraunces:wght@700&display=swap');
-
-* { box-sizing: border-box; margin: 0; padding: 0; }
-
-.layout {
-  display: flex;
+/* ── Page Layout ── */
+.dashboard-page {
   min-height: 100vh;
-  font-family: 'DM Sans', sans-serif;
-  background: #f5f4f0;
-}
-
-/* Sidebar */
-.sidebar {
-  width: 220px;
-  background: #fff;
-  border-right: 1px solid #e2e0db;
   display: flex;
   flex-direction: column;
-  padding: 24px 0;
-  position: fixed;
-  height: 100vh;
+  background: #f5f5f5;
 }
 
-.sidebar-brand {
+/* ── Main Content ── */
+.dash-main {
+  flex: 1;
+  max-width: 1100px;
+  margin: 0 auto;
+  width: 100%;
+  padding: 32px 24px 60px;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+/* ── Topbar ── */
+.dash-topbar {
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 0 20px 24px;
-  border-bottom: 1px solid #f0ede8;
-}
-
-.logo { font-size: 1.4rem; }
-.brand-name { font-family: 'Fraunces', serif; font-size: 1.1rem; color: #1a1a1a; }
-
-.nav { flex: 1; padding: 16px 12px; display: flex; flex-direction: column; gap: 4px; }
-
-.nav-item {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 9px 12px;
-  border-radius: 8px;
-  text-decoration: none;
-  font-size: 0.88rem;
-  color: #555;
-  font-weight: 500;
-  transition: background 0.15s, color 0.15s;
-}
-
-.nav-item:hover { background: #f5f4f0; color: #1a1a1a; }
-.nav-item.active { background: #e8f5ee; color: #2d6a4f; font-weight: 600; }
-.nav-icon { font-size: 1rem; }
-
-.sidebar-user {
-  padding: 16px 20px;
-  border-top: 1px solid #f0ede8;
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-
-.avatar {
-  width: 36px;
-  height: 36px;
-  background: #2d6a4f;
-  color: #fff;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 0.8rem;
-  font-weight: 600;
-}
-
-.user-info { display: flex; flex-direction: column; }
-.user-name { font-size: 0.85rem; font-weight: 600; color: #1a1a1a; }
-.user-role { font-size: 0.75rem; color: #888; }
-
-/* Main */
-.main { margin-left: 220px; flex: 1; padding: 32px 36px; }
-
-.topbar {
-  display: flex;
   justify-content: space-between;
-  align-items: flex-start;
-  margin-bottom: 28px;
+  gap: 16px;
 }
 
-.topbar h2 { font-family: 'Fraunces', serif; font-size: 1.6rem; color: #1a1a1a; }
-.subtitle { font-size: 0.88rem; color: #888; margin-top: 2px; }
+.dash-title {
+  font-size: 2rem;
+  font-weight: 700;
+  margin: 0 0 4px;
+  color: #111;
+  text-align: left;
+}
+
+.dash-subtitle {
+  font-size: 1rem;
+  color: #64748b;
+  margin: 0;
+}
 
 .btn-create {
-  background: #2d6a4f;
+  padding: 8px 20px;
+  max-width: 200px;
+  background: #2563eb;
   color: #fff;
   border: none;
   border-radius: 8px;
-  padding: 10px 18px;
-  font-size: 0.88rem;
   font-weight: 600;
-  font-family: 'DM Sans', sans-serif;
+  font-size: 0.88rem;
   cursor: pointer;
-  transition: background 0.2s;
+  transition: background 0.15s, box-shadow 0.15s;
+  white-space: normal;   /* allow text to wrap inside the box */
+  text-align: center;
 }
-.btn-create:hover { background: #1f4d38; }
+.btn-create:hover {
+  background: #1d4ed8;
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
+}
 
-/* Stats */
+/* ── Stats Grid ── */
 .stats-grid {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
   gap: 16px;
-  margin-bottom: 28px;
 }
 
 .stat-card {
   background: #fff;
-  border: 1px solid #e2e0db;
   border-radius: 12px;
   padding: 20px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
 }
 
-.stat-icon { font-size: 1.4rem; margin-bottom: 8px; }
-.stat-value { font-size: 1.5rem; font-weight: 700; color: #1a1a1a; margin-bottom: 2px; }
-.stat-label { font-size: 0.8rem; color: #888; margin-bottom: 8px; }
-.stat-change { font-size: 0.78rem; font-weight: 500; }
-.stat-change.up { color: #2d6a4f; }
-.stat-change.down { color: #e53e3e; }
+.stat-icon  { font-size: 1.4rem; margin-bottom: 6px; }
+.stat-value { font-size: 1.5rem; font-weight: 700; color: #111; }
+.stat-label { font-size: 0.8rem; color: #6b7280; font-weight: 500; }
 
-/* Sections */
-.section { margin-bottom: 28px; }
+.stat-change { font-size: 0.75rem; font-weight: 600; margin-top: 4px; }
+.stat-change.up   { color: #16a34a; }
+.stat-change.down { color: #dc2626; }
+
+/* ── Section Card ── */
+.dashboard-section {
+  background: #fff;
+  border-radius: 12px;
+  padding: 24px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+}
 
 .section-header {
   display: flex;
-  justify-content: space-between;
   align-items: center;
-  margin-bottom: 14px;
+  justify-content: space-between;
+  margin-bottom: 20px;
 }
 
-.section-header h3 { font-size: 1rem; font-weight: 600; color: #1a1a1a; }
-.view-all { font-size: 0.82rem; color: #2d6a4f; text-decoration: none; font-weight: 500; }
-.view-all:hover { text-decoration: underline; }
+.section-header h3 {
+  font-size: 1rem;
+  font-weight: 700;
+  color: #111;
+  margin: 0;
+}
 
-/* Table */
-.table-wrap { background: #fff; border: 1px solid #e2e0db; border-radius: 12px; overflow: hidden; }
+.view-all {
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: #3b82f6;
+  text-decoration: none;
+  transition: color 0.15s;
+}
+.view-all:hover { color: #1d4ed8; text-decoration: underline; }
 
-.table { width: 100%; border-collapse: collapse; font-size: 0.87rem; }
+/* ── Table ── */
+.table-wrap { overflow-x: auto; }
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.88rem;
+}
+
+.table thead tr { border-bottom: 1px solid #e5e7eb; }
 
 .table th {
-  text-align: left;
-  padding: 12px 16px;
+  text-align: center;
+  padding: 8px 12px;
   font-size: 0.75rem;
-  font-weight: 600;
-  color: #888;
+  font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.04em;
-  background: #fafaf9;
-  border-bottom: 1px solid #e2e0db;
+  color: #9ca3af;
+  white-space: nowrap;
 }
+
+.table tbody tr {
+  border-bottom: 1px solid #f3f4f6;
+  transition: background 0.12s;
+}
+.table tbody tr:last-child { border-bottom: none; }
+.table tbody tr:hover { background: #f9fafb; }
 
 .table td {
-  padding: 12px 16px;
-  border-bottom: 1px solid #f0ede8;
-  color: #333;
+  padding: 12px;
+  color: #374151;
+  vertical-align: middle;
 }
 
-.table tr:last-child td { border-bottom: none; }
-.td-name { font-weight: 500; color: #1a1a1a; }
+.td-name {
+  font-weight: 600;
+  color: #111;
+  white-space: nowrap; 
+  text-align: left;
+}
 
-.progress-wrap { display: flex; align-items: center; gap: 8px; }
-.progress-bar { flex: 1; height: 6px; background: #eee; border-radius: 4px; overflow: hidden; }
-.progress-fill { height: 100%; background: #2d6a4f; border-radius: 4px; }
-.progress-pct { font-size: 0.78rem; color: #888; min-width: 36px; }
+/* ── Progress ── */
+.progress-wrap {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 120px;
+}
 
+.progress-bar {
+  flex: 1;
+  height: 6px;
+  background: #e5e7eb;
+  border-radius: 99px;
+  overflow: hidden;
+}
+
+.progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #3b82f6, #2563eb);
+  border-radius: 99px;
+  transition: width 0.4s;
+}
+
+.progress-pct {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: #6b7280;
+  white-space: nowrap;
+}
+
+/* ── Badges ── */
 .badge {
   display: inline-block;
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
   padding: 3px 10px;
-  border-radius: 20px;
-  font-size: 0.75rem;
-  font-weight: 600;
-  text-transform: capitalize;
+  border-radius: 99px;
+  letter-spacing: 0.04em;
 }
-.badge.active { background: #e8f5ee; color: #2d6a4f; }
-.badge.completed { background: #ebf8ff; color: #2b6cb0; }
-.badge.pending { background: #fffbeb; color: #b7791f; }
 
-/* Activity */
-.activity-list { background: #fff; border: 1px solid #e2e0db; border-radius: 12px; overflow: hidden; }
+.badge-active    { background: #f0fdf4; color: #15803d; border: 1px solid #bbf7d0; }
+.badge-completed { background: #eff6ff; color: #1d4ed8; border: 1px solid #bfdbfe; }
+.badge-pending   { background: #fff7ed; color: #c2410c; border: 1px solid #fed7aa; }
+
+/* ── Activity ── */
+.activity-list { display: flex; flex-direction: column; }
+
 .activity-item {
   display: flex;
   align-items: flex-start;
   gap: 12px;
-  padding: 14px 16px;
-  border-bottom: 1px solid #f0ede8;
+  padding: 14px 0;
+  border-bottom: 1px solid #f3f4f6;
+  text-align: left;
 }
 .activity-item:last-child { border-bottom: none; }
-.activity-icon { font-size: 1.1rem; margin-top: 1px; }
-.activity-body { display: flex; flex-direction: column; gap: 2px; }
-.activity-text { font-size: 0.87rem; color: #333; }
-.activity-time { font-size: 0.75rem; color: #aaa; }
+
+.activity-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: #f0f4ff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1rem;
+  flex-shrink: 0;
+}
+
+.activity-body {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.activity-text {
+  font-size: 0.88rem;
+  color: #374151;
+  font-weight: 500;
+  line-height: 1.4;
+}
+
+.activity-time { font-size: 0.75rem; color: #9ca3af; }
+
+/* ── Responsive ── */
+@media (max-width: 900px) {
+  .stats-grid { grid-template-columns: repeat(2, 1fr); }
+}
+
+@media (max-width: 600px) {
+  .dash-main { padding: 20px 16px 40px; }
+  .stats-grid { grid-template-columns: 1fr 1fr; }
+  .dash-topbar { flex-wrap: wrap; }
+}
 </style>

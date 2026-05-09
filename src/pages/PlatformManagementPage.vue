@@ -1,125 +1,7 @@
-<template>
-  <div class="layout">
-    <aside class="sidebar">
-      <div class="sidebar-brand">
-        <span class="logo">🤝</span>
-        <span class="brand-name">FundBridge</span>
-      </div>
-      <nav class="nav">
-        <a v-for="item in navItems" :key="item.label"
-          :class="['nav-item', { active: item.label === 'Platform' }]" href="#">
-          <span>{{ item.icon }}</span> {{ item.label }}
-        </a>
-      </nav>
-      <div class="sidebar-badge">Platform Manager</div>
-    </aside>
-
-    <main class="main">
-      <div class="page-header">
-        <div>
-          <h2>Platform Management</h2>
-          <p class="subtitle">Review and approve fundraising campaigns</p>
-        </div>
-        <div class="header-stats">
-          <div class="hstat"><span class="hstat-val">{{ pendingCount }}</span><span class="hstat-lbl">Pending Review</span></div>
-          <div class="hstat"><span class="hstat-val">{{ flaggedCount }}</span><span class="hstat-lbl">Flagged</span></div>
-        </div>
-      </div>
-
-      <!-- Tabs -->
-      <div class="tabs">
-        <button v-for="tab in tabs" :key="tab" :class="['tab', { active: activeTab === tab }]" @click="activeTab = tab">
-          {{ tab }}
-          <span class="tab-count" v-if="tabCounts[tab]">{{ tabCounts[tab] }}</span>
-        </button>
-      </div>
-
-      <!-- Filters -->
-      <div class="toolbar">
-        <div class="search-wrap">
-          <span>🔍</span>
-          <input v-model="searchQuery" type="text" placeholder="Search campaigns…" />
-        </div>
-        <select v-model="filterCategory">
-          <option value="">All Categories</option>
-          <option v-for="c in categories" :key="c" :value="c">{{ c }}</option>
-        </select>
-      </div>
-
-      <!-- Campaign List -->
-      <div class="campaign-list">
-        <div class="campaign-row" v-for="c in filteredCampaigns" :key="c.id">
-          <div class="campaign-left">
-            <img :src="c.image" class="campaign-thumb" :alt="c.title" />
-            <div class="campaign-info">
-              <div class="campaign-title">{{ c.title }}</div>
-              <div class="campaign-meta">
-                <span>{{ c.organizer }}</span>
-                <span class="dot">·</span>
-                <span>{{ c.category }}</span>
-                <span class="dot">·</span>
-                <span>Goal: ${{ c.goal.toLocaleString() }}</span>
-                <span class="dot">·</span>
-                <span>Submitted {{ c.submitted }}</span>
-              </div>
-              <p class="campaign-desc">{{ c.description }}</p>
-              <div class="campaign-flags" v-if="c.flags && c.flags.length">
-                <span class="flag-chip" v-for="f in c.flags" :key="f">⚠️ {{ f }}</span>
-              </div>
-            </div>
-          </div>
-
-          <div class="campaign-right">
-            <span :class="['status-badge', c.status]">{{ c.status }}</span>
-            <div class="action-buttons">
-              <button class="btn-detail" @click="openDetail(c)">View Details</button>
-              <button v-if="c.status === 'pending'" class="btn-approve" @click="approve(c)">✓ Approve</button>
-              <button v-if="c.status === 'pending'" class="btn-reject" @click="reject(c)">✕ Reject</button>
-              <button v-if="c.status === 'active'" class="btn-flag" @click="flag(c)">⚠️ Flag</button>
-              <button v-if="c.status === 'active'" class="btn-reject" @click="suspend(c)">⏸ Suspend</button>
-            </div>
-          </div>
-        </div>
-
-        <div v-if="filteredCampaigns.length === 0" class="empty-state">
-          <div>📭</div>
-          <p>No campaigns in this category.</p>
-        </div>
-      </div>
-    </main>
-
-    <!-- Detail Drawer -->
-    <div class="drawer-overlay" v-if="selectedCampaign" @click.self="selectedCampaign = null">
-      <div class="drawer">
-        <div class="drawer-header">
-          <h3>{{ selectedCampaign.title }}</h3>
-          <button class="drawer-close" @click="selectedCampaign = null">✕</button>
-        </div>
-        <div class="drawer-body">
-          <img :src="selectedCampaign.image" class="drawer-img" />
-          <div class="drawer-section">
-            <div class="dl"><span class="dt">Organizer</span><span class="dd">{{ selectedCampaign.organizer }}</span></div>
-            <div class="dl"><span class="dt">Category</span><span class="dd">{{ selectedCampaign.category }}</span></div>
-            <div class="dl"><span class="dt">Goal</span><span class="dd">${{ selectedCampaign.goal?.toLocaleString() }}</span></div>
-            <div class="dl"><span class="dt">Submitted</span><span class="dd">{{ selectedCampaign.submitted }}</span></div>
-            <div class="dl"><span class="dt">Status</span><span class="dd"><span :class="['status-badge', selectedCampaign.status]">{{ selectedCampaign.status }}</span></span></div>
-          </div>
-          <div class="drawer-desc">
-            <h4>Description</h4>
-            <p>{{ selectedCampaign.description }}</p>
-          </div>
-          <div class="drawer-actions" v-if="selectedCampaign.status === 'pending'">
-            <button class="btn-approve" @click="approve(selectedCampaign); selectedCampaign = null">✓ Approve</button>
-            <button class="btn-reject" @click="reject(selectedCampaign); selectedCampaign = null">✕ Reject</button>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-</template>
-
 <script setup>
 import { ref, computed } from 'vue'
+
+const emit = defineEmits(['go-home', 'go-logout', 'go-search'])
 
 const activeTab = ref('Pending')
 const searchQuery = ref('')
@@ -128,12 +10,6 @@ const selectedCampaign = ref(null)
 
 const tabs = ['Pending', 'Active', 'Rejected', 'Flagged', 'All']
 const categories = ['Education', 'Healthcare', 'Environment', 'Disaster Relief', 'Community']
-
-const navItems = [
-  { icon: '🏠', label: 'Dashboard' }, { icon: '📋', label: 'Campaigns' },
-  { icon: '🔍', label: 'Search' }, { icon: '📊', label: 'Reports' },
-  { icon: '🛡️', label: 'Platform' },
-]
 
 const campaigns = ref([
   { id: 1, title: 'Solar Panels for Remote Villages', organizer: 'EcoFund SG', category: 'Environment', goal: 25000, status: 'pending', submitted: '2 days ago', description: 'Installing solar panels in 10 off-grid villages to provide clean electricity to 500+ families.', image: 'https://placehold.co/80x60/d8f3dc/2d6a4f?text=Solar', flags: [] },
@@ -145,11 +21,11 @@ const campaigns = ref([
 ])
 
 const tabCounts = computed(() => ({
-  Pending: campaigns.value.filter(c => c.status === 'pending').length,
-  Active: campaigns.value.filter(c => c.status === 'active').length,
+  Pending:  campaigns.value.filter(c => c.status === 'pending').length,
+  Active:   campaigns.value.filter(c => c.status === 'active').length,
   Rejected: campaigns.value.filter(c => c.status === 'rejected').length,
-  Flagged: campaigns.value.filter(c => c.status === 'flagged').length,
-  All: campaigns.value.length,
+  Flagged:  campaigns.value.filter(c => c.status === 'flagged').length,
+  All:      campaigns.value.length,
 }))
 
 const pendingCount = computed(() => tabCounts.value.Pending)
@@ -157,96 +33,645 @@ const flaggedCount = computed(() => tabCounts.value.Flagged)
 
 const filteredCampaigns = computed(() => {
   let result = campaigns.value
-  if (activeTab.value !== 'All') result = result.filter(c => c.status === activeTab.value.toLowerCase())
-  if (searchQuery.value) result = result.filter(c => c.title.toLowerCase().includes(searchQuery.value.toLowerCase()))
-  if (filterCategory.value) result = result.filter(c => c.category === filterCategory.value)
+  if (activeTab.value !== 'All')
+    result = result.filter(c => c.status === activeTab.value.toLowerCase())
+  if (searchQuery.value)
+    result = result.filter(c => c.title.toLowerCase().includes(searchQuery.value.toLowerCase()))
+  if (filterCategory.value)
+    result = result.filter(c => c.category === filterCategory.value)
   return result
 })
 
-function openDetail(c) { selectedCampaign.value = c }
-function approve(c) { c.status = 'active' }
-function reject(c) { c.status = 'rejected' }
-function flag(c) { c.status = 'flagged' }
-function suspend(c) { c.status = 'rejected' }
+function openDetail(c)  { selectedCampaign.value = c }
+function approve(c)     { c.status = 'active' }
+function reject(c)      { c.status = 'rejected' }
+function flag(c)        { c.status = 'flagged' }
+function suspend(c)     { c.status = 'rejected' }
 </script>
 
+<template>
+  <div class="pm-page">
+
+    <!-- Header -->
+    <header class="header">
+      <a href="#" class="brand" @click.prevent="emit('go-home')">
+        <span class="logo">♥</span>
+        <span>FundRise</span>
+      </a>
+
+      <nav class="nav">
+        <a href="#" class="nav-link" @click.prevent="emit('go-search')">⌕ Donate</a>
+        <a href="#" class="nav-link">Fundraising</a>
+      </nav>
+
+      <nav class="nav-actions">
+        <a href="#" class="nav-link" @click.prevent="emit('go-home')">Home</a>
+        <span class="user-info">Platform Manager</span>
+        <a href="#" class="nav-link logout-link" @click.prevent="emit('go-logout')">
+          <span class="logout-icon">⇢</span> Logout
+        </a>
+      </nav>
+    </header>
+
+    <div class="pm-container">
+
+      <!-- Page Title -->
+      <div class="dashboard-header">
+        <div>
+          <h1>Platform Management</h1>
+          <p>Review and approve fundraising campaigns</p>
+        </div>
+        <div class="header-stats">
+          <div class="hstat">
+            <span class="hstat-val hstat-orange">{{ pendingCount }}</span>
+            <span class="hstat-lbl">Pending Review</span>
+          </div>
+          <div class="hstat">
+            <span class="hstat-val hstat-red">{{ flaggedCount }}</span>
+            <span class="hstat-lbl">Flagged</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Main Section -->
+      <section class="dashboard-section">
+
+        <!-- Tabs -->
+        <div class="tabs">
+          <button
+            v-for="tab in tabs"
+            :key="tab"
+            :class="['tab-btn', { active: activeTab === tab }]"
+            @click="activeTab = tab"
+          >
+            {{ tab }}
+            <span v-if="tabCounts[tab]" class="tab-count">{{ tabCounts[tab] }}</span>
+          </button>
+        </div>
+
+        <!-- Toolbar -->
+        <div class="toolbar">
+          <div class="search-pill">
+            <span class="search-icon">⌕</span>
+            <input
+              v-model="searchQuery"
+              type="text"
+              placeholder="Search campaigns…"
+            />
+          </div>
+          <select v-model="filterCategory" class="form-select toolbar-select">
+            <option value="">All Categories</option>
+            <option v-for="c in categories" :key="c" :value="c">{{ c }}</option>
+          </select>
+        </div>
+
+        <!-- Campaign List -->
+        <div class="campaign-list">
+
+          <div v-if="filteredCampaigns.length === 0" class="empty-state">
+            <div class="empty-icon">📭</div>
+            <p>No campaigns in this category.</p>
+          </div>
+
+          <div
+            v-for="c in filteredCampaigns"
+            :key="c.id"
+            class="campaign-row"
+          >
+            <!-- Left: image + info -->
+            <div class="campaign-left">
+              <img :src="c.image" :alt="c.title" class="campaign-thumb" />
+              <div class="campaign-info">
+                <p class="campaign-title">{{ c.title }}</p>
+                <div class="campaign-meta">
+                  <span>{{ c.organizer }}</span>
+                  <span class="dot">·</span>
+                  <span>{{ c.category }}</span>
+                  <span class="dot">·</span>
+                  <span>Goal: ${{ c.goal.toLocaleString() }}</span>
+                  <span class="dot">·</span>
+                  <span>Submitted {{ c.submitted }}</span>
+                </div>
+                <p class="campaign-desc">{{ c.description }}</p>
+                <div v-if="c.flags && c.flags.length" class="campaign-flags">
+                  <span v-for="f in c.flags" :key="f" class="flag-chip">⚠️ {{ f }}</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Right: status + actions -->
+            <div class="campaign-right">
+              <span :class="['status-badge', 'status-' + c.status]">{{ c.status }}</span>
+              <div class="action-buttons">
+                <button class="btn btn-detail" @click="openDetail(c)">View Details</button>
+                <button v-if="c.status === 'pending'"  class="btn btn-approve" @click="approve(c)">✓ Approve</button>
+                <button v-if="c.status === 'pending'"  class="btn btn-reject"  @click="reject(c)">✕ Reject</button>
+                <button v-if="c.status === 'active'"   class="btn btn-flag"    @click="flag(c)">⚠️ Flag</button>
+                <button v-if="c.status === 'active'"   class="btn btn-reject"  @click="suspend(c)">⏸ Suspend</button>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </section>
+    </div>
+
+    <!-- Footer -->
+    <footer class="footer">
+      <p>© 2026 FundRise. Supporting dreams, one donation at a time.</p>
+    </footer>
+
+    <!-- Detail Drawer -->
+    <div class="drawer-overlay" v-if="selectedCampaign" @click.self="selectedCampaign = null">
+      <div class="drawer">
+        <div class="drawer-header">
+          <h3>{{ selectedCampaign.title }}</h3>
+          <button class="drawer-close" @click="selectedCampaign = null">✕</button>
+        </div>
+        <div class="drawer-body">
+          <img :src="selectedCampaign.image" :alt="selectedCampaign.title" class="drawer-img" />
+
+          <div class="drawer-section">
+            <div class="dl"><span class="dt">Organizer</span><span class="dd">{{ selectedCampaign.organizer }}</span></div>
+            <div class="dl"><span class="dt">Category</span><span class="dd">{{ selectedCampaign.category }}</span></div>
+            <div class="dl"><span class="dt">Goal</span><span class="dd">${{ selectedCampaign.goal?.toLocaleString() }}</span></div>
+            <div class="dl"><span class="dt">Submitted</span><span class="dd">{{ selectedCampaign.submitted }}</span></div>
+            <div class="dl">
+              <span class="dt">Status</span>
+              <span class="dd">
+                <span :class="['status-badge', 'status-' + selectedCampaign.status]">{{ selectedCampaign.status }}</span>
+              </span>
+            </div>
+          </div>
+
+          <div class="drawer-desc">
+            <h4>Description</h4>
+            <p>{{ selectedCampaign.description }}</p>
+          </div>
+
+          <div v-if="selectedCampaign.flags && selectedCampaign.flags.length" class="drawer-flags">
+            <h4>Flags</h4>
+            <div class="campaign-flags">
+              <span v-for="f in selectedCampaign.flags" :key="f" class="flag-chip">⚠️ {{ f }}</span>
+            </div>
+          </div>
+
+          <div class="drawer-actions" v-if="selectedCampaign.status === 'pending'">
+            <button class="btn btn-approve" @click="approve(selectedCampaign); selectedCampaign = null">✓ Approve</button>
+            <button class="btn btn-reject"  @click="reject(selectedCampaign); selectedCampaign = null">✕ Reject</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</template>
+
 <style scoped>
-@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&family=Fraunces:wght@700&display=swap');
-* { box-sizing: border-box; }
-.layout { display: flex; min-height: 100vh; font-family: 'DM Sans', sans-serif; background: #f5f4f0; }
-.sidebar { width: 220px; background: #fff; border-right: 1px solid #e2e0db; display: flex; flex-direction: column; padding: 24px 0; position: fixed; height: 100vh; }
-.sidebar-brand { display: flex; align-items: center; gap: 10px; padding: 0 20px 24px; border-bottom: 1px solid #f0ede8; }
-.logo { font-size: 1.4rem; } .brand-name { font-family: 'Fraunces', serif; font-size: 1.1rem; color: #1a1a1a; }
-.nav { padding: 16px 12px; display: flex; flex-direction: column; gap: 4px; flex: 1; }
-.nav-item { display: flex; align-items: center; gap: 10px; padding: 9px 12px; border-radius: 8px; text-decoration: none; font-size: 0.88rem; color: #555; font-weight: 500; transition: background 0.15s; }
-.nav-item:hover { background: #f5f4f0; } .nav-item.active { background: #e8f5ee; color: #2d6a4f; font-weight: 600; }
-.sidebar-badge { margin: 0 20px 16px; background: #ebf8ff; border: 1px solid #bee3f8; border-radius: 6px; padding: 5px 10px; font-size: 0.72rem; font-weight: 700; color: #2b6cb0; text-align: center; }
+/* ── Layout ── */
+.pm-page {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background: #f5f5f5;
+}
 
-.main { margin-left: 220px; flex: 1; padding: 32px 36px; }
-.page-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 22px; }
-.page-header h2 { font-family: 'Fraunces', serif; font-size: 1.5rem; color: #1a1a1a; }
-.subtitle { font-size: 0.85rem; color: #888; margin-top: 2px; }
-.header-stats { display: flex; gap: 16px; }
-.hstat { background: #fff; border: 1px solid #e2e0db; border-radius: 10px; padding: 12px 20px; text-align: center; }
-.hstat-val { display: block; font-family: 'Fraunces', serif; font-size: 1.5rem; color: #1a1a1a; }
-.hstat-lbl { font-size: 0.72rem; color: #aaa; }
+.pm-container {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 40px 24px;
+  flex: 1;
+  width: 100%;
+  box-sizing: border-box;
+}
 
-.tabs { display: flex; gap: 0; background: #fff; border: 1px solid #e2e0db; border-radius: 10px; overflow: hidden; margin-bottom: 16px; }
-.tab { flex: 1; padding: 11px 10px; background: none; border: none; border-right: 1px solid #e2e0db; font-family: 'DM Sans', sans-serif; font-size: 0.85rem; font-weight: 500; color: #888; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px; transition: background 0.15s, color 0.15s; }
-.tab:last-child { border-right: none; }
-.tab.active { background: #e8f5ee; color: #2d6a4f; font-weight: 600; }
-.tab-count { background: #2d6a4f; color: #fff; border-radius: 10px; padding: 1px 7px; font-size: 0.7rem; font-weight: 700; }
+/* ── Page Title ── */
+.dashboard-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 16px;
+  margin-bottom: 28px;
+}
 
-.toolbar { display: flex; gap: 12px; align-items: center; margin-bottom: 16px; }
-.search-wrap { display: flex; align-items: center; gap: 8px; background: #fff; border: 1.5px solid #ddd; border-radius: 8px; padding: 8px 14px; flex: 1; }
-.search-wrap:focus-within { border-color: #2d6a4f; }
-.search-wrap input { border: none; background: transparent; font-size: 0.88rem; font-family: 'DM Sans', sans-serif; width: 100%; }
-.search-wrap input:focus { outline: none; }
-.toolbar select { border: 1.5px solid #ddd; border-radius: 8px; padding: 8px 12px; font-size: 0.88rem; font-family: 'DM Sans', sans-serif; background: #fff; }
+.dashboard-header h1 {
+  font-size: 2rem;
+  font-weight: 700;
+  margin: 0 0 10px;
+  color: #111;
+}
 
-.campaign-list { display: flex; flex-direction: column; gap: 12px; }
-.campaign-row { background: #fff; border: 1px solid #e2e0db; border-radius: 12px; padding: 18px; display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; transition: box-shadow 0.2s; }
-.campaign-row:hover { box-shadow: 0 2px 12px rgba(0,0,0,0.06); }
-.campaign-left { display: flex; gap: 14px; flex: 1; }
-.campaign-thumb { width: 80px; height: 60px; object-fit: cover; border-radius: 8px; flex-shrink: 0; }
-.campaign-title { font-weight: 700; color: #1a1a1a; font-size: 0.95rem; margin-bottom: 4px; }
-.campaign-meta { font-size: 0.78rem; color: #aaa; display: flex; align-items: center; gap: 4px; flex-wrap: wrap; margin-bottom: 6px; }
-.dot { color: #ccc; }
-.campaign-desc { font-size: 0.83rem; color: #666; line-height: 1.5; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
-.campaign-flags { display: flex; gap: 6px; margin-top: 6px; flex-wrap: wrap; }
-.flag-chip { background: #fff5f5; border: 1px solid #fed7d7; border-radius: 6px; padding: 2px 8px; font-size: 0.72rem; color: #c53030; font-weight: 600; }
+.dashboard-header p {
+  color: #666;
+  margin: 0;
+}
 
-.campaign-right { display: flex; flex-direction: column; align-items: flex-end; gap: 10px; flex-shrink: 0; }
-.status-badge { display: inline-block; padding: 3px 10px; border-radius: 20px; font-size: 0.72rem; font-weight: 700; text-transform: capitalize; }
-.status-badge.active { background: #e8f5ee; color: #2d6a4f; }
-.status-badge.pending { background: #fffbeb; color: #b7791f; }
-.status-badge.rejected { background: #fff5f5; color: #c53030; }
-.status-badge.flagged { background: #fff5f5; color: #c53030; }
-.action-buttons { display: flex; gap: 6px; flex-wrap: wrap; justify-content: flex-end; }
-.btn-detail { border: 1.5px solid #ddd; background: #fff; border-radius: 7px; padding: 6px 12px; font-size: 0.8rem; font-family: 'DM Sans', sans-serif; cursor: pointer; }
-.btn-detail:hover { border-color: #aaa; }
-.btn-approve { border: none; background: #2d6a4f; color: #fff; border-radius: 7px; padding: 6px 12px; font-size: 0.8rem; font-family: 'DM Sans', sans-serif; cursor: pointer; font-weight: 600; }
-.btn-approve:hover { background: #1f4d38; }
-.btn-reject { border: none; background: #fff5f5; color: #c53030; border: 1px solid #fed7d7; border-radius: 7px; padding: 6px 12px; font-size: 0.8rem; font-family: 'DM Sans', sans-serif; cursor: pointer; font-weight: 600; }
-.btn-reject:hover { background: #fed7d7; }
-.btn-flag { border: 1px solid #f6e05e; background: #fffbeb; color: #b7791f; border-radius: 7px; padding: 6px 12px; font-size: 0.8rem; font-family: 'DM Sans', sans-serif; cursor: pointer; font-weight: 600; }
+.header-stats {
+  display: flex;
+  gap: 24px;
+}
 
-.empty-state { text-align: center; padding: 48px; color: #aaa; font-size: 1.5rem; }
-.empty-state p { font-size: 0.88rem; margin-top: 8px; }
+.hstat {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  background: #fff;
+  border-radius: 10px;
+  padding: 12px 20px;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+  min-width: 90px;
+}
 
-.drawer-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.25); z-index: 100; display: flex; justify-content: flex-end; }
-.drawer { width: 420px; background: #fff; height: 100vh; overflow-y: auto; box-shadow: -4px 0 32px rgba(0,0,0,0.12); display: flex; flex-direction: column; }
-.drawer-header { display: flex; justify-content: space-between; align-items: center; padding: 20px 24px; border-bottom: 1px solid #f0ede8; }
-.drawer-header h3 { font-size: 1rem; font-weight: 700; color: #1a1a1a; }
-.drawer-close { background: none; border: none; font-size: 1rem; cursor: pointer; color: #aaa; }
-.drawer-body { padding: 24px; display: flex; flex-direction: column; gap: 20px; }
-.drawer-img { width: 100%; height: 160px; object-fit: cover; border-radius: 10px; }
-.drawer-section { display: flex; flex-direction: column; gap: 10px; }
-.dl { display: flex; gap: 12px; }
-.dt { font-size: 0.78rem; color: #aaa; font-weight: 600; min-width: 80px; text-transform: uppercase; }
-.dd { font-size: 0.88rem; color: #1a1a1a; }
-.drawer-desc h4 { font-size: 0.88rem; font-weight: 600; color: #1a1a1a; margin-bottom: 8px; }
-.drawer-desc p { font-size: 0.88rem; color: #555; line-height: 1.6; }
-.drawer-actions { display: flex; gap: 10px; }
-.drawer-actions .btn-approve, .drawer-actions .btn-reject { flex: 1; padding: 10px; font-size: 0.88rem; }
+.hstat-val {
+  font-size: 1.6rem;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.hstat-orange { color: #ea580c; }
+.hstat-red    { color: #dc2626; }
+
+.hstat-lbl {
+  font-size: 0.75rem;
+  color: #888;
+  margin-top: 4px;
+  text-align: center;
+}
+
+/* ── Section ── */
+.dashboard-section {
+  background: #fff;
+  border-radius: 12px;
+  padding: 24px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+}
+
+/* ── Tabs ── */
+.tabs {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+}
+
+.tab-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  background: #f9fafb;
+  font-size: 0.88rem;
+  font-weight: 500;
+  color: #555;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.tab-btn:hover {
+  background: #f0f4ff;
+  border-color: #c7d2fe;
+  color: #3730a3;
+}
+
+.tab-btn.active {
+  background: #3b82f6;
+  border-color: #3b82f6;
+  color: #fff;
+}
+
+.tab-count {
+  background: rgba(0,0,0,0.12);
+  border-radius: 99px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  padding: 1px 7px;
+}
+
+.tab-btn.active .tab-count {
+  background: rgba(255,255,255,0.25);
+}
+
+/* ── Toolbar ── */
+.toolbar {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+}
+
+.search-pill {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+  min-width: 200px;
+  background: #f9fafb;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  padding: 0 14px;
+}
+
+.search-pill input {
+  border: none;
+  background: transparent;
+  outline: none;
+  width: 100%;
+  padding: 10px 0;
+  font-size: 0.9rem;
+  color: #111;
+}
+
+.search-icon {
+  color: #9ca3af;
+  font-size: 1rem;
+}
+
+.toolbar-select {
+  width: auto;
+  min-width: 160px;
+  padding: 8px 12px;
+}
+
+/* ── Campaign List ── */
+.campaign-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.campaign-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 16px;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  background: #fafafa;
+  transition: background 0.15s;
+  flex-wrap: wrap;
+}
+
+.campaign-row:hover {
+  background: #f0f5ff;
+  border-color: #c7d2fe;
+}
+
+.campaign-left {
+  display: flex;
+  gap: 14px;
+  flex: 1;
+  min-width: 0;
+  text-align: left;
+}
+
+.campaign-thumb {
+  width: 80px;
+  height: 60px;
+  object-fit: cover;
+  border-radius: 8px;
+  flex-shrink: 0;
+}
+
+.campaign-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.campaign-title {
+  font-weight: 700;
+  color: #111;
+  margin: 0 0 4px;
+  font-size: 0.95rem;
+  text-align: left;
+}
+
+.campaign-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  font-size: 0.78rem;
+  color: #6b7280;
+  margin-bottom: 6px;
+  text-align: left;
+}
+
+.dot {
+  color: #d1d5db;
+}
+
+.campaign-desc {
+  font-size: 0.82rem;
+  color: #555;
+  margin: 0 0 8px;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.campaign-flags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.flag-chip {
+  background: #fef2f2;
+  border: 1px solid #fca5a5;
+  color: #b91c1c;
+  font-size: 0.72rem;
+  font-weight: 600;
+  padding: 2px 10px;
+  border-radius: 99px;
+}
+
+/* ── Campaign Right ── */
+.campaign-right {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 10px;
+  flex-shrink: 0;
+}
+
+/* ── Status Badge ── */
+.status-badge {
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  padding: 3px 12px;
+  border-radius: 99px;
+  letter-spacing: 0.04em;
+}
+
+.status-pending  { background: #fff7ed; color: #c2410c; border: 1px solid #fed7aa; }
+.status-active   { background: #f0fdf4; color: #15803d; border: 1px solid #bbf7d0; }
+.status-rejected { background: #fef2f2; color: #b91c1c; border: 1px solid #fecaca; }
+.status-flagged  { background: #fefce8; color: #a16207; border: 1px solid #fde68a; }
+
+/* ── Action Buttons ── */
+.action-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  justify-content: flex-end;
+}
+
+.btn-detail  { background: #f3f4f6; color: #374151; border: 1px solid #e5e7eb; }
+.btn-approve { background: #f0fdf4; color: #15803d; border: 1px solid #bbf7d0; }
+.btn-reject  { background: #fef2f2; color: #b91c1c; border: 1px solid #fecaca; }
+.btn-flag    { background: #fefce8; color: #a16207; border: 1px solid #fde68a; }
+
+.btn-detail:hover  { background: #e5e7eb; }
+.btn-approve:hover { background: #dcfce7; }
+.btn-reject:hover  { background: #fee2e2; }
+.btn-flag:hover    { background: #fef9c3; }
+
+/* ── Empty State ── */
+.empty-state {
+  text-align: center;
+  padding: 48px 24px;
+  color: #9ca3af;
+}
+
+.empty-icon {
+  font-size: 3rem;
+  margin-bottom: 12px;
+}
+
+/* ── Drawer ── */
+.drawer-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.35);
+  z-index: 100;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.drawer {
+  width: 420px;
+  max-width: 100vw;
+  background: #fff;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  box-shadow: -4px 0 24px rgba(0,0,0,0.15);
+  animation: slideIn 0.22s ease;
+}
+
+@keyframes slideIn {
+  from { transform: translateX(100%); }
+  to   { transform: translateX(0); }
+}
+
+.drawer-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20px 24px;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.drawer-header h3 {
+  font-size: 1.1rem;
+  font-weight: 700;
+  margin: 0;
+  color: #111;
+  flex: 1;
+  padding-right: 12px;
+}
+
+.drawer-close {
+  background: none;
+  border: none;
+  font-size: 1.1rem;
+  color: #6b7280;
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 6px;
+  transition: background 0.15s;
+}
+
+.drawer-close:hover {
+  background: #f3f4f6;
+}
+
+.drawer-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 20px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.drawer-img {
+  width: 100%;
+  height: 160px;
+  object-fit: cover;
+  border-radius: 10px;
+}
+
+.drawer-section {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  background: #f9fafb;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  padding: 16px;
+}
+
+.dl {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+}
+
+.dt {
+  font-size: 0.8rem;
+  color: #9ca3af;
+  font-weight: 500;
+  flex-shrink: 0;
+}
+
+.dd {
+  font-size: 0.88rem;
+  color: #111;
+  font-weight: 600;
+  text-align: right;
+}
+
+.drawer-desc h4,
+.drawer-flags h4 {
+  font-size: 0.88rem;
+  font-weight: 700;
+  color: #374151;
+  margin: 0 0 8px;
+}
+
+.drawer-desc p {
+  font-size: 0.85rem;
+  color: #555;
+  margin: 0;
+  line-height: 1.6;
+}
+
+.drawer-actions {
+  display: flex;
+  gap: 10px;
+  padding-top: 8px;
+}
+
+.drawer-actions .btn {
+  flex: 1;
+  justify-content: center;
+  padding: 10px;
+}
 </style>

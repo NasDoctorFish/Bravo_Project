@@ -1,67 +1,7 @@
-<template>
-  <div class="page">
-    <div class="card">
-      <div class="brand">
-        <div class="logo">🤝</div>
-        <h1>Fund Raising Platform</h1>
-        <p>Sign in to your account</p>
-      </div>
-
-      <form @submit.prevent="handleLogin" class="form">
-        <div class="field">
-          <label>Email</label>
-          <input
-            v-model="form.email"
-            type="email"
-            placeholder="you@example.com"
-            required
-            :class="{ error: errors.email }"
-          />
-          <span v-if="errors.email" class="error-msg">{{ errors.email }}</span>
-        </div>
-
-        <div class="field">
-          <label>Password</label>
-          <div class="input-wrap">
-            <input
-              v-model="form.password"
-              :type="showPassword ? 'text' : 'password'"
-              placeholder="••••••••"
-              required
-              :class="{ error: errors.password }"
-            />
-            <button type="button" class="toggle-pw" @click="showPassword = !showPassword">
-              {{ showPassword ? '🙈' : '👁️' }}
-            </button>
-          </div>
-          <span v-if="errors.password" class="error-msg">{{ errors.password }}</span>
-        </div>
-
-        <div class="options">
-          <label class="remember">
-            <input type="checkbox" v-model="form.remember" />
-            Remember me
-          </label>
-          <a href="#" class="forgot">Forgot password?</a>
-        </div>
-
-        <button type="submit" class="btn-primary" :disabled="loading">
-          <span v-if="loading" class="spinner"></span>
-          {{ loading ? 'Signing in…' : 'Sign In' }}
-        </button>
-
-        <div v-if="loginError" class="alert-error">{{ loginError }}</div>
-      </form>
-
-      <p class="footer-link">
-        Don't have an account? <a href="#">Sign up</a>
-      </p>
-    </div>
-  </div>
-</template>
-
-<script setup lang="ts">
+<script setup>
 import { ref, reactive } from 'vue'
+
+const emit = defineEmits(['go-home', 'go-signup', 'login-success'])
 
 const form = reactive({ email: '', password: '', remember: false })
 const errors = reactive({ email: '', password: '' })
@@ -69,230 +9,305 @@ const showPassword = ref(false)
 const loading = ref(false)
 const loginError = ref('')
 
-//Login router
-import { useRouter } from 'vue-router'
-
-const router = useRouter()
-
 function validate() {
   errors.email = ''
   errors.password = ''
   let valid = true
-  if (!form.email.includes('@')) { errors.email = 'Enter a valid email.'; valid = false }
-  if (form.password.length < 6) { errors.password = 'Password must be at least 6 characters.'; valid = false }
+  if (!form.email.includes('@')) {
+    errors.email = 'Enter a valid email.'
+    valid = false
+  }
+  if (form.password.length < 6) {
+    errors.password = 'Password must be at least 6 characters.'
+    valid = false
+  }
   return valid
 }
 
-  const emit = defineEmits<{
-  (e: 'login-success'): void
-  }>()
-
 async function handleLogin() {
-  loading.value = true
   loginError.value = ''
-
   if (!validate()) {
-    loading.value = false
-    loginError.value = 'Invalid credentials. Please try again.'
+    loginError.value = 'Please fix the errors above.'
     return
   }
 
-  await new Promise(r => setTimeout(r, 1200)) // execute r() after 1.2 seconds(1200ms)
-
+  loading.value = true
+  await new Promise(r => setTimeout(r, 1200))
   loading.value = false
   emit('login-success')
 }
 </script>
 
-<style scoped>
-@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&family=Fraunces:wght@700&display=swap');
+<template>
+  <div class="login-page">
 
-.page {
+    <!-- Header -->
+    <header class="header">
+      <a href="#" class="brand" @click.prevent="emit('go-home')">
+        <span class="logo">♥</span>
+        <span>FundRise</span>
+      </a>
+
+      <nav class="nav">
+        <a href="#" class="nav-link">⌕ Donate</a>
+        <a href="#" class="nav-link">Fundraising</a>
+      </nav>
+
+      <nav class="nav-actions">
+        <a href="#" class="nav-link" @click.prevent="emit('go-login')">Login</a>
+        <a href="#" class="btn btn-primary" @click.prevent="emit('go-signup')">Sign Up</a>
+      </nav>
+    </header>
+
+    <!-- Login Card -->
+    <div class="login-wrapper">
+      <div class="login-card">
+
+        <div class="login-card-header">
+          <div class="login-logo">♥</div>
+          <h1>Welcome Back</h1>
+          <p>Sign in to your FundRise account</p>
+        </div>
+
+        <form @submit.prevent="handleLogin">
+
+          <!-- Email -->
+          <div class="form-group">
+            <label for="email">Email <span class="required">*</span></label>
+            <input
+              id="email"
+              v-model="form.email"
+              type="email"
+              placeholder="you@example.com"
+              class="form-input"
+              :class="{ 'input-error': errors.email }"
+              required
+            />
+            <span v-if="errors.email" class="field-error">{{ errors.email }}</span>
+          </div>
+
+          <!-- Password -->
+          <div class="form-group">
+            <label for="password">Password <span class="required">*</span></label>
+            <div class="input-wrap">
+              <input
+                id="password"
+                v-model="form.password"
+                :type="showPassword ? 'text' : 'password'"
+                placeholder="••••••••"
+                class="form-input"
+                :class="{ 'input-error': errors.password }"
+                required
+              />
+              <button
+                type="button"
+                class="toggle-pw"
+                @click="showPassword = !showPassword"
+              >
+                {{ showPassword ? '🙈' : '👁️' }}
+              </button>
+            </div>
+            <span v-if="errors.password" class="field-error">{{ errors.password }}</span>
+          </div>
+
+          <!-- Remember me / Forgot -->
+          <div class="form-options">
+            <label class="remember-label">
+              <input type="checkbox" v-model="form.remember" />
+              Remember me
+            </label>
+            <a href="#" class="forgot-link">Forgot password?</a>
+          </div>
+
+          <!-- Error Banner -->
+          <div v-if="loginError" class="error-banner">{{ loginError }}</div>
+
+          <!-- Submit -->
+          <div class="form-actions">
+            <button
+              type="submit"
+              class="btn btn-create"
+              :disabled="loading"
+            >
+              <span v-if="loading" class="spinner"></span>
+              {{ loading ? 'Signing in…' : 'Sign In' }}
+            </button>
+          </div>
+
+        </form>
+
+        <p class="signup-prompt">
+          Don't have an account?
+          <a href="#" @click.prevent="emit('go-signup')">Sign up</a>
+        </p>
+
+      </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="footer">
+      <p>© 2026 FundRise. Supporting dreams, one donation at a time.</p>
+    </footer>
+
+  </div>
+</template>
+
+<style scoped>
+/* ── Layout ── */
+.login-page {
   min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background: #f5f5f5;
+}
+
+.login-wrapper {
+  flex: 1;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: #f5f4f0;
-  font-family: 'DM Sans', sans-serif;
+  padding: 40px 24px;
 }
 
-.card {
+/* ── Card ── */
+.login-card {
   background: #fff;
-  border: 1px solid #e2e0db;
-  border-radius: 16px;
-  padding: 48px 40px;
+  border-radius: 14px;
+  box-shadow: 0 4px 24px rgba(0,0,0,0.08);
+  padding: 40px 36px;
   width: 100%;
-  max-width: 420px;
-  box-shadow: 0 4px 32px rgba(0,0,0,0.06);
+  max-width: 440px;
 }
 
-.brand {
+.login-card-header {
   text-align: center;
-  margin-bottom: 32px;
+  margin-bottom: 28px;
 }
 
-.logo {
+.login-logo {
   font-size: 2.4rem;
-  margin-bottom: 8px;
+  color: #e74c3c;
+  margin-bottom: 10px;
 }
 
-.brand h1 {
-  font-family: 'Fraunces', serif;
+.login-card-header h1 {
   font-size: 1.6rem;
-  color: #1a1a1a;
+  font-weight: 700;
+  color: #111;
   margin: 0 0 6px;
 }
 
-.brand p {
-  color: #6b6b6b;
+.login-card-header p {
+  color: #888;
   font-size: 0.9rem;
+  margin: 0;
 }
 
-.form {
-  display: flex;
-  flex-direction: column;
-  gap: 18px;
-}
-
-.field {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-
-label {
-  font-size: 0.85rem;
-  font-weight: 500;
-  color: #333;
-}
-
-input[type="email"],
-input[type="text"],
-input[type="password"] {
-  width: 100%;
-  padding: 11px 14px;
-  border: 1.5px solid #ddd;
-  border-radius: 8px;
-  font-size: 0.95rem;
-  font-family: 'DM Sans', sans-serif;
-  color: #1a1a1a;
-  background: #fafaf9;
-  transition: border-color 0.2s;
-  box-sizing: border-box;
-}
-
-input:focus {
-  outline: none;
-  border-color: #2d6a4f;
-  background: #fff;
-}
-
-input.error {
-  border-color: #e53e3e;
-}
-
-.error-msg {
-  font-size: 0.78rem;
-  color: #e53e3e;
-}
-
+/* ── Password Input Wrap ── */
 .input-wrap {
   position: relative;
+  display: flex;
+  align-items: center;
 }
 
-.input-wrap input {
+.input-wrap .form-input {
   padding-right: 44px;
+  width: 100%;
 }
 
 .toggle-pw {
   position: absolute;
-  right: 12px;
-  top: 50%;
-  transform: translateY(-50%);
+  right: 10px;
   background: none;
   border: none;
   cursor: pointer;
   font-size: 1rem;
-  padding: 0;
+  padding: 4px;
+  line-height: 1;
 }
 
-.options {
+/* ── Input Error State ── */
+.input-error {
+  border-color: #dc2626 !important;
+}
+
+.field-error {
+  font-size: 0.78rem;
+  color: #dc2626;
+  margin-top: 4px;
+  display: block;
+}
+
+/* ── Options Row ── */
+.form-options {
   display: flex;
-  justify-content: space-between;
   align-items: center;
-  font-size: 0.85rem;
+  justify-content: space-between;
+  margin-bottom: 16px;
 }
 
-.remember {
+.remember-label {
   display: flex;
   align-items: center;
   gap: 6px;
+  font-size: 0.85rem;
   color: #555;
   cursor: pointer;
 }
 
-.forgot {
-  color: #2d6a4f;
+.forgot-link {
+  font-size: 0.85rem;
+  color: #3b82f6;
   text-decoration: none;
-  font-weight: 500;
 }
 
-.forgot:hover { text-decoration: underline; }
+.forgot-link:hover {
+  text-decoration: underline;
+}
 
-.btn-primary {
-  background: #2d6a4f;
-  color: #fff;
-  border: none;
+/* ── Error Banner ── */
+.error-banner {
+  background: #fef2f2;
+  border: 1px solid #fca5a5;
+  color: #b91c1c;
+  padding: 10px 14px;
   border-radius: 8px;
-  padding: 12px;
-  font-size: 0.95rem;
-  font-weight: 600;
-  font-family: 'DM Sans', sans-serif;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  transition: background 0.2s;
-  margin-top: 4px;
+  font-size: 0.85rem;
+  margin-bottom: 12px;
 }
 
-.btn-primary:hover:not(:disabled) { background: #1f4d38; }
-.btn-primary:disabled { opacity: 0.65; cursor: not-allowed; }
-
+/* ── Spinner ── */
 .spinner {
-  width: 16px;
-  height: 16px;
+  display: inline-block;
+  width: 14px;
+  height: 14px;
   border: 2px solid rgba(255,255,255,0.4);
   border-top-color: #fff;
   border-radius: 50%;
   animation: spin 0.7s linear infinite;
+  margin-right: 6px;
+  vertical-align: middle;
 }
 
-@keyframes spin { to { transform: rotate(360deg); } }
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
 
-.alert-error {
-  background: #fff5f5;
-  border: 1px solid #fed7d7;
-  color: #c53030;
-  border-radius: 8px;
-  padding: 10px 14px;
-  font-size: 0.85rem;
+/* ── Signup Prompt ── */
+.signup-prompt {
   text-align: center;
+  font-size: 0.88rem;
+  color: #666;
+  margin: 20px 0 0;
 }
 
-.footer-link {
-  text-align: center;
-  margin-top: 24px;
-  font-size: 0.85rem;
-  color: #6b6b6b;
-}
-
-.footer-link a {
-  color: #2d6a4f;
-  font-weight: 500;
+.signup-prompt a {
+  color: #3b82f6;
+  font-weight: 600;
   text-decoration: none;
 }
 
-.footer-link a:hover { text-decoration: underline; }
+.signup-prompt a:hover {
+  text-decoration: underline;
+}
 </style>
