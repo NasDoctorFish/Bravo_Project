@@ -46,20 +46,29 @@ export function validateCategoryFormat(categoryData: any): boolean {
  * check any duplicates on Category SQL database
  * returns Promise<Boolean> type since it is async function
  */
-export async function checkDuplicateCategory(categoryname: string): Promise<boolean> {
-    console.log("Checking any duplicated dataset")
-    const {data, error} = await supabase
-        .from('category')
-        .select('categoryname')
-        .eq('categoryname', categoryname)
-        .maybeSingle()
-    
-    if (error) {
-        throw error
-    }
+export async function checkDuplicateCategory(
+  categoryname: string
+): Promise<boolean> {
+  console.log("Checking any duplicated dataset:", categoryname)
 
-    return data !== null
+  if (!categoryname || categoryname.trim().length === 0) {
+    throw new Error("Category name is required.")
+  }
 
+  const { data, error } = await supabase
+    .from('category')
+    .select('categoryname')
+    .eq('categoryname', categoryname.trim())
+    .maybeSingle()
+
+  console.log("Duplicate query data:", data)
+  console.log("Duplicate query error:", error)
+
+  if (error) {
+    throw error
+  }
+
+  return data !== null
 }
 
 
@@ -71,9 +80,12 @@ export async function checkDuplicateCategory(categoryname: string): Promise<bool
  */
 export async function create(categoryname: string, categorydescription: string): Promise<Category[]> {
      // 1. create categoryData
+    
+    const cleanCategoryName = categoryname.trim()
+    const cleanCategoryDescription = categorydescription.trim()
     const categoryData = {
-        categoryname: categoryname,
-        categorydescription: categorydescription
+        categoryname: cleanCategoryName,
+        categorydescription: cleanCategoryDescription
     }
 
     // 2. validate format & check duplicates
@@ -82,7 +94,7 @@ export async function create(categoryname: string, categorydescription: string):
     if (!isValid) {
         throw new Error('The category data format is incorrect. The categoryname should be less than 30 words, and decription less than 50 words')
     }
-    if (!isDuplicate) {
+    if (isDuplicate) {
         throw new Error('The category data is duplicated on dataset, please try with other categoryname.')
     }
 
