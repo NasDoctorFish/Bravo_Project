@@ -1,0 +1,197 @@
+// src/controllers/categoryController.ts
+import { supabase } from '../lib/supabaseClient'
+
+export type PeriodType = 'DAILY' | 'MONTHLY' | 'YEARLY' | 'CUSTOM'
+
+export type Report = {
+  reportid?: number
+  targetid: string
+  targettype: string
+  periodtype: PeriodType
+  start_date: string
+  end_date: string
+  reportsummary: string
+  reportcontent: string
+  created_at?: string
+}
+
+export type ActivityViewLog = {
+  activityid: number
+  targetid: number
+  targetname: string
+  timestamp: string
+  userid: number
+  source: number
+  referraldata: string
+  eventtype: string
+}
+
+/**
+ * verify if the start_date and end_date format is invalid
+ * return boolean
+ */
+export function verifyReportAvailability(start_date: string, end_date: string): boolean {
+    // convert string into datetime
+    const startDateText = start_date.trim()
+    const endDateText = end_date.trim()
+
+    const startDateTime = new Date(startDateText)
+    const endDateTime = new Date(endDateText)
+
+    // 1. Check date
+    if (Number.isNaN(startDateTime.getTime())) {
+        return false
+    }
+
+    if (Number.isNaN(endDateTime.getTime())) {
+        return false
+    }
+
+    // 2. check if start date is less than end date
+    if (startDateTime > endDateTime) {
+        return false
+    }
+    
+    return true
+}
+
+
+/**
+ * format date to YYYY-MM-DD
+ * return string
+ */
+function formatDateToYYYYMMDD(date: Date): string {
+  const year = date.getFullYear()
+  const month = String(date.getMonth() + 1).padStart(2, '0')
+  const day = String(date.getDate()).padStart(2, '0')
+
+  return `${year}-${month}-${day}`
+}
+
+
+/**
+ * retrieve ActivityViewLog Data from startDate to endDate
+ * Accessed from Supabase DB and returns ActivityViewLog[] format
+ */
+
+export async function retrieveActivityData(
+  startDate: Date,
+  endDate: Date
+): Promise<ActivityViewLog[]> {
+  const startDateText = formatDateToYYYYMMDD(startDate)
+  const endDateText = formatDateToYYYYMMDD(endDate)
+
+  const { data, error } = await supabase
+    .from('activityviewlog')
+    .select('*')
+    .gte('timestamp', startDateText)
+    .lte('timestamp', endDateText)
+
+  if (error) {
+    throw error
+  }
+
+  return data as ActivityViewLog[]
+}
+
+
+
+// =========++++++++===============+++++++++========+++++++======++++++++=====++++++++======++++++++======
+
+
+/**
+ * Generate report data and return Report type data
+ */
+export async function generateReportData(start_date: string, end_date: string, periodType: string, targetId: string, targetType: string): Promise<Report> {
+    const startDateText = start_date.trim()
+    const endDateText = end_date.trim()
+    const cleanTargetId = targetId.trim()
+    const cleanTargetType = targetType.trim()
+
+    const startDate = new Date(startDateText)
+    const endDate = new Date(endDateText)
+
+    if (!verifyReportAvailability(startDateText, endDateText)) {
+        throw new Error('Invalid report date range')
+    }
+
+    if (!periodType) {
+        throw new Error('No periodType given.')
+    }
+
+    if (!cleanTargetId) {
+        throw new Error('No targetId given')
+    }
+
+    if (!cleanTargetType) {
+        throw new Error('No targetType given')
+    }
+
+    const activityData = await retrieveActivityData(startDate, endDate)
+
+    const reportSummary = generateReportSummary(activityData)
+    const reportContent = `
+    Fundraising Platform Report
+
+    Period Type: ${periodType}
+    Target ID: ${cleanTargetId}
+    Target Type: ${cleanTargetType}
+    Start Date: ${startDateText}
+    End Date: ${endDateText}
+
+    ${reportSummary}
+    `.trim()
+
+    const reportData = {
+        targetid: cleanTargetId,
+        targettype: cleanTargetType,
+        periodtype: periodType,
+        start_date: startDateText,
+        end_date: endDateText,
+        reportsummary: reportSummary,
+        reportcontent: reportContent
+    }
+
+    const { data, error } = await supabase
+        .from('report')
+        .insert([reportData])
+        .select()
+        .single()
+
+    if (error) {
+        throw error
+    }
+
+    return data as Report
+}
+
+
+/**
+ * Return report summary
+ */
+export function generateReportSummary(
+  activityData: ActivityViewLog[]
+): string {
+  const totalLogs = activityData.length
+
+  const totalViews = activityData.filter(
+    (log) => log.eventtype === 'VIEW'
+  ).length
+
+  const totalClicks = activityData.filter(
+    (log) => log.eventtype === 'CLICK'
+  ).length
+
+  const uniqueUsers = new Set(
+    activityData.map((log) => log.userid)
+  ).size
+
+  return `
+Report Summary
+
+Total Activity Logs: ${totalLogs}
+Total Views: ${totalViews}
+Total Clicks: ${totalClicks}
+Unique Users: ${uniqueUsers}
+  `.trim()
+}
