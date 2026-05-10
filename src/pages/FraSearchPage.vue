@@ -1,46 +1,41 @@
-<script setup>
-import { ref, computed } from 'vue'
+<script setup lang="ts">
+import { ref} from 'vue'
+import type { FundRaisingActivity } from '../models/FundRaisingActivity'
+import { searchFraByFilter } from '../controllers/fraController'
+
+const query = ref<string>('')
+
+const selectedCategory = ref<number>(1)
+
+const results = ref<FundRaisingActivity[]>([])
+
+function handleSearch(): void {
+  results.value = searchFraByFilter(selectedCategory.value)
+}
 
 const emit = defineEmits(['go-home', 'go-login', 'go-logout', 'go-signup', 'go-create', 'go-campaigndetail'])
 
-const query = ref('')
-const filters = ref({ category: '', status: '', sort: 'recent' })
+const filters = ref({ 
+  category: '', 
+  status: '', 
+  sort: 'recent' 
+})
 
 const categories = ['Education', 'Healthcare', 'Environment', 'Disaster Relief', 'Community', 'Arts & Culture']
 
-const allCampaigns = [
-  { id: 1, title: 'Clean Water for Rural Schools', organizer: 'Jane Doe', category: 'Education', status: 'active', description: 'Installing water filtration in 5 rural schools to benefit over 2,000 students.', goal: 10000, raised: 7400, image: 'https://placehold.co/400x200/d8f3dc/2d6a4f?text=Clean+Water' },
-  { id: 2, title: 'School Supplies Drive', organizer: 'Mark Tan', category: 'Education', status: 'completed', description: 'Providing essential school supplies to underprivileged children.', goal: 5000, raised: 5000, image: 'https://placehold.co/400x200/ebf8ff/2b6cb0?text=Supplies' },
-  { id: 3, title: 'Medical Aid Fund', organizer: 'Dr. Sarah Lim', category: 'Healthcare', status: 'active', description: 'Supporting low-income families with medical expenses they cannot afford.', goal: 20000, raised: 9200, image: 'https://placehold.co/400x200/fff5f5/c53030?text=Medical+Aid' },
-  { id: 4, title: 'Reforestation Project', organizer: 'GreenEarth SG', category: 'Environment', status: 'active', description: 'Planting 10,000 trees across deforested areas in Southeast Asia.', goal: 15000, raised: 4800, image: 'https://placehold.co/400x200/f0fff4/276749?text=Reforestation' },
-  { id: 5, title: 'Elderly Care Program', organizer: 'Community Hearts', category: 'Community', status: 'pending', description: 'Providing daily meals and companionship visits to isolated elderly.', goal: 8000, raised: 1200, image: 'https://placehold.co/400x200/fffbeb/b7791f?text=Elderly+Care' },
-  { id: 6, title: 'Flood Relief Fund', organizer: 'RedHand SG', category: 'Disaster Relief', status: 'active', description: 'Emergency aid for families affected by recent flooding.', goal: 30000, raised: 22000, image: 'https://placehold.co/400x200/ebf8ff/2c5282?text=Flood+Relief' },
-]
-
-const filteredCampaigns = computed(() => {
-  let result = [...allCampaigns]
-  if (query.value) {
-    const q = query.value.toLowerCase()
-    result = result.filter(c =>
-      c.title.toLowerCase().includes(q) ||
-      c.category.toLowerCase().includes(q) ||
-      c.organizer.toLowerCase().includes(q)
-    )
-  }
-
-  if (filters.value.category) result = result.filter(c => c.category === filters.value.category)
-  if (filters.value.status)   result = result.filter(c => c.status   === filters.value.status)
-  if (filters.value.sort === 'funded') result.sort((a, b) => (b.raised / b.goal) - (a.raised / a.goal))
-
-  return result
-})
+results.value = searchFraByFilter(selectedCategory.value)
 
 function clearFilters() {
   filters.value = { category: '', status: '', sort: 'recent' }
   query.value = ''
 }
 
-const progressPercent = (c) => Math.min(Math.round((c.raised / c.goal) * 100), 100)
+const progressPercent = (c: FundRaisingActivity): number =>
+  Math.min(
+    Math.round((c.currentAmount / c.targetAmount) * 100),
+    100
+  )
+
 </script>
 
 <template>
@@ -89,7 +84,7 @@ const progressPercent = (c) => Math.min(Math.round((c.raised / c.goal) * 100), 1
         <div class="filters-row">
           <div class="form-group">
             <label>Category</label>
-            <select v-model="filters.category" class="form-select">
+            <select v-model="selectedCategory" @change="handleSearch">
               <option value="">All Categories</option>
               <option v-for="c in categories" :key="c" :value="c">{{ c }}</option>
             </select>
@@ -123,14 +118,14 @@ const progressPercent = (c) => Math.min(Math.round((c.raised / c.goal) * 100), 1
 
       <!-- Results Count -->
       <p class="results-count">
-        {{ filteredCampaigns.length }} campaign{{ filteredCampaigns.length !== 1 ? 's' : '' }} found
+        {{ results.length }} campaign{{ results.length !== 1 ? 's' : '' }} found
       </p>
 
       <!-- Campaign Cards -->
-      <div v-if="filteredCampaigns.length > 0" class="campaigns-grid">
+      <div v-if="results.length > 0" class="campaigns-grid">
         <div
-          v-for="c in filteredCampaigns"
-          :key="c.id"
+          v-for="c in results"
+          :key="c.fraId"
           class="campaign-card"
           @click="emit('go-campaigndetail', c)"
         >
@@ -142,7 +137,7 @@ const progressPercent = (c) => Math.min(Math.round((c.raised / c.goal) * 100), 1
 
           <!-- Body -->
           <div class="campaign-body">
-            <span class="campaign-category">{{ c.category }}</span>
+            <span class="campaign-category">{{ c.categoryId}}</span>
             <h4 class="campaign-title">{{ c.title }}</h4>
             <p class="campaign-desc">{{ c.description }}</p>
 
@@ -151,13 +146,13 @@ const progressPercent = (c) => Math.min(Math.round((c.raised / c.goal) * 100), 1
                 <div class="progress-fill" :style="{ width: progressPercent(c) + '%' }"></div>
               </div>
               <div class="progress-labels">
-                <span class="progress-raised">${{ c.raised.toLocaleString() }} raised</span>
-                <span class="progress-pct">{{ progressPercent(c) }}% of ${{ c.goal.toLocaleString() }}</span>
+                <span class="progress-raised">${{ c.currentAmount.toLocaleString() }} raised</span>
+                <span class="progress-pct">{{ progressPercent(c) }}% of ${{ c.targetAmount.toLocaleString() }}</span>
               </div>
             </div>
 
             <div class="campaign-footer">
-              <span class="campaign-organizer">by {{ c.organizer }}</span>
+              <span class="campaign-organizer">by {{ c.createdBy}}</span>
               <span class="view-link">View →</span>
             </div>
           </div>
