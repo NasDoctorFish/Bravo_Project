@@ -1,10 +1,19 @@
-<script setup>
+<script setup lang="ts">
 import { ref, reactive } from 'vue'
+import { fraController } from '../controllers/fraController'
 
+// FR-2-01 Boundary attributes
 const emit = defineEmits(['go-home', 'go-logout', 'go-search', 'campaign-created'])
+
+// Boundary attributes from class diagram
+const title       = ref('')
+const description = ref('')
+const targetAmount = ref<number | null>(null)
+const categoryId  = ref('')
 
 const step = ref(1)
 const submitting = ref(false)
+const errorMsg    = ref('')
 const steps = ['Basic Info', 'Funding', 'Media', 'Review']
 
 const categories = [
@@ -41,6 +50,37 @@ async function handleSubmit() {
   await new Promise(r => setTimeout(r, 1400))
   submitting.value = false
   emit('campaign-created', { ...form })
+}
+
+// FR-2-01: handleCreateFra
+async function handleCreateFra(): Promise<void> {
+  errorMsg.value  = ''
+  submitting.value = true
+ 
+  try {
+    const accessToken = localStorage.getItem('accessToken') || ''
+    const userId      = localStorage.getItem('userId') || ''
+ 
+    const controller = new fraController(userId, accessToken)
+ 
+    await controller.createFra(
+      title.value,
+      description.value,
+      targetAmount.value!,
+      categoryId.value
+    )
+ 
+    emit('campaign-created', {
+      title:        title.value,
+      description:  description.value,
+      targetAmount: targetAmount.value,
+      categoryId:   categoryId.value,
+    })
+  } catch (err: any) {
+    errorMsg.value = err.message || 'Failed to create campaign. Please try again.'
+  } finally {
+    submitting.value = false
+  }
 }
 </script>
 
@@ -288,7 +328,7 @@ async function handleSubmit() {
             type="button"
             class="btn btn-create step-btn"
             :disabled="!form.agreed || submitting"
-            @click="handleSubmit"
+            @click="handleSubmit()"
           >
             <span v-if="submitting" class="spinner"></span>
             {{ submitting ? 'Submitting…' : 'Submit Campaign' }}
