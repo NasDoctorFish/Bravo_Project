@@ -7,6 +7,7 @@ import DonationHistoryPage    from '../pages/DonationHistoryPage.vue'
 import FavouritesPage         from '../pages/FavouritesPage.vue'
 import FraCreationPage        from '../pages/FraCreationPage.vue'
 import FraDetailPage          from '../pages/FraDetailPage.vue'
+import FraHistoryPage         from '../pages/FraHistoryPage.vue'
 import FraSearchPage          from '../pages/FraSearchPage.vue'
 import HomePage               from '../pages/HomePage.vue'
 import LoginPage              from '../pages/LoginPage.vue'
@@ -23,6 +24,7 @@ const routes = [
   { path: '/donation-history',   component: DonationHistoryPage },
   { path: '/favourites',         component: FavouritesPage },
   { path: '/fra/create',         component: FraCreationPage },
+  { path: '/fra-history',        component: FraHistoryPage },
   { path: '/fra/search',         component: FraSearchPage },
   { path: '/fra/:id',            component: FraDetailPage },  //:id get every kinds of string, hence should be after actual string route
   { path: '/platform',           component: PlatformManagementPage },
