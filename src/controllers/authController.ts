@@ -1,21 +1,19 @@
 // src/controllers/authController.ts
 import { supabase } from '../lib/supabaseClient'
 
-export let userid: string = ''
+export let userid: number
 export let password: string = ''
 export let isAdmin: boolean = false
 
 export async function create(
-  userid: string,
   name: string,
   role: string,
   password: string,
   email?: string // Optional
-): Promise<boolean> {
+): Promise<number> {
   
-  // System validates format
+  // System validates all fields are filled in
   if (
-    !userid.trim() ||
     !name.trim() ||
     !role.trim() ||
     !password.trim()
@@ -24,28 +22,31 @@ export async function create(
   }
 
   // System validates duplicates
-  const { error: accountError } = await supabase
+  const { data, error: accountError } = await supabase
     .from('useraccount')
     .insert([
       {
-        userid: userid.trim(),
         email: email?.trim() || null,
         password: password
       }
     ])
+    .select('userid')
+    .single()
 
   if (accountError) {
-    // If Duplicate ID detected
-    if (accountError.code === '23505') throw new Error('Duplicate ID detected')
+    // If Duplicate emails detected
+    if (accountError.code === '23505') throw new Error('Account already exists')
     throw accountError
   }
+
+  const newId = data.userid
 
   // Insert Name and Role to userprofile 
   const { error: profileError } = await supabase
     .from('userprofile')
     .insert([
       {
-        userid: userid.trim(),
+        userid: newId,
         name: name.trim(),
         role: role
       }
@@ -53,10 +54,10 @@ export async function create(
 
   if (profileError) throw profileError
 
-  return true
+  return newId
 }
 
-export async function validateUser(id: string, pass: string): Promise<boolean> {
+export async function validateUser(id: number, pass: string): Promise<boolean> {
   const { data, error } = await supabase
     .from('useraccount')
     .select('*, userprofile(role)') 
@@ -72,7 +73,7 @@ export async function validateUser(id: string, pass: string): Promise<boolean> {
   return true
 }
 
-export async function validateSession(id: string, sessionId: string): Promise<boolean> {
+export async function validateSession(id: number, sessionId: string): Promise<boolean> {
   if (!id || !sessionId) return false
   return true
 }
