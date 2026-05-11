@@ -1,5 +1,6 @@
 <script setup>
 import { ref, computed } from 'vue'
+import { create } from '../controllers/authController' 
 
 const emit = defineEmits(['go-home', 'go-logout', 'go-search'])
 
@@ -9,9 +10,14 @@ const filterStatus = ref('')
 const selected = ref([])
 const showCreateModal = ref(false)
 const editingUser = ref(null)
-const modalForm = ref({ name: '', email: '', role: 'Fund Raiser' })
+const modalForm = ref({ name: '', email: '', role: 'Fund Raiser', password: '' })
 
-const roles = ['User Admin', 'Platform Manager', 'Fund Raiser', 'Donee']
+const roles = [
+  { label: 'User Admin', value: 'UA' },
+  { label: 'Platform Manager', value: 'PM' },
+  { label: 'Fund Raiser', value: 'FR' }, 
+  { label: 'Donee', value: 'DO' }
+]
 
 const users = ref([
   { id: 1, name: 'Jane Doe',  email: 'jane@example.com',  role: 'Fund Raiser',      status: 'active',    joined: 'Jan 2026', lastActive: '2 mins ago',  initials: 'JD', color: '#2d6a4f' },
@@ -39,14 +45,42 @@ function editUser(user) {
   showCreateModal.value = true
 }
 
-function saveUser() {
+async function saveUser() {
   if (editingUser.value) {
     const u = users.value.find(u => u.id === editingUser.value.id)
     if (u) { u.name = modalForm.value.name; u.email = modalForm.value.email; u.role = modalForm.value.role }
+  } else {
+    try {
+      const newId = await create(
+        modalForm.value.name,
+        modalForm.value.role,
+        modalForm.value.password,
+        modalForm.value.email
+      )
+
+      if (newId) {
+        alert('User successfully created and stored in database!')
+
+        users.value.push({
+          id: newId,
+          name: modalForm.value.name,
+          email: modalForm.value.email,
+          role: modalForm.value.role,
+          status: 'active',
+          joined: 'May 2026',
+          lastActive: 'Just now',
+          initials: modalForm.value.name.split(' ').map(n => n[0]).join(''),
+          color: '#4a5568'
+        })
+      }
+  } catch (err) {
+    alert("Error: " + err.message)
+    return;
   }
+}
   showCreateModal.value = false
   editingUser.value = null
-  modalForm.value = { name: '', email: '', role: 'Fund Raiser' }
+  modalForm.value = { id: '', name: '', email: '', role: 'Fund Raiser', password: '' }
 }
 
 function toggleSuspend(user) {
@@ -57,6 +91,17 @@ function confirmDelete(user) {
   if (confirm(`Delete ${user.name}?`)) {
     users.value = users.value.filter(u => u.id !== user.id)
   }
+}
+
+const roleLabels = {
+  'UA': 'User Admin',
+  'PM': 'Platform Manager',
+  'DR': 'Fund Raiser',
+  'DO': 'Donee'
+}
+
+function getRoleLabel(code) {
+  return roleLabels[code] || code 
 }
 </script>
 
@@ -155,7 +200,7 @@ function confirmDelete(user) {
                     </div>
                   </div>
                 </td>
-                <td class="td-center"><span class="role-tag">{{ user.role }}</span></td>
+                <td class="td-center"><span class="role-tag">{{ getRoleLabel(user.role) }}</span></td>
                 <td class="td-center"><span :class="['badge', 'badge-' + user.status]">{{ user.status }}</span></td>
                 <td class="td-center td-muted">{{ user.joined }}</td>
                 <td class="td-center td-muted">{{ user.lastActive }}</td>
@@ -197,16 +242,22 @@ function confirmDelete(user) {
         <div class="modal-body">
           <div class="form-group">
             <label>Full Name</label>
-            <input v-model="modalForm.name" type="text" placeholder="Jane Doe" class="form-input" />
+            <input v-model="modalForm.name" type="text" placeholder="Jane Doe" class="form-input" required />
           </div>
           <div class="form-group">
             <label>Email</label>
             <input v-model="modalForm.email" type="email" placeholder="jane@example.com" class="form-input" />
           </div>
           <div class="form-group">
+            <label>Password</label>
+            <input v-model="modalForm.password" type="password" class="form-input" placeholder="••••••••" required />
+          </div>
+          <div class="form-group">
             <label>Role</label>
             <select v-model="modalForm.role" class="form-select">
-              <option v-for="r in roles" :key="r" :value="r">{{ r }}</option>
+              <option v-for="r in roles" :key="r.value" :value="r.value"> 
+                {{ r.label }}
+              </option>
             </select>
           </div>
         </div>
