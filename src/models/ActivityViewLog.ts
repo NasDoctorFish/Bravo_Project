@@ -27,3 +27,4 @@ export class ActivityViewLogModel {
     return data as ActivityViewLog[]
   }
 }
+gi
