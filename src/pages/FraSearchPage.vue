@@ -1,4 +1,4 @@
-//  BOUNDARY — from class diagram
+//  BOUNDARY
 
 <script setup>
 
@@ -54,7 +54,7 @@ function submitSearch() {
         <p>Find and support causes that matter to you</p>
       </div>
 
-      <!-- ── Search Bar (submitSearch) ── -->
+      <!-- Search Bar (submitSearch) -->
       <div class="search-bar-wrap">
         <span class="search-icon">⌕</span>
         <input
@@ -68,12 +68,12 @@ function submitSearch() {
         <button v-if="keyword" class="clear-btn" @click="clearSearch">✕</button>
       </div>
 
-      <!-- ── displayError(msg) ── -->
+      <!-- displayError(msg) -->
       <div v-if="hasError" class="error-banner">
         ⚠ {{ error }}
       </div>
 
-      <!-- ── Filters — Boundary binds, Control owns filter state ── -->
+      <!-- Filters -->
       <section class="dashboard-section filters-section">
         <div class="filters-row">
 
@@ -112,15 +112,15 @@ function submitSearch() {
         </div>
       </section>
 
-      <!-- ── Loading State ── -->
+      <!-- Loading State -->
       <p v-if="isLoading" class="results-count">Searching…</p>
 
-      <!-- ── Results Count ── -->
+      <!-- Results Count -->
       <p v-else class="results-count">
         {{ totalCount }} campaign{{ totalCount !== 1 ? 's' : '' }} found
       </p>
 
-      <!-- ── displayResults(campaigns) — v-for renders Control's results ── -->
+      <!-- displayResults(campaigns) -->
       <div v-if="hasResults && !isLoading" class="campaigns-grid">
         <div
           v-for="fra in results"
@@ -157,7 +157,7 @@ function submitSearch() {
         </div>
       </div>
 
-      <!-- ── Empty State (displayError / no results) ── -->
+      <!-- Empty State (displayError / no results) -->
       <div v-else-if="!isLoading" class="empty-state">
         <div class="empty-icon">🔎</div>
         <h3>No campaigns found</h3>
@@ -166,7 +166,7 @@ function submitSearch() {
 
     </div>
 
-    <!-- ── Footer ── -->
+    <!-- Footer -->
     <footer class="footer">
       <p>© 2026 FundRise. Supporting dreams, one donation at a time.</p>
     </footer>
