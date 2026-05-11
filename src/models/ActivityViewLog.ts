@@ -1,6 +1,5 @@
 import {supabase} from '../lib/supabaseClient'
 
-
 export interface ActivityViewLog {
   activityId: string
   targetId: string
@@ -27,4 +26,3 @@ export class ActivityViewLogModel {
     return data as ActivityViewLog[]
   }
 }
-gi
