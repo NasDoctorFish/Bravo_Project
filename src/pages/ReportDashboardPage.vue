@@ -1,25 +1,85 @@
-<script setup>
+<script setup lang="ts">
 import { ref, computed } from 'vue'
+import { generateReportData } from '../controllers/reportController'
 
-const emit = defineEmits(['go-home', 'go-logout', 'go-search'])
+import {
+  Chart as ChartJS,
+  Title,
+  Tooltip,
+  Legend,
+  BarElement,
+  CategoryScale,
+  LinearScale
+} from 'chart.js'
+import { Bar } from 'vue-chartjs'
 
+ChartJS.register(
+  Title,
+  Tooltip,
+  Legend,
+  BarElement,
+  CategoryScale,
+  LinearScale
+)
+
+// -- Types (from ReportMgntDEV) --
+type PeriodType = 'DAILY' | 'MONTHLY' | 'YEARLY' | 'CUSTOM'
+
+type Report = {
+  reportid?: number
+  targetid: string
+  targettype: string
+  periodtype: PeriodType
+  startdate: string
+  enddate: string
+  reportsummary: string
+  reportcontent: string
+  created_at?: string
+}
+
+type ReportChartPoint = {
+  period: string
+  totalLogs: number
+  totalViews: number
+  totalClicks: number
+  uniqueUsers: number
+}
+
+type ReportResult = {
+  report: Report
+  chartData: ReportChartPoint[]
+}
+
+type KpiItem = {
+  icon: string
+  value: string
+  label: string
+}
+
+const emit = defineEmits<{
+  (event: 'go-home'): void
+  (event: 'go-logout'): void
+  (event: 'go-search'): void
+}>()
+
+// -- Static Dashboard Data (from ReportDashboardPage) --
 const period = ref('30')
 
-const kpis = [
+const staticKpis = [
   { icon: '💰', value: '$86,400', label: 'Total Raised',          change: '18%', positive: true },
   { icon: '📋', value: '24',      label: 'Active Campaigns',      change: '4',   positive: true },
   { icon: '👥', value: '1,248',   label: 'Total Donors',          change: '22%', positive: true },
   { icon: '🎯', value: '68%',     label: 'Avg. Completion Rate',  change: '5%',  positive: true },
 ]
 
-const chartData = [
+const weeklyChartData = [
   { label: 'W1', value: 4200  }, { label: 'W2', value: 7800  },
   { label: 'W3', value: 5400  }, { label: 'W4', value: 9200  },
   { label: 'W5', value: 6600  }, { label: 'W6', value: 11000 },
   { label: 'W7', value: 8400  }, { label: 'W8', value: 13200 },
 ]
 
-const maxBar = computed(() => Math.max(...chartData.map(d => d.value)))
+const maxBar = computed(() => Math.max(...weeklyChartData.map(d => d.value)))
 
 const categoryBreakdown = [
   { name: 'Education',      pct: 34, amount: 29376, color: '#2d6a4f' },
@@ -52,6 +112,158 @@ function exportCSV() {
   a.href = url; a.download = 'report.csv'; a.click()
   URL.revokeObjectURL(url)
 }
+
+// -- Report Generation (from ReportMgntDEV) --
+const periodType = ref<PeriodType>('MONTHLY')
+const startDate = ref<string>('')
+const endDate = ref<string>('')
+const targetId = ref<string>('PLATFORM')
+const targetType = ref<string>('platform')
+
+const isLoading = ref<boolean>(false)
+const errorMessage = ref<string>('')
+const selectedReport = ref<Report | null>(null)
+const reportSummaryText = ref<string>('')
+const reportDetailsVisible = ref<boolean>(false)
+
+const reports = ref<Report[]>([])
+
+const periodOptions: { value: PeriodType; label: string }[] = [
+  { value: 'DAILY',   label: 'Daily'   },
+  { value: 'MONTHLY', label: 'Monthly' },
+  { value: 'YEARLY',  label: 'Yearly'  },
+  { value: 'CUSTOM',  label: 'Custom'  },
+]
+
+const kpis = computed<KpiItem[]>(() => {
+  if (!selectedReport.value) {
+    return [
+      { icon: '📊', value: '-', label: 'Total Activity Logs' },
+      { icon: '👁️', value: '-', label: 'Total Views' },
+      { icon: '🖱️', value: '-', label: 'Total Clicks' },
+      { icon: '👥', value: '-', label: 'Unique Users' },
+    ]
+  }
+
+  const summary = selectedReport.value.reportsummary || ''
+
+  return [
+    { icon: '📊', value: extractSummaryValue(summary, 'Total Activity Logs'), label: 'Total Activity Logs' },
+    { icon: '👁️', value: extractSummaryValue(summary, 'Total Views'), label: 'Total Views' },
+    { icon: '🖱️', value: extractSummaryValue(summary, 'Total Clicks'), label: 'Total Clicks' },
+    { icon: '👥', value: extractSummaryValue(summary, 'Unique Users'), label: 'Unique Users' },
+  ]
+})
+
+// Chart Section
+const reportChartData = ref<ReportChartPoint[]>([])
+
+const chartDisplayData = computed(() => ({
+  labels: reportChartData.value.map((item) => item.period),
+  datasets: [
+    {
+      label: 'Views',
+      data: reportChartData.value.map((item) => item.totalViews)
+    },
+    {
+      label: 'Clicks',
+      data: reportChartData.value.map((item) => item.totalClicks)
+    },
+    {
+      label: 'Unique Users',
+      data: reportChartData.value.map((item) => item.uniqueUsers)
+    }
+  ]
+}))
+
+const chartOptions = {
+  responsive: true,
+  maintainAspectRatio: false
+}
+//
+
+function extractSummaryValue(summary: string, label: string): string {
+  const line = summary
+    .split('\n')
+    .find((item) => item.toLowerCase().includes(label.toLowerCase()))
+
+  if (!line) {
+    return '-'
+  }
+
+  return line.split(':')[1]?.trim() || '-'
+}
+
+/**
+ * handleGenerateReport()
+ * Calls reportController.generateReportData()
+ */
+async function handleGenerateReport(): Promise<void> {
+  errorMessage.value = ''
+  reportDetailsVisible.value = false
+  isLoading.value = true
+
+  try {
+    const result = await generateReportData(
+      startDate.value,
+      endDate.value,
+      periodType.value,
+      targetId.value,
+      targetType.value
+    ) as ReportResult
+
+    selectedReport.value = result.report
+    reports.value.unshift(result.report)
+    reportChartData.value = result.chartData ?? []
+
+    displayReportSummary(result.report)
+  } catch (error: unknown) {
+    if (error instanceof Error) {
+      errorMessage.value = error.message
+    } else {
+      errorMessage.value = 'Failed to generate report.'
+    }
+  } finally {
+    isLoading.value = false
+  }
+}
+
+/**
+ * displayReportSummary(reportData)
+ */
+function displayReportSummary(reportData: Report): void {
+  reportSummaryText.value = reportData.reportsummary
+}
+
+/**
+ * viewReportDetails(report)
+ */
+function viewReportDetails(report: Report): void {
+  selectedReport.value = report
+  reportSummaryText.value = report.reportsummary
+  reportDetailsVisible.value = true
+}
+
+/**
+ * Export current report content as TXT
+ */
+function exportReport(): void {
+  if (!selectedReport.value) {
+    errorMessage.value = 'No report selected.'
+    return
+  }
+
+  const blob = new Blob([selectedReport.value.reportcontent], {
+    type: 'text/plain',
+  })
+
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = `platform-report-${selectedReport.value.startdate}-${selectedReport.value.enddate}.txt`
+  a.click()
+  URL.revokeObjectURL(url)
+}
 </script>
 
 <template>
@@ -71,7 +283,7 @@ function exportCSV() {
 
       <nav class="nav-actions">
         <a href="#" class="nav-link" @click.prevent="emit('go-home')">Home</a>
-        <span class="user-info">Platform Admin</span>
+        <span class="user-info">Platform Manager</span>
         <a href="#" class="nav-link logout-link" @click.prevent="emit('go-logout')">
           <span class="logout-icon">⇢</span> Logout
         </a>
@@ -99,7 +311,7 @@ function exportCSV() {
 
       <!-- KPI Cards -->
       <div class="kpi-grid">
-        <div class="kpi-card" v-for="kpi in kpis" :key="kpi.label">
+        <div class="kpi-card" v-for="kpi in staticKpis" :key="kpi.label">
           <div class="kpi-icon">{{ kpi.icon }}</div>
           <div class="kpi-value">{{ kpi.value }}</div>
           <div class="kpi-label">{{ kpi.label }}</div>
@@ -119,7 +331,7 @@ function exportCSV() {
             <span class="chart-note">SGD raised per week</span>
           </div>
           <div class="bar-chart">
-            <div class="bar-group" v-for="(bar, i) in chartData" :key="i">
+            <div class="bar-group" v-for="(bar, i) in weeklyChartData" :key="i">
               <div class="bar-wrap">
                 <div class="bar" :style="{ height: (bar.value / maxBar * 100) + '%' }">
                   <span class="bar-tip">${{ bar.value.toLocaleString() }}</span>
@@ -192,6 +404,183 @@ function exportCSV() {
               </tr>
             </tbody>
           </table>
+        </div>
+      </section>
+
+      <!-- ── Activity Report Generation (from ReportMgntDEV) ── -->
+
+      <!-- Page Sub-Title -->
+      <div class="dashboard-header" style="margin-top: 40px;">
+        <div>
+          <h1>Overall Platform Performance Report</h1>
+          <p>Generate and review platform-wide performance reports.</p>
+        </div>
+
+        <button
+          class="btn btn-cancel export-btn"
+          :disabled="!selectedReport"
+          @click="exportReport"
+        >
+          ↓ Export Report
+        </button>
+      </div>
+
+      <!-- Generate Report Form -->
+      <section class="dashboard-section report-form-section">
+        <h2>Generate Report</h2>
+
+        <div class="form-grid">
+          <div class="form-group">
+            <label>Period Type</label>
+            <select v-model="periodType" class="form-select">
+              <option
+                v-for="option in periodOptions"
+                :key="option.value"
+                :value="option.value"
+              >
+                {{ option.label }}
+              </option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label>Start Date</label>
+            <input v-model="startDate" type="date" class="form-input" />
+          </div>
+
+          <div class="form-group">
+            <label>End Date</label>
+            <input v-model="endDate" type="date" class="form-input" />
+          </div>
+
+          <div class="form-group">
+            <label>Target ID</label>
+            <input
+              v-model="targetId"
+              type="text"
+              class="form-input"
+              placeholder="PLATFORM"
+            />
+          </div>
+
+          <div class="form-group">
+            <label>Target Type</label>
+            <select v-model="targetType" class="form-select">
+              <option value="platform">Platform</option>
+              <option value="fra">Fund Raising Activity</option>
+              <option value="story">Story</option>
+              <option value="donation">Donation</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="form-actions">
+          <button
+            class="btn generate-btn"
+            :disabled="isLoading"
+            @click="handleGenerateReport"
+          >
+            {{ isLoading ? 'Generating...' : 'Generate Report' }}
+          </button>
+        </div>
+
+        <p v-if="errorMessage" class="error-message">
+          {{ errorMessage }}
+        </p>
+      </section>
+
+      <!-- Charts -->
+      <section class="dashboard-section">
+        <h2>Report Chart</h2>
+
+        <div v-if="chartDisplayData.labels.length > 0" style="height: 360px;">
+          <Bar :data="chartDisplayData" :options="chartOptions" />
+        </div>
+
+        <div v-else class="empty-state">
+          No chart data available.
+        </div>
+      </section>
+
+      <!-- KPI Cards -->
+      <div class="kpi-grid">
+        <div class="kpi-card" v-for="kpi in kpis" :key="kpi.label">
+          <div class="kpi-icon">{{ kpi.icon }}</div>
+          <div class="kpi-value">{{ kpi.value }}</div>
+          <div class="kpi-label">{{ kpi.label }}</div>
+        </div>
+      </div>
+
+      <!-- Report Summary -->
+      <section class="dashboard-section">
+        <div class="section-title-row">
+          <h2>Report Summary</h2>
+        </div>
+
+        <div v-if="reportSummaryText" class="summary-box">
+          <pre>{{ reportSummaryText }}</pre>
+        </div>
+
+        <div v-else class="empty-state">
+          No report generated yet.
+        </div>
+      </section>
+
+      <!-- Generated Report List -->
+      <section class="dashboard-section">
+        <div class="section-title-row">
+          <h2>Generated Reports</h2>
+        </div>
+
+        <div v-if="reports.length === 0" class="empty-state">
+          No generated reports available.
+        </div>
+
+        <div v-else class="table-wrapper">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Report ID</th>
+                <th>Target ID</th>
+                <th>Target Type</th>
+                <th>Period Type</th>
+                <th>Start Date</th>
+                <th>End Date</th>
+                <th>Created At</th>
+                <th>Details</th>
+              </tr>
+            </thead>
+
+            <tbody>
+              <tr v-for="report in reports" :key="report.reportid">
+                <td>{{ report.reportid || '-' }}</td>
+                <td>{{ report.targetid }}</td>
+                <td>
+                  <span class="cat-tag">{{ report.targettype }}</span>
+                </td>
+                <td>{{ report.periodtype }}</td>
+                <td>{{ report.startdate }}</td>
+                <td>{{ report.enddate }}</td>
+                <td>{{ report.created_at || '-' }}</td>
+                <td>
+                  <button class="detail-btn" @click="viewReportDetails(report)">
+                    View Details
+                  </button>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- Report Details -->
+      <section v-if="reportDetailsVisible && selectedReport" class="dashboard-section">
+        <div class="section-title-row">
+          <h2>Report Details</h2>
+        </div>
+
+        <div class="details-box">
+          <pre>{{ selectedReport.reportcontent }}</pre>
         </div>
       </section>
 
@@ -299,6 +688,9 @@ function exportCSV() {
 
 @media (max-width: 750px) {
   .charts-grid { grid-template-columns: 1fr; }
+  .dashboard-header { flex-direction: column; }
+  .form-actions { justify-content: stretch; }
+  .generate-btn { width: 100%; }
 }
 
 /* ── Section Card ── */
@@ -307,10 +699,14 @@ function exportCSV() {
   border-radius: 12px;
   padding: 24px;
   box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+  margin-bottom: 24px;
 }
 
-.dashboard-section + .dashboard-section {
-  margin-top: 0;
+.dashboard-section h2 {
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: #111;
+  margin: 0 0 18px;
 }
 
 .chart-header {
@@ -332,7 +728,7 @@ function exportCSV() {
   color: #9ca3af;
 }
 
-/* ── Bar Chart ── */
+/* ── Bar Chart (static) ── */
 .bar-chart {
   display: flex;
   align-items: flex-end;
@@ -477,7 +873,7 @@ function exportCSV() {
 
 .data-table tbody tr:hover { background: #f9fafb; }
 
-.data-table td { padding: 12px 16px; font-size: 0.88rem; color: #555; }
+.data-table td { padding: 12px 16px; font-size: 0.88rem; color: #555; text-align: center; }
 
 .td-name  { font-weight: 600; color: #111; }
 .td-green { color: #16a34a; font-weight: 600; }
@@ -527,4 +923,113 @@ function exportCSV() {
 .trend-cell { font-weight: 700; font-size: 0.82rem; }
 .trend-up   { color: #16a34a; }
 .trend-down { color: #dc2626; }
+
+/* ── Generate Report Form ── */
+.report-form-section {
+  margin-bottom: 24px;
+}
+
+.form-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+  gap: 16px;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.form-group label {
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: #374151;
+}
+
+.form-input,
+.form-select {
+  padding: 9px 12px;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  background: #fff;
+}
+
+.form-actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 18px;
+}
+
+.btn {
+  border: none;
+  border-radius: 8px;
+  padding: 9px 16px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.generate-btn {
+  background: #2563eb;
+  color: #fff;
+}
+
+.error-message {
+  margin-top: 12px;
+  color: #dc2626;
+  font-size: 0.88rem;
+  font-weight: 600;
+}
+
+/* ── Summary / Details Box ── */
+.summary-box,
+.details-box {
+  background: #f9fafb;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  padding: 16px;
+  overflow-x: auto;
+}
+
+.summary-box pre,
+.details-box pre {
+  margin: 0;
+  white-space: pre-wrap;
+  font-family: inherit;
+  font-size: 0.9rem;
+  color: #374151;
+  line-height: 1.6;
+}
+
+/* ── Empty State ── */
+.empty-state {
+  padding: 20px;
+  color: #9ca3af;
+  background: #f9fafb;
+  border-radius: 10px;
+  text-align: center;
+  font-size: 0.9rem;
+}
+
+/* ── Detail Button ── */
+.detail-btn {
+  border: none;
+  background: #eef2ff;
+  color: #2563eb;
+  padding: 6px 10px;
+  border-radius: 7px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.detail-btn:hover {
+  background: #dbeafe;
+}
 </style>

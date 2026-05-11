@@ -1,4 +1,4 @@
-// src/controllers/categoryController.ts
+// src/controllers/reportController.ts
 import { supabase } from '../lib/supabaseClient'
 
 export type PeriodType = 'DAILY' | 'MONTHLY' | 'YEARLY' | 'CUSTOM'
@@ -8,8 +8,8 @@ export type Report = {
   targetid: string
   targettype: string
   periodtype: PeriodType
-  start_date: string
-  end_date: string
+  startdate: string
+  enddate: string
   reportsummary: string
   reportcontent: string
   created_at?: string
@@ -25,6 +25,100 @@ export type ActivityViewLog = {
   referraldata: string
   eventtype: string
 }
+
+// Generate Monthly Report Data
+export type ReportChartPoint = {
+  period: string
+  totalLogs: number
+  totalViews: number
+  totalClicks: number
+  uniqueUsers: number
+}
+
+// For Chart
+export type ReportResult = {
+  report: Report
+  chartData: ReportChartPoint[]
+}
+
+
+/**
+ * Generate key and values lists based on periodType 'DAILY', 'MONTHLY', 'YEARLY'
+ * return string
+ */
+function getPeriodKey(timestamp: string, periodType: PeriodType): string {
+  const date = new Date(timestamp)
+
+  const year = date.getFullYear()
+  const month = String(date.getMonth() + 1).padStart(2, '0')
+  const day = String(date.getDate()).padStart(2, '0')
+
+  if (periodType === 'DAILY') {
+    return `${year}-${month}-${day}`
+  }
+
+  if (periodType === 'MONTHLY') {
+    return `${year}-${month}`
+  }
+
+  if (periodType === 'YEARLY') {
+    return `${year}`
+  }
+
+  return `${year}-${month}-${day}`
+}
+
+/**
+ * Generate Chart Date based on activity data and periodType
+ * return ReportChartPoint List
+ */
+export function generateChartData(
+  activityData: ActivityViewLog[],
+  periodType: PeriodType
+): ReportChartPoint[] {
+  const groupedData = new Map<string, ActivityViewLog[]>()
+
+  for (const log of activityData) {
+    const periodKey = getPeriodKey(log.timestamp, periodType)
+
+    if (!groupedData.has(periodKey)) {
+      groupedData.set(periodKey, [])
+    }
+
+    groupedData.get(periodKey)!.push(log)
+  }
+
+  const chartData: ReportChartPoint[] = []
+
+  for (const [period, logs] of groupedData.entries()) {
+    const totalLogs = logs.length
+
+    const totalViews = logs.filter(
+      (log) => log.eventtype === 'VIEW'
+    ).length
+
+    const totalClicks = logs.filter(
+      (log) => log.eventtype === 'CLICK'
+    ).length
+
+    const uniqueUsers = new Set(
+      logs.map((log) => log.userid)
+    ).size
+
+    chartData.push({
+      period,
+      totalLogs,
+      totalViews,
+      totalClicks,
+      uniqueUsers
+    })
+  }
+
+  chartData.sort((a, b) => a.period.localeCompare(b.period))
+
+  return chartData
+}
+
 
 /**
  * verify if the start_date and end_date format is invalid
@@ -76,16 +170,24 @@ function formatDateToYYYYMMDD(date: Date): string {
 
 export async function retrieveActivityData(
   startDate: Date,
-  endDate: Date
+  endDate: Date,
+  targetId: string,
+  targetType: string
 ): Promise<ActivityViewLog[]> {
   const startDateText = formatDateToYYYYMMDD(startDate)
   const endDateText = formatDateToYYYYMMDD(endDate)
 
-  const { data, error } = await supabase
+  let query = supabase
     .from('activityviewlog')
     .select('*')
     .gte('timestamp', startDateText)
     .lte('timestamp', endDateText)
+
+  if (targetType !== 'platform') {
+    query = query.eq('targetid', Number(targetId))
+  }
+
+  const { data, error } = await query
 
   if (error) {
     throw error
@@ -102,67 +204,84 @@ export async function retrieveActivityData(
 /**
  * Generate report data and return Report type data
  */
-export async function generateReportData(start_date: string, end_date: string, periodType: string, targetId: string, targetType: string): Promise<Report> {
-    const startDateText = start_date.trim()
-    const endDateText = end_date.trim()
-    const cleanTargetId = targetId.trim()
-    const cleanTargetType = targetType.trim()
+export async function generateReportData(
+  start_date: string,
+  end_date: string,
+  periodType: PeriodType,
+  targetId: string,
+  targetType: string
+): Promise<ReportResult> {
+  const startDateText = start_date.trim()
+  const endDateText = end_date.trim()
+  const cleanTargetId = targetId.trim()
+  const cleanTargetType = targetType.trim()
 
-    const startDate = new Date(startDateText)
-    const endDate = new Date(endDateText)
+  const startDate = new Date(startDateText)
+  const endDate = new Date(endDateText)
 
-    if (!verifyReportAvailability(startDateText, endDateText)) {
-        throw new Error('Invalid report date range')
-    }
+  if (!verifyReportAvailability(startDateText, endDateText)) {
+    throw new Error('Invalid report date range')
+  }
 
-    if (!periodType) {
-        throw new Error('No periodType given.')
-    }
+  if (!periodType) {
+    throw new Error('No periodType given.')
+  }
 
-    if (!cleanTargetId) {
-        throw new Error('No targetId given')
-    }
+  if (!cleanTargetId) {
+    throw new Error('No targetId given')
+  }
 
-    if (!cleanTargetType) {
-        throw new Error('No targetType given')
-    }
+  if (!cleanTargetType) {
+    throw new Error('No targetType given')
+  }
 
-    const activityData = await retrieveActivityData(startDate, endDate)
+  const activityData = await retrieveActivityData(
+    startDate,
+    endDate,
+    cleanTargetId,
+    cleanTargetType
+  )
 
-    const reportSummary = generateReportSummary(activityData)
-    const reportContent = `
-    Fundraising Platform Report
+  const chartData = generateChartData(activityData, periodType)
+  const reportSummary = generateReportSummary(activityData)
 
-    Period Type: ${periodType}
-    Target ID: ${cleanTargetId}
-    Target Type: ${cleanTargetType}
-    Start Date: ${startDateText}
-    End Date: ${endDateText}
+  const reportContent = `
+Fundraising Platform Report
 
-    ${reportSummary}
-    `.trim()
+Period Type: ${periodType}
+Target ID: ${cleanTargetId}
+Target Type: ${cleanTargetType}
+Start Date: ${startDateText}
+End Date: ${endDateText}
 
-    const reportData = {
-        targetid: cleanTargetId,
-        targettype: cleanTargetType,
-        periodtype: periodType,
-        start_date: startDateText,
-        end_date: endDateText,
-        reportsummary: reportSummary,
-        reportcontent: reportContent
-    }
+${reportSummary}
+  `.trim()
 
-    const { data, error } = await supabase
-        .from('report')
-        .insert([reportData])
-        .select()
-        .single()
+  const reportData = {
+    targetid: cleanTargetId,
+    targettype: cleanTargetType,
+    periodtype: periodType,
+    startdate: startDateText,
+    enddate: endDateText,
+    reportsummary: reportSummary,
+    reportcontent: reportContent,
+    chartdata: chartData
+  }
 
-    if (error) {
-        throw error
-    }
+  const { data, error } = await supabase
+    .from('report')
+    .insert([reportData])
+    .select()
+    .single()
 
-    return data as Report
+  if (error) {
+    throw error
+  }
+
+  return {
+    report: data as Report,
+    chartData
+  }
 }
 
 
