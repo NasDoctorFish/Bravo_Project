@@ -1,7 +1,9 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
-import { generateReportData } from '../controllers/reportController'
+import { generateReportData, exportReportAsDocx } from '../controllers/reportController'
 
+
+// For Chart
 import {
   Chart as ChartJS,
   Title,
@@ -21,6 +23,10 @@ ChartJS.register(
   CategoryScale,
   LinearScale
 )
+//
+
+// For Document (exportReportAsDocx is imported from reportController above)
+//
 
 // -- Types (from ReportMgntDEV) --
 type PeriodType = 'DAILY' | 'MONTHLY' | 'YEARLY' | 'CUSTOM'
@@ -156,22 +162,22 @@ const kpis = computed<KpiItem[]>(() => {
 })
 
 // Chart Section
-const reportChartData = ref<ReportChartPoint[]>([])
+const chartData = ref<ReportChartPoint[]>([])
 
 const chartDisplayData = computed(() => ({
-  labels: reportChartData.value.map((item) => item.period),
+  labels: chartData.value.map((item) => item.period),
   datasets: [
     {
-      label: 'Views',
-      data: reportChartData.value.map((item) => item.totalViews)
+      label: 'Total Views',
+      data: chartData.value.map((item) => item.totalViews)
     },
     {
-      label: 'Clicks',
-      data: reportChartData.value.map((item) => item.totalClicks)
+      label: 'Total Clicks',
+      data: chartData.value.map((item) => item.totalClicks)
     },
     {
       label: 'Unique Users',
-      data: reportChartData.value.map((item) => item.uniqueUsers)
+      data: chartData.value.map((item) => item.uniqueUsers)
     }
   ]
 }))
@@ -208,13 +214,13 @@ async function handleGenerateReport(): Promise<void> {
       startDate.value,
       endDate.value,
       periodType.value,
-      targetId.value,
-      targetType.value
+      targetType.value,
+      targetId.value
     ) as ReportResult
 
     selectedReport.value = result.report
     reports.value.unshift(result.report)
-    reportChartData.value = result.chartData ?? []
+    chartData.value = result.chartData ?? []
 
     displayReportSummary(result.report)
   } catch (error: unknown) {
@@ -244,26 +250,29 @@ function viewReportDetails(report: Report): void {
   reportDetailsVisible.value = true
 }
 
+
 /**
- * Export current report content as TXT
+ * exportReport()
+ * Calls exportReportAsDocx from reportExportUtils
  */
-function exportReport(): void {
+async function exportReport(): Promise<void> {
   if (!selectedReport.value) {
     errorMessage.value = 'No report selected.'
     return
   }
-
-  const blob = new Blob([selectedReport.value.reportcontent], {
-    type: 'text/plain',
-  })
-
-  const url = URL.createObjectURL(blob)
-  const a = document.createElement('a')
-  a.href = url
-  a.download = `platform-report-${selectedReport.value.startdate}-${selectedReport.value.enddate}.txt`
-  a.click()
-  URL.revokeObjectURL(url)
+  await exportReportAsDocx(selectedReport.value)
 }
+
+/**
+ * downloadReport(report)
+ * Sets selectedReport to the given report and triggers export
+ */
+async function downloadReport(report: Report): Promise<void> {
+  selectedReport.value = report
+  await exportReport()
+}
+
+
 </script>
 
 <template>
@@ -547,7 +556,7 @@ function exportReport(): void {
                 <th>Start Date</th>
                 <th>End Date</th>
                 <th>Created At</th>
-                <th>Details</th>
+                <th>Actions</th>
               </tr>
             </thead>
 
@@ -563,9 +572,14 @@ function exportReport(): void {
                 <td>{{ report.enddate }}</td>
                 <td>{{ report.created_at || '-' }}</td>
                 <td>
-                  <button class="detail-btn" @click="viewReportDetails(report)">
-                    View Details
-                  </button>
+                  <div class="action-btns">
+                    <button class="detail-btn" @click="viewReportDetails(report)">
+                      View Details
+                    </button>
+                    <button class="detail-btn download-btn" @click="downloadReport(report)">
+                      Download
+                    </button>
+                  </div>
                 </td>
               </tr>
             </tbody>
@@ -1031,5 +1045,23 @@ function exportReport(): void {
 
 .detail-btn:hover {
   background: #dbeafe;
+}
+
+/* Download button — same shape as detail-btn, green tint */
+.download-btn {
+  background: #f0fdf4;
+  color: #16a34a;
+}
+
+.download-btn:hover {
+  background: #dcfce7;
+}
+
+/* Wrapper for action buttons in a table cell */
+.action-btns {
+  display: flex;
+  gap: 6px;
+  justify-content: center;
+  flex-wrap: wrap;
 }
 </style>
