@@ -1,30 +1,82 @@
-<script setup>
+<script setup lang="ts">
+import { ref, onMounted } from 'vue'
+import { getTotalViews, getFirstFraId } from '../controllers/StoryController'
+import { supabase } from '../lib/supabaseClient'
+
+function formatTime(dateString: string): string {
+  const diff = Date.now() - new Date(dateString).getTime()
+
+  const mins = Math.floor(diff / 60000)
+  if (mins < 60) return `${mins} mins ago`
+
+  const hours = Math.floor(mins / 60)
+  if (hours < 24) return `${hours} hours ago`
+
+  const days = Math.floor(hours / 24)
+  return `${days} days ago`
+}
+
+async function loadDashboard(): Promise<void> {
+  const fraId = await getFirstFraId()
+  if (!fraId) return
+  totalViews.value = await getTotalViews(fraId)
+
+
+  const { data, error } = await supabase
+    .from('FundRaisingActivity')
+    .select('*')
+
+  if (error || !data) {
+    console.error(error)
+    return
+  }
+  
+  totalRaised.value = data.reduce(
+    (sum, fra) => sum + fra.currentAmount,
+    0
+  )
+ 
+  activeCampaigns.value = data.filter(
+    fra => fra.status === 'active'
+  ).length
+
+  goalsReached.value = data.filter(
+    fra => fra.currentAmount >= fra.targetAmount
+  ).length
+
+  campaigns.value = data.map(fra => ({
+  name: fra.title,
+  goal: fra.targetAmount,
+  raised: fra.currentAmount,
+  status: fra.status
+}))
+}
+
+onMounted(() => {
+  loadDashboard()
+})
+
+
 const emit = defineEmits(['go-home', 'go-logout', 'go-search', 'go-create'])
 
-const stats = [
-  { icon: '💰', value: '$48,200', label: 'Total Raised',     change: '12% this month', positive: true },
-  { icon: '📋', value: '7',       label: 'Active Campaigns', change: '2 new',           positive: true },
-  { icon: '👥', value: '324',     label: 'Total Donors',     change: '8% this month',   positive: true },
-  { icon: '✅', value: '3',       label: 'Goals Reached',    change: '1 this week',     positive: true },
-]
 
-const campaigns = [
-  { name: 'Clean Water Initiative', goal: 10000, raised: 7400, status: 'active' },
-  { name: 'School Supplies Drive',  goal: 5000,  raised: 5000, status: 'completed' },
-  { name: 'Medical Aid Fund',       goal: 20000, raised: 9200, status: 'active' },
-  { name: 'Elderly Care Program',   goal: 8000,  raised: 1200, status: 'pending' },
-]
+const totalRaised = ref<number>(0)
+const activeCampaigns = ref<number>(0)
+const totalViews = ref<number>(0)
+const goalsReached = ref<number>(0)
 
-const activity = [
-  { icon: '💳', text: 'New donation of $250 received for Clean Water Initiative', time: '2 mins ago' },
-  { icon: '✅', text: 'School Supplies Drive reached its goal!',                  time: '1 hour ago' },
-  { icon: '👤', text: 'New donor registered: michael.t@gmail.com',               time: '3 hours ago' },
-  { icon: '📋', text: 'Medical Aid Fund campaign approved',                       time: 'Yesterday' },
-]
+
+const campaigns = ref<any[]>([])
+
+
+const activity = ref<any[]>([])
+
 </script>
+
 
 <template>
   <div class="dashboard-page">
+
 
     <!-- Header -->
     <header class="header">
@@ -44,8 +96,10 @@ const activity = [
       </nav>
     </header>
 
+
     <!-- Main Content -->
     <main class="dash-main">
+
 
       <!-- Topbar -->
       <div class="dash-topbar">
@@ -56,17 +110,49 @@ const activity = [
         <button class="btn-create" @click="emit('go-create')">+ New Campaign</button>
       </div>
 
+
       <!-- Stats Grid -->
       <div class="stats-grid">
-        <div class="stat-card" v-for="stat in stats" :key="stat.label">
-          <div class="stat-icon">{{ stat.icon }}</div>
-          <div class="stat-value">{{ stat.value }}</div>
-          <div class="stat-label">{{ stat.label }}</div>
-          <div :class="['stat-change', stat.positive ? 'up' : 'down']">
-            {{ stat.positive ? '▲' : '▼' }} {{ stat.change }}
-          </div>
-        </div>
-      </div>
+
+
+  <div class="stat-card">
+    <div class="stat-icon">💰</div>
+    <div class="stat-value">
+      ${{ totalRaised.toLocaleString() }}
+    </div>
+    <div class="stat-label">Total Raised</div>
+  </div>
+
+
+  <div class="stat-card">
+    <div class="stat-icon">📋</div>
+    <div class="stat-value">
+      {{ activeCampaigns }}
+    </div>
+    <div class="stat-label">Active Campaigns</div>
+  </div>
+
+
+  <div class="stat-card">
+    <div class="stat-icon">👁️</div>
+    <div class="stat-value">
+      {{ totalViews }}
+    </div>
+    <div class="stat-label">Total Views</div>
+  </div>
+
+
+  <div class="stat-card">
+    <div class="stat-icon">✅</div>
+    <div class="stat-value">
+      {{ goalsReached }}
+    </div>
+    <div class="stat-label">Goals Reached</div>
+  </div>
+
+
+</div>
+
 
       <!-- Recent Campaigns -->
       <section class="dashboard-section">
@@ -109,6 +195,7 @@ const activity = [
         </div>
       </section>
 
+
       <!-- Recent Activity -->
       <section class="dashboard-section">
         <div class="section-header">
@@ -125,15 +212,19 @@ const activity = [
         </div>
       </section>
 
+
     </main>
+
 
     <!-- Footer -->
     <footer class="footer">
       <p>© 2026 FundRise. Supporting dreams, one donation at a time.</p>
     </footer>
 
+
   </div>
 </template>
+
 
 <style scoped>
 /* ── Page Layout ── */
@@ -143,6 +234,7 @@ const activity = [
   flex-direction: column;
   background: #f5f5f5;
 }
+
 
 /* ── Main Content ── */
 .dash-main {
@@ -157,6 +249,7 @@ const activity = [
   gap: 24px;
 }
 
+
 /* ── Topbar ── */
 .dash-topbar {
   display: flex;
@@ -164,6 +257,7 @@ const activity = [
   justify-content: space-between;
   gap: 16px;
 }
+
 
 .dash-title {
   font-size: 2rem;
@@ -173,11 +267,13 @@ const activity = [
   text-align: left;
 }
 
+
 .dash-subtitle {
   font-size: 1rem;
   color: #64748b;
   margin: 0;
 }
+
 
 .btn-create {
   padding: 8px 20px;
@@ -198,12 +294,14 @@ const activity = [
   box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
 }
 
+
 /* ── Stats Grid ── */
 .stats-grid {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
   gap: 16px;
 }
+
 
 .stat-card {
   background: #fff;
@@ -215,13 +313,16 @@ const activity = [
   gap: 4px;
 }
 
+
 .stat-icon  { font-size: 1.4rem; margin-bottom: 6px; }
 .stat-value { font-size: 1.5rem; font-weight: 700; color: #111; }
 .stat-label { font-size: 0.8rem; color: #6b7280; font-weight: 500; }
 
+
 .stat-change { font-size: 0.75rem; font-weight: 600; margin-top: 4px; }
 .stat-change.up   { color: #16a34a; }
 .stat-change.down { color: #dc2626; }
+
 
 /* ── Section Card ── */
 .dashboard-section {
@@ -231,6 +332,7 @@ const activity = [
   box-shadow: 0 2px 8px rgba(0,0,0,0.06);
 }
 
+
 .section-header {
   display: flex;
   align-items: center;
@@ -238,12 +340,14 @@ const activity = [
   margin-bottom: 20px;
 }
 
+
 .section-header h3 {
   font-size: 1rem;
   font-weight: 700;
   color: #111;
   margin: 0;
 }
+
 
 .view-all {
   font-size: 0.82rem;
@@ -254,8 +358,10 @@ const activity = [
 }
 .view-all:hover { color: #1d4ed8; text-decoration: underline; }
 
+
 /* ── Table ── */
 .table-wrap { overflow-x: auto; }
+
 
 .table {
   width: 100%;
@@ -263,7 +369,9 @@ const activity = [
   font-size: 0.88rem;
 }
 
+
 .table thead tr { border-bottom: 1px solid #e5e7eb; }
+
 
 .table th {
   text-align: center;
@@ -276,6 +384,7 @@ const activity = [
   white-space: nowrap;
 }
 
+
 .table tbody tr {
   border-bottom: 1px solid #f3f4f6;
   transition: background 0.12s;
@@ -283,18 +392,21 @@ const activity = [
 .table tbody tr:last-child { border-bottom: none; }
 .table tbody tr:hover { background: #f9fafb; }
 
+
 .table td {
   padding: 12px;
   color: #374151;
   vertical-align: middle;
 }
 
+
 .td-name {
   font-weight: 600;
   color: #111;
-  white-space: nowrap; 
+  white-space: nowrap;
   text-align: left;
 }
+
 
 /* ── Progress ── */
 .progress-wrap {
@@ -304,6 +416,7 @@ const activity = [
   min-width: 120px;
 }
 
+
 .progress-bar {
   flex: 1;
   height: 6px;
@@ -312,6 +425,7 @@ const activity = [
   overflow: hidden;
 }
 
+
 .progress-fill {
   height: 100%;
   background: linear-gradient(90deg, #3b82f6, #2563eb);
@@ -319,12 +433,14 @@ const activity = [
   transition: width 0.4s;
 }
 
+
 .progress-pct {
   font-size: 0.78rem;
   font-weight: 600;
   color: #6b7280;
   white-space: nowrap;
 }
+
 
 /* ── Badges ── */
 .badge {
@@ -337,12 +453,15 @@ const activity = [
   letter-spacing: 0.04em;
 }
 
+
 .badge-active    { background: #f0fdf4; color: #15803d; border: 1px solid #bbf7d0; }
 .badge-completed { background: #eff6ff; color: #1d4ed8; border: 1px solid #bfdbfe; }
 .badge-pending   { background: #fff7ed; color: #c2410c; border: 1px solid #fed7aa; }
 
+
 /* ── Activity ── */
 .activity-list { display: flex; flex-direction: column; }
+
 
 .activity-item {
   display: flex;
@@ -353,6 +472,7 @@ const activity = [
   text-align: left;
 }
 .activity-item:last-child { border-bottom: none; }
+
 
 .activity-icon {
   width: 36px;
@@ -366,12 +486,14 @@ const activity = [
   flex-shrink: 0;
 }
 
+
 .activity-body {
   flex: 1;
   display: flex;
   flex-direction: column;
   gap: 3px;
 }
+
 
 .activity-text {
   font-size: 0.88rem;
@@ -380,12 +502,15 @@ const activity = [
   line-height: 1.4;
 }
 
+
 .activity-time { font-size: 0.75rem; color: #9ca3af; }
+
 
 /* ── Responsive ── */
 @media (max-width: 900px) {
   .stats-grid { grid-template-columns: repeat(2, 1fr); }
 }
+
 
 @media (max-width: 600px) {
   .dash-main { padding: 20px 16px 40px; }
