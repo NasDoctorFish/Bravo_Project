@@ -1,8 +1,6 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import LoginPage from './pages/LoginPage.vue'
-import DashboardPage from './pages/DashboardPage.vue'
-
 import HomePage from './pages/HomePage.vue'
 import SignupPage from './pages/SignupPage.vue'
 import FraSearchPage from './pages/FraSearchPage.vue'

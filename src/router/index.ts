@@ -13,9 +13,8 @@ import LoginPage              from '../pages/LoginPage.vue'
 import PlatformManagementPage from '../pages/PlatformManagementPage.vue'
 import ReportDashboardPage    from '../pages/ReportDashboardPage.vue'
 import SignupPage             from '../pages/SignupPage.vue'
-
 const routes = [
-  { path: '/',                   component: HomePage },
+  { path: '/',                   component: HomePage }, 
   { path: '/login',              component: LoginPage },
   { path: '/signup',             component: SignupPage },
   { path: '/dashboard',          component: DashboardPage },
@@ -26,12 +25,13 @@ const routes = [
   { path: '/fra/search',         component: FraSearchPage },
   { path: '/fra/:id',            component: FraDetailPage },  //:id get every kinds of string, hence should be after actual string route
   { path: '/platform',           component: PlatformManagementPage },
-  { path: '/reports',            component: ReportDashboardPage },
+  { path: '/reports',            component: ReportDashboardPage }
 ]
 
 const router = createRouter({
   history: createWebHistory(),
   routes,
 })
+
 
 export default router
