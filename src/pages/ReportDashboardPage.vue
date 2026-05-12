@@ -469,12 +469,13 @@ async function downloadReport(report: Report): Promise<void> {
               type="text"
               class="form-input"
               placeholder="PLATFORM"
+              title="Enter 'PLATFORM' or blank for platform-wise report, else leave it as blank or input specific Id for specific reports."
             />
           </div>
 
           <div class="form-group">
             <label>Target Type</label>
-            <select v-model="targetType" class="form-select">
+            <select v-model="targetType" class="form-select" title="e.g. 'fra', 'platform', 'story', donation'">
               <option value="platform">Platform</option>
               <option value="fra">Fund Raising Activity</option>
               <option value="story">Story</option>
