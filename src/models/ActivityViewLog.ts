@@ -10,7 +10,7 @@ export interface ActivityViewLog {
 }
 
 
-export class ActivityViewLogModel {
+export class ActivityViewLog {
   static async getActivityViewLogData(): Promise<ActivityViewLog[]> {
     const { data, error } = await supabase
       .from('ActivityViewLog')

@@ -1,7 +1,15 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
-import { getTotalViews, getFirstFraId } from '../controllers/StoryController'
+import { getStoryData, getTotalViews } from '../controllers/StoryController'
 import { supabase } from '../lib/supabaseClient'
+
+const totalRaised = ref<number>(0)
+const activeCampaigns = ref<number>(0)
+const totalViews = ref<number>(0)
+const goalsReached = ref<number>(0)
+const campaigns = ref<any[]>([])
+const activity = ref<any[]>([])
+const story = ref<any>(null)
 
 function formatTime(dateString: string): string {
   const diff = Date.now() - new Date(dateString).getTime()
@@ -16,11 +24,26 @@ function formatTime(dateString: string): string {
   return `${days} days ago`
 }
 
-async function loadDashboard(): Promise<void> {
+// Helper to get the first FundRaisingActivity ID
+async function getFirstFraId(): Promise<string | null> {
+  const { data, error } = await supabase
+    .from('FundRaisingActivity')
+    .select('id')
+    .limit(1)
+    .single()
+
+  if (error || !data) return null
+  return data.id
+}
+
+async function updateDashboard(): Promise<void> {
   const fraId = await getFirstFraId()
   if (!fraId) return
-  totalViews.value = await getTotalViews(fraId)
 
+  const storyData = await getStoryData(fraId, "VIEW")
+  story.value = storyData
+
+  totalViews.value = await getTotalViews(fraId)
 
   const { data, error } = await supabase
     .from('FundRaisingActivity')
@@ -30,7 +53,7 @@ async function loadDashboard(): Promise<void> {
     console.error(error)
     return
   }
-  
+
   totalRaised.value = data.reduce(
     (sum, fra) => sum + fra.currentAmount,
     0
@@ -45,31 +68,19 @@ async function loadDashboard(): Promise<void> {
   ).length
 
   campaigns.value = data.map(fra => ({
-  name: fra.title,
-  goal: fra.targetAmount,
-  raised: fra.currentAmount,
-  status: fra.status
-}))
+    name: fra.title,
+    goal: fra.targetAmount,
+    raised: fra.currentAmount,
+    status: fra.status
+  }))
 }
 
 onMounted(() => {
-  loadDashboard()
+  updateDashboard()
 })
 
 
 const emit = defineEmits(['go-home', 'go-logout', 'go-search', 'go-create'])
-
-
-const totalRaised = ref<number>(0)
-const activeCampaigns = ref<number>(0)
-const totalViews = ref<number>(0)
-const goalsReached = ref<number>(0)
-
-
-const campaigns = ref<any[]>([])
-
-
-const activity = ref<any[]>([])
 
 </script>
 
@@ -153,6 +164,10 @@ const activity = ref<any[]>([])
 
 </div>
 
+<div class="current-story" v-if="story">
+  <h1>{{ story.title }}</h1>
+  <p>{{ story.content }}</p>
+</div>
 
       <!-- Recent Campaigns -->
       <section class="dashboard-section">

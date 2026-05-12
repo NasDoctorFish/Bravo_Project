@@ -10,7 +10,7 @@ export interface Story {
 }
 
 
-export class StoryModel {
+export class Story {
   static async readByFra(fraId: string): Promise<Story[]> {
     const { data, error } = await supabase
       .from('Story')
