@@ -164,11 +164,6 @@ const emit = defineEmits(['go-home', 'go-logout', 'go-search', 'go-create'])
 
 </div>
 
-<div class="current-story" v-if="story">
-  <h1>{{ story.title }}</h1>
-  <p>{{ story.content }}</p>
-</div>
-
       <!-- Recent Campaigns -->
       <section class="dashboard-section">
         <div class="section-header">
