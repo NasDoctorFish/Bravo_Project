@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
-import { getViewDataByDateRange, calculateImpact } from '../controllers/StoryController'
+import { getViewDataByDateRange, calculateImpact } from '../controllers/StoryController.ts'
 import { supabase } from '../lib/supabaseClient'
 
 const emit = defineEmits(['go-home', 'go-logout', 'go-search', 'go-create'])
