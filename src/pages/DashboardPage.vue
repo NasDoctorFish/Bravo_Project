@@ -108,8 +108,8 @@ const emit = defineEmits(['go-home', 'go-logout', 'go-search', 'go-create'])
         <button class="btn-create" @click="emit('go-create')">+ New Campaign</button>
       </div>
 
-      <!-- Date Filter -->
-      <div class="dashboard-section date-filter">
+      <!-- Date Filter Section -->
+      <section class="dashboard-section date-filter">
         <div class="section-header">
           <h3>Filter by Date</h3>
         </div>
@@ -123,7 +123,7 @@ const emit = defineEmits(['go-home', 'go-logout', 'go-search', 'go-create'])
             <input type="date" v-model="endDate" @change="updateDashboard" />
           </label>
         </div>
-      </div>
+      </section>
 
       <!-- Stats Grid -->
       <div class="stats-grid">
