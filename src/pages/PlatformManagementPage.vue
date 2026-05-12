@@ -148,9 +148,73 @@ function displayCategoryMessage(message: string) {
     notificationMessage.value = ''
   }, 3000)
 }
+
+
 // DEV END PM-7-01
 
+// PM-1-07
+const searchType = ref('campaign');
+const doneeRegistrations = ref([
+  { donee_reg_id: 1, userid: 101, status: 'PENDING', submittedat: '2026-05-01' },
+  { donee_reg_id: 2, userid: 105, status: 'PENDING', submittedat: '2026-05-02 ' }
+]);
+const doneeProfiles = ref([
+  { 
+    userid: 101, 
+    org_name: 'Hope Kitchen', 
+    bio: 'Local community kitchen providing meals for the elderly.', 
+    bankaccount: 'SG00-000-001' 
+  },
+  { 
+    userid: 105, 
+    org_name: 'EduYouth', 
+    bio: 'Educational outreach program for underprivileged youth.', 
+    bankaccount: 'SG88-111-222' 
+  }
+]);
 
+const selectedProfile = ref(null); // To store which profile is being viewed in a modal/drawer
+
+const viewProfile = (reg: any) => {
+  const profile = doneeProfiles.value.find(p => p.userid === reg.userid);
+  if (profile) {
+    selectedProfile.value = profile;
+    alert(`View Profile for: ${profile.org_name}\nBio: ${profile.bio}`);
+  }
+};
+
+const handleSearch = () => {
+  if (searchType.value === 'donee') {
+    console.log("System filtering Donee results..."); // Step 4
+  }
+};
+
+const approveDonee = (reg: any) => {
+  reg.status = 'ACTIVE';
+  reg.reviewedat = new Date().toISOString();
+  alert(`Registration ${reg.donee_reg_id} approved.`);
+};
+
+const rejectDonee = (reg: any) => {
+  const reason = prompt("Enter rejection reason:"); // Alternative Flow 6a
+  if (reason) {
+    reg.status = 'REJECTED';
+    reg.notes = reason;
+    reg.reviewedat = new Date().toISOString();
+    alert(`Registration ${reg.donee_reg_id} rejected.`);
+  }
+};
+
+const filteredDonees = computed(() => {
+  return doneeRegistrations.value.filter(reg => {
+    const profile = doneeProfiles.value.find(p => p.userid === reg.userid);
+    
+    const bioText = profile ? profile.bio.toLowerCase() : '';
+    const query = searchQuery.value.toLowerCase();
+
+    return bioText.includes(query) || reg.donee_reg_id.toString().includes(query);
+  });
+});
 </script>
 
 <template>
@@ -183,7 +247,10 @@ function displayCategoryMessage(message: string) {
       <div class="dashboard-header">
         <div>
           <h1>Platform Management</h1>
-          <p>Review and approve fundraising campaigns</p>
+          <p>{{ searchType === 'donee' 
+                ? 'Review and approve donee registrations' 
+                : 'Review and approve fundraising campaigns' }}
+          </p>
         </div>
         <div class="header-stats">
           <div class="hstat">
@@ -215,20 +282,23 @@ function displayCategoryMessage(message: string) {
 
         <!-- Toolbar -->
         <div class="toolbar">
-          <!-- DEV PM-7-01 -->
           <button class="toolbar-btn" @click="openForm">
             New Category
           </button>
+          
+          <!-- Dropdown to sort between campaigns and donees -->
+          <select v-model="searchType" class="form-select toolbar-select">
+            <option value="campaign">Campaigns</option>
+            <option value="donee">Donee Registrations</option>
+          </select>
+
           <!-- DEV PM-7-01 -->
           <div class="search-pill">
             <span class="search-icon">⌕</span>
-            <input
-              v-model="searchQuery"
-              type="text"
-              placeholder="Search campaigns…"
-            />
+            <input v-model="searchQuery" type="text" :placeholder="searchType === 'donee' ? 'Search registrations...' : 'Search campaigns...'" />
           </div>
-          <select v-model="filterCategory" class="form-select toolbar-select">
+
+          <select v-if="searchType === 'campaign'" v-model="filterCategory" class="form-select toolbar-select">
             <option value="">All Categories</option>
             <option v-for="c in categories" :key="c" :value="c">{{ c }}</option>
           </select>
@@ -237,137 +307,95 @@ function displayCategoryMessage(message: string) {
         <!-- Campaign List -->
         <div class="campaign-list">
 
-          <div v-if="filteredCampaigns.length === 0" class="empty-state">
-            <div class="empty-icon">📭</div>
-            <p>No campaigns in this category.</p>
-          </div>
+  
+          <template v-if="searchType === 'donee'">
+            <div v-if="filteredDonees.length === 0" class="empty-state">
+              <div class="empty-icon">👥</div>
+              <p>No pending donee registrations found.</p>
+            </div>
 
-          <div
-            v-for="c in filteredCampaigns"
-            :key="c.id"
-            class="campaign-row"
-          >
-            <!-- Left: image + info -->
-            <div class="campaign-left">
-              <img :src="c.image" :alt="c.title" class="campaign-thumb" />
-              <div class="campaign-info">
-                <p class="campaign-title">{{ c.title }}</p>
-                <div class="campaign-meta">
-                  <span>{{ c.organizer }}</span>
-                  <span class="dot">·</span>
-                  <span>{{ c.category }}</span>
-                  <span class="dot">·</span>
-                  <span>Goal: ${{ c.goal.toLocaleString() }}</span>
-                  <span class="dot">·</span>
-                  <span>Submitted {{ c.submitted }}</span>
+            <div v-for="reg in filteredDonees" :key="reg.donee_reg_id" class="campaign-row">
+              <div class="campaign-left">
+                <div class="campaign-thumb">👤</div>
+                <div class="campaign-info">
+                  <p class="campaign-title">
+                    Registration #{{ reg.donee_reg_id }} (User ID: {{ reg.userid }})
+                  </p>
+                  <div class="campaign-meta">
+                    Bank: {{ doneeProfiles.find(p => p.userid === reg.userid)?.bankaccount || 'N/A' }}
+                    <span class="dot">·</span>
+                    <span>Submitted: {{ reg.submittedat }}</span>
+                  </div>
+                  <p class="campaign-desc">{{ reg.any }}</p>
                 </div>
-                <p class="campaign-desc">{{ c.description }}</p>
-                <div v-if="c.flags && c.flags.length" class="campaign-flags">
-                  <span v-for="f in c.flags" :key="f" class="flag-chip">⚠️ {{ f }}</span>
+              </div>
+
+              <div class="campaign-right">
+                <span class="status-badge status-pending">{{ reg.status }}</span>
+                <div class="action-buttons" v-if="reg.status === 'PENDING'">
+                  <button class="btn btn-detail" @click="viewProfile(reg)">View Profile</button>
+                  <button class="btn btn-approve" @click="approveDonee(reg)">✓ Approve</button>
+                  <button class="btn btn-reject" @click="rejectDonee(reg)">✕ Reject</button>
                 </div>
               </div>
             </div>
+          </template>
 
-            <!-- Right: status + actions -->
-            <div class="campaign-right">
-              <span :class="['status-badge', 'status-' + c.status]">{{ c.status }}</span>
-              <div class="action-buttons">
-                <button class="btn btn-detail" @click="openDetail(c)">View Details</button>
-                <button v-if="c.status === 'pending'"  class="btn btn-approve" @click="approve(c)">✓ Approve</button>
-                <button v-if="c.status === 'pending'"  class="btn btn-reject"  @click="reject(c)">✕ Reject</button>
-                <button v-if="c.status === 'active'"   class="btn btn-flag"    @click="flag(c)">⚠️ Flag</button>
-                <button v-if="c.status === 'active'"   class="btn btn-reject"  @click="suspend(c)">⏸ Suspend</button>
+        
+          <template v-else>
+            <div v-if="filteredCampaigns.length === 0" class="empty-state">
+              <div class="empty-icon">📭</div>
+              <p>No campaigns in this category.</p>
+            </div>
+
+            <div
+              v-for="c in filteredCampaigns"
+              :key="c.id"
+              class="campaign-row"
+            >
+             <!-- Left: image + info -->
+              <div class="campaign-left">
+                <img :src="c.image" :alt="c.title" class="campaign-thumb" />
+                <div class="campaign-info">
+                  <p class="campaign-title">{{ c.title }}</p>
+                  <div class="campaign-meta">
+                    <span>{{ c.organizer }}</span>
+                    <span class="dot">·</span>
+                    <span>{{ c.category }}</span>
+                    <span class="dot">·</span>
+                    <span>Goal: ${{ c.goal.toLocaleString() }}</span>
+                    <span class="dot">·</span>
+                    <span>Submitted {{ c.submitted }}</span>
+                  </div>
+                  <p class="campaign-desc">{{ c.description }}</p>
+                  <div v-if="c.flags && c.flags.length" class="campaign-flags">
+                    <span v-for="f in c.flags" :key="f" class="flag-chip">⚠️ {{ f }}</span>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Right: status + actions -->
+              <div class="campaign-right">
+                <span :class="['status-badge', 'status-' + c.status]">{{ c.status }}</span>
+                <div class="action-buttons">
+                  <button class="btn btn-detail" @click="openDetail(c)">View Details</button>
+                  <button v-if="c.status === 'pending'" class="btn btn-approve" @click="approve(c)">✓ Approve</button>
+                  <button v-if="c.status === 'pending'" class="btn btn-reject" @click="reject(c)">✕ Reject</button>
+                  <button v-if="c.status === 'active'" class="btn btn-flag" @click="flag(c)">⚠️ Flag</button>
+                  <button v-if="c.status === 'active'" class="btn btn-reject" @click="suspend(c)">⏸ Suspend</button>
+                </div>
               </div>
             </div>
-          </div>
+          </template>
 
         </div>
       </section>
     </div>
-    <!-- DEV PM-7-01 -->
-    <div v-if="showForm" class="modal-overlay">
-      <div class="modal-box">
-        <h2>Add Category</h2>
-        <input
-        v-model="newCategory.categoryname"
-        type="text"
-        placeholder="Category title"
-        class="modal-input"
-        />
-
-        <textarea
-        v-model="newCategory.categorydescription"
-        placeholder="Description"
-        class="modal-textarea"
-        ></textarea>
-        <p v-if="errorMessage" class="error-message">
-          {{ errorMessage }}
-        </p>
-        <div class="modal-actions">
-          <button @click="closeForm" class="cancel-btn">
-            Cancel
-          </button>
-
-          <button @click="submitCategory" class="submit-btn">
-            Submit
-          </button>
-        </div>
-      </div>
-    </div>
-    <!--  -->
-
-
-
-
-
 
     <!-- Footer -->
     <footer class="footer">
       <p>© 2026 FundRise. Supporting dreams, one donation at a time.</p>
     </footer>
-
-    <!-- Detail Drawer -->
-    <div class="drawer-overlay" v-if="selectedCampaign" @click.self="selectedCampaign = null">
-      <div class="drawer">
-        <div class="drawer-header">
-          <h3>{{ selectedCampaign.title }}</h3>
-          <button class="drawer-close" @click="selectedCampaign = null">✕</button>
-        </div>
-        <div class="drawer-body">
-          <img :src="selectedCampaign.image" :alt="selectedCampaign.title" class="drawer-img" />
-
-          <div class="drawer-section">
-            <div class="dl"><span class="dt">Organizer</span><span class="dd">{{ selectedCampaign.organizer }}</span></div>
-            <div class="dl"><span class="dt">Category</span><span class="dd">{{ selectedCampaign.category }}</span></div>
-            <div class="dl"><span class="dt">Goal</span><span class="dd">${{ selectedCampaign.goal?.toLocaleString() }}</span></div>
-            <div class="dl"><span class="dt">Submitted</span><span class="dd">{{ selectedCampaign.submitted }}</span></div>
-            <div class="dl">
-              <span class="dt">Status</span>
-              <span class="dd">
-                <span :class="['status-badge', 'status-' + selectedCampaign.status]">{{ selectedCampaign.status }}</span>
-              </span>
-            </div>
-          </div>
-
-          <div class="drawer-desc">
-            <h4>Description</h4>
-            <p>{{ selectedCampaign.description }}</p>
-          </div>
-
-          <div v-if="selectedCampaign.flags && selectedCampaign.flags.length" class="drawer-flags">
-            <h4>Flags</h4>
-            <div class="campaign-flags">
-              <span v-for="f in selectedCampaign.flags" :key="f" class="flag-chip">⚠️ {{ f }}</span>
-            </div>
-          </div>
-
-          <div class="drawer-actions" v-if="selectedCampaign.status === 'pending'">
-            <button class="btn btn-approve" @click="approve(selectedCampaign); selectedCampaign = null">✓ Approve</button>
-            <button class="btn btn-reject"  @click="reject(selectedCampaign); selectedCampaign = null">✕ Reject</button>
-          </div>
-        </div>
-      </div>
-    </div>
 
   </div>
 </template>
