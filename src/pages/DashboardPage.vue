@@ -21,10 +21,12 @@ const campaigns = ref<any[]>([])
 const activity = ref<any[]>([])
 
 async function updateDashboard() {
+  // Get views within date range
   const avls = await getViewDataByDateRange(startDate.value, endDate.value)
   impactStatus.value = calculateImpact(avls)
   totalViews.value = Object.values(impactStatus.value).reduce((a, b) => a + b, 0)
 
+  // Fetch campaigns & stats
   const { data, error } = await supabase.from('FundRaisingActivity').select('*')
   if (data) {
     totalRaised.value = data.reduce((sum, c) => sum + c.currentAmount, 0)
@@ -74,7 +76,7 @@ onMounted(() => {
         <button class="btn-create" @click="emit('go-create')">+ New Campaign</button>
       </div>
 
-      <!-- Date Range -->
+      <!-- Date Filter -->
       <div class="date-range">
         <label>
           Start Date:
@@ -86,13 +88,6 @@ onMounted(() => {
         </label>
       </div>
 
-      <!-- Impact per Campaign -->
-      <div class="impact-cards">
-        <div v-for="(count, campaignId) in impactStatus" :key="campaignId" class="impact-card">
-          Campaign {{ campaignId }} — Views: {{ count }}
-        </div>
-      </div>
-
       <!-- Stats Grid -->
       <div class="stats-grid">
         <div class="stat-card">
@@ -102,7 +97,7 @@ onMounted(() => {
         </div>
         <div class="stat-card">
           <div class="stat-icon">💰</div>
-          <div class="stat-value">{{ totalRaised }}</div>
+          <div class="stat-value">${{ totalRaised.toLocaleString() }}</div>
           <div class="stat-label">Total Raised</div>
         </div>
         <div class="stat-card">
@@ -178,6 +173,5 @@ onMounted(() => {
     <footer class="footer">
       <p>© 2026 FundRise. Supporting dreams, one donation at a time.</p>
     </footer>
-
   </div>
 </template>
