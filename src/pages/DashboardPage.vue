@@ -1,49 +1,80 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
-import { getViewDataByDateRange, calculateImpact } from '../controllers/StoryController.ts'
-import { supabase } from '../lib/supabaseClient'
+import { supabase } from '../lib/supabaseClient.ts'
+import { getStoryData } from '../controllers/StoryController.ts'
 
-const emit = defineEmits(['go-home', 'go-logout', 'go-search', 'go-create'])
-
-// ── Date range ──
-const startDate = ref(new Date().toISOString().split('T')[0])
-const endDate = ref(new Date().toISOString().split('T')[0])
-const impactStatus = ref<Record<string, number>>({})
-
-// ── Stats ──
-const totalViews = ref<number>(0)
 const totalRaised = ref<number>(0)
 const activeCampaigns = ref<number>(0)
+const totalViews = ref<number>(0)
 const goalsReached = ref<number>(0)
-
-// ── Campaigns & Activity ──
 const campaigns = ref<any[]>([])
 const activity = ref<any[]>([])
+const story = ref<any>(null)
 
-async function updateDashboard() {
-  // Get views within date range
-  const avls = await getViewDataByDateRange(startDate.value, endDate.value)
-  impactStatus.value = calculateImpact(avls)
-  totalViews.value = Object.values(impactStatus.value).reduce((a, b) => a + b, 0)
+// Date filter
+const startDate = ref(new Date().toISOString().split('T')[0])
+const endDate = ref(new Date().toISOString().split('T')[0])
 
-  // Fetch campaigns & stats
-  const { data, error } = await supabase.from('FundRaisingActivity').select('*')
-  if (data) {
-    totalRaised.value = data.reduce((sum, c) => sum + c.currentAmount, 0)
-    activeCampaigns.value = data.filter(c => c.status === 'active').length
-    goalsReached.value = data.filter(c => c.currentAmount >= c.targetAmount).length
-    campaigns.value = data.map(c => ({
-      name: c.title,
-      goal: c.targetAmount,
-      raised: c.currentAmount,
-      status: c.status
-    }))
-  }
+function formatTime(dateString: string): string {
+  const diff = Date.now() - new Date(dateString).getTime()
+  const mins = Math.floor(diff / 60000)
+  if (mins < 60) return `${mins} mins ago`
+  const hours = Math.floor(mins / 60)
+  if (hours < 24) return `${hours} hours ago`
+  const days = Math.floor(hours / 24)
+  return `${days} days ago`
 }
 
-onMounted(() => {
-  updateDashboard()
-})
+// Helper to get the first FundRaisingActivity ID
+async function getFirstFraId(): Promise<string | null> {
+  const { data, error } = await supabase
+    .from('FundRaisingActivity')
+    .select('id')
+    .limit(1)
+    .single()
+  if (error || !data) return null
+  return data.id
+}
+
+// Update dashboard
+async function updateDashboard(): Promise<void> {
+  const fraId = await getFirstFraId()
+  if (!fraId) return
+
+  // Optional: log VIEW
+  const storyData = await getStoryData(fraId, "VIEW")
+  story.value = storyData
+
+  // Total views
+  totalViews.value = 0 //use the version from feature/dashboard_totalviews
+
+  // Get all campaigns
+  const { data, error } = await supabase.from('FundRaisingActivity').select('*')
+  if (error || !data) {
+    console.error(error)
+    return
+  }
+
+  // Filter campaigns by date if filter applied
+  const filtered = data.filter(c =>
+    new Date(c.created_at) >= new Date(startDate.value) &&
+    new Date(c.created_at) <= new Date(endDate.value)
+  )
+
+  totalRaised.value = filtered.reduce((sum, fra) => sum + fra.currentAmount, 0)
+  activeCampaigns.value = filtered.filter(fra => fra.status === 'active').length
+  goalsReached.value = filtered.filter(fra => fra.currentAmount >= fra.targetAmount).length
+  campaigns.value = filtered.map(fra => ({
+    name: fra.title,
+    goal: fra.targetAmount,
+    raised: fra.currentAmount,
+    status: fra.status
+  }))
+}
+
+onMounted(() => updateDashboard())
+
+const emit = defineEmits(['go-home', 'go-logout', 'go-search', 'go-create'])
 </script>
 
 <template>
@@ -52,7 +83,8 @@ onMounted(() => {
     <!-- Header -->
     <header class="header">
       <a href="#" class="brand" @click.prevent="emit('go-home')">
-        <span class="logo">♥</span> FundRise
+        <span class="logo">♥</span>
+        <span>FundRise</span>
       </a>
       <nav class="nav">
         <a href="#" class="nav-link" @click.prevent="emit('go-search')">⌕ Donate</a>
@@ -91,20 +123,23 @@ onMounted(() => {
       <!-- Stats Grid -->
       <div class="stats-grid">
         <div class="stat-card">
-          <div class="stat-icon">👁️</div>
-          <div class="stat-value">{{ totalViews }}</div>
-          <div class="stat-label">Total Views</div>
-        </div>
-        <div class="stat-card">
           <div class="stat-icon">💰</div>
           <div class="stat-value">${{ totalRaised.toLocaleString() }}</div>
           <div class="stat-label">Total Raised</div>
         </div>
+
         <div class="stat-card">
           <div class="stat-icon">📋</div>
           <div class="stat-value">{{ activeCampaigns }}</div>
           <div class="stat-label">Active Campaigns</div>
         </div>
+
+        <div class="stat-card">
+          <div class="stat-icon">👁️</div>
+          <div class="stat-value">{{ totalViews }}</div>
+          <div class="stat-label">Total Views</div>
+        </div>
+
         <div class="stat-card">
           <div class="stat-icon">✅</div>
           <div class="stat-value">{{ goalsReached }}</div>
@@ -112,7 +147,7 @@ onMounted(() => {
         </div>
       </div>
 
-      <!-- Recent Campaigns Table -->
+      <!-- Recent Campaigns -->
       <section class="dashboard-section">
         <div class="section-header">
           <h3>Recent Campaigns</h3>
@@ -173,5 +208,6 @@ onMounted(() => {
     <footer class="footer">
       <p>© 2026 FundRise. Supporting dreams, one donation at a time.</p>
     </footer>
+
   </div>
 </template>
