@@ -109,15 +109,20 @@ const emit = defineEmits(['go-home', 'go-logout', 'go-search', 'go-create'])
       </div>
 
       <!-- Date Filter -->
-      <div class="date-range">
-        <label>
-          Start Date:
-          <input type="date" v-model="startDate" @change="updateDashboard" />
-        </label>
-        <label>
-          End Date:
-          <input type="date" v-model="endDate" @change="updateDashboard" />
-        </label>
+      <div class="dashboard-section date-filter">
+        <div class="section-header">
+          <h3>Filter by Date</h3>
+        </div>
+        <div class="date-inputs">
+          <label>
+            Start Date:
+            <input type="date" v-model="startDate" @change="updateDashboard" />
+          </label>
+          <label>
+            End Date:
+            <input type="date" v-model="endDate" @change="updateDashboard" />
+          </label>
+        </div>
       </div>
 
       <!-- Stats Grid -->

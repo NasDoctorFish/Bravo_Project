@@ -1418,4 +1418,34 @@ a {
   .btn-cancel {
     width: 100%;
   }
+
+  .date-filter {
+  padding: 20px;
+  border-radius: 12px;
+  background: #fff;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+  margin-bottom: 24px;
+  }
+
+.date-inputs {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin-top: 12px;
+}
+
+.date-inputs label {
+  display: flex;
+  flex-direction: column;
+  font-weight: 500;
+  font-size: 0.9rem;
+  color: #374151;
+}
+
+.date-inputs input {
+  padding: 6px 10px;
+  border-radius: 6px;
+  border: 1px solid #d1d5db;
+  margin-top: 4px; 
+}
 }
