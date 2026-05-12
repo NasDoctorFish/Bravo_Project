@@ -1,26 +1,47 @@
-<script setup>
+<script setup lang="ts">
+import { ref, onMounted } from 'vue'
+import { getViewDataByDateRange, calculateImpact } from '../controllers/StoryController'
+import { supabase } from '../lib/supabaseClient'
+
 const emit = defineEmits(['go-home', 'go-logout', 'go-search', 'go-create'])
 
-const stats = [
-  { icon: '💰', value: '$48,200', label: 'Total Raised',     change: '12% this month', positive: true },
-  { icon: '📋', value: '7',       label: 'Active Campaigns', change: '2 new',           positive: true },
-  { icon: '👥', value: '324',     label: 'Total Donors',     change: '8% this month',   positive: true },
-  { icon: '✅', value: '3',       label: 'Goals Reached',    change: '1 this week',     positive: true },
-]
+// ── Date range ──
+const startDate = ref(new Date().toISOString().split('T')[0])
+const endDate = ref(new Date().toISOString().split('T')[0])
+const impactStatus = ref<Record<string, number>>({})
 
-const campaigns = [
-  { name: 'Clean Water Initiative', goal: 10000, raised: 7400, status: 'active' },
-  { name: 'School Supplies Drive',  goal: 5000,  raised: 5000, status: 'completed' },
-  { name: 'Medical Aid Fund',       goal: 20000, raised: 9200, status: 'active' },
-  { name: 'Elderly Care Program',   goal: 8000,  raised: 1200, status: 'pending' },
-]
+// ── Stats ──
+const totalViews = ref<number>(0)
+const totalRaised = ref<number>(0)
+const activeCampaigns = ref<number>(0)
+const goalsReached = ref<number>(0)
 
-const activity = [
-  { icon: '💳', text: 'New donation of $250 received for Clean Water Initiative', time: '2 mins ago' },
-  { icon: '✅', text: 'School Supplies Drive reached its goal!',                  time: '1 hour ago' },
-  { icon: '👤', text: 'New donor registered: michael.t@gmail.com',               time: '3 hours ago' },
-  { icon: '📋', text: 'Medical Aid Fund campaign approved',                       time: 'Yesterday' },
-]
+// ── Campaigns & Activity ──
+const campaigns = ref<any[]>([])
+const activity = ref<any[]>([])
+
+async function updateDashboard() {
+  const avls = await getViewDataByDateRange(startDate.value, endDate.value)
+  impactStatus.value = calculateImpact(avls)
+  totalViews.value = Object.values(impactStatus.value).reduce((a, b) => a + b, 0)
+
+  const { data, error } = await supabase.from('FundRaisingActivity').select('*')
+  if (data) {
+    totalRaised.value = data.reduce((sum, c) => sum + c.currentAmount, 0)
+    activeCampaigns.value = data.filter(c => c.status === 'active').length
+    goalsReached.value = data.filter(c => c.currentAmount >= c.targetAmount).length
+    campaigns.value = data.map(c => ({
+      name: c.title,
+      goal: c.targetAmount,
+      raised: c.currentAmount,
+      status: c.status
+    }))
+  }
+}
+
+onMounted(() => {
+  updateDashboard()
+})
 </script>
 
 <template>
@@ -29,8 +50,7 @@ const activity = [
     <!-- Header -->
     <header class="header">
       <a href="#" class="brand" @click.prevent="emit('go-home')">
-        <span class="logo">♥</span>
-        <span>FundRise</span>
+        <span class="logo">♥</span> FundRise
       </a>
       <nav class="nav">
         <a href="#" class="nav-link" @click.prevent="emit('go-search')">⌕ Donate</a>
@@ -38,9 +58,7 @@ const activity = [
       </nav>
       <nav class="nav-actions">
         <a href="#" class="nav-link" @click.prevent="emit('go-home')">Home</a>
-        <a href="#" class="nav-link logout-link" @click.prevent="emit('go-logout')">
-          <span class="logout-icon">⇢</span> Logout
-        </a>
+        <a href="#" class="nav-link logout-link" @click.prevent="emit('go-logout')">⇢ Logout</a>
       </nav>
     </header>
 
@@ -56,19 +74,50 @@ const activity = [
         <button class="btn-create" @click="emit('go-create')">+ New Campaign</button>
       </div>
 
-      <!-- Stats Grid -->
-      <div class="stats-grid">
-        <div class="stat-card" v-for="stat in stats" :key="stat.label">
-          <div class="stat-icon">{{ stat.icon }}</div>
-          <div class="stat-value">{{ stat.value }}</div>
-          <div class="stat-label">{{ stat.label }}</div>
-          <div :class="['stat-change', stat.positive ? 'up' : 'down']">
-            {{ stat.positive ? '▲' : '▼' }} {{ stat.change }}
-          </div>
+      <!-- Date Range -->
+      <div class="date-range">
+        <label>
+          Start Date:
+          <input type="date" v-model="startDate" @change="updateDashboard" />
+        </label>
+        <label>
+          End Date:
+          <input type="date" v-model="endDate" @change="updateDashboard" />
+        </label>
+      </div>
+
+      <!-- Impact per Campaign -->
+      <div class="impact-cards">
+        <div v-for="(count, campaignId) in impactStatus" :key="campaignId" class="impact-card">
+          Campaign {{ campaignId }} — Views: {{ count }}
         </div>
       </div>
 
-      <!-- Recent Campaigns -->
+      <!-- Stats Grid -->
+      <div class="stats-grid">
+        <div class="stat-card">
+          <div class="stat-icon">👁️</div>
+          <div class="stat-value">{{ totalViews }}</div>
+          <div class="stat-label">Total Views</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon">💰</div>
+          <div class="stat-value">{{ totalRaised }}</div>
+          <div class="stat-label">Total Raised</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon">📋</div>
+          <div class="stat-value">{{ activeCampaigns }}</div>
+          <div class="stat-label">Active Campaigns</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon">✅</div>
+          <div class="stat-value">{{ goalsReached }}</div>
+          <div class="stat-label">Goals Reached</div>
+        </div>
+      </div>
+
+      <!-- Recent Campaigns Table -->
       <section class="dashboard-section">
         <div class="section-header">
           <h3>Recent Campaigns</h3>
@@ -93,9 +142,7 @@ const activity = [
                 <td>
                   <div class="progress-wrap">
                     <div class="progress-bar">
-                      <div class="progress-fill"
-                        :style="{ width: (c.raised / c.goal * 100) + '%' }">
-                      </div>
+                      <div class="progress-fill" :style="{ width: (c.raised / c.goal * 100) + '%' }"></div>
                     </div>
                     <span class="progress-pct">{{ Math.round(c.raised / c.goal * 100) }}%</span>
                   </div>
@@ -134,262 +181,3 @@ const activity = [
 
   </div>
 </template>
-
-<style scoped>
-/* ── Page Layout ── */
-.dashboard-page {
-  min-height: 100vh;
-  display: flex;
-  flex-direction: column;
-  background: #f5f5f5;
-}
-
-/* ── Main Content ── */
-.dash-main {
-  flex: 1;
-  max-width: 1100px;
-  margin: 0 auto;
-  width: 100%;
-  padding: 32px 24px 60px;
-  box-sizing: border-box;
-  display: flex;
-  flex-direction: column;
-  gap: 24px;
-}
-
-/* ── Topbar ── */
-.dash-topbar {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 16px;
-}
-
-.dash-title {
-  font-size: 2rem;
-  font-weight: 700;
-  margin: 0 0 4px;
-  color: #111;
-  text-align: left;
-}
-
-.dash-subtitle {
-  font-size: 1rem;
-  color: #64748b;
-  margin: 0;
-}
-
-.btn-create {
-  padding: 8px 20px;
-  max-width: 200px;
-  background: #2563eb;
-  color: #fff;
-  border: none;
-  border-radius: 8px;
-  font-weight: 600;
-  font-size: 0.88rem;
-  cursor: pointer;
-  transition: background 0.15s, box-shadow 0.15s;
-  white-space: normal;   /* allow text to wrap inside the box */
-  text-align: center;
-}
-.btn-create:hover {
-  background: #1d4ed8;
-  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
-}
-
-/* ── Stats Grid ── */
-.stats-grid {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 16px;
-}
-
-.stat-card {
-  background: #fff;
-  border-radius: 12px;
-  padding: 20px;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.06);
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
-.stat-icon  { font-size: 1.4rem; margin-bottom: 6px; }
-.stat-value { font-size: 1.5rem; font-weight: 700; color: #111; }
-.stat-label { font-size: 0.8rem; color: #6b7280; font-weight: 500; }
-
-.stat-change { font-size: 0.75rem; font-weight: 600; margin-top: 4px; }
-.stat-change.up   { color: #16a34a; }
-.stat-change.down { color: #dc2626; }
-
-/* ── Section Card ── */
-.dashboard-section {
-  background: #fff;
-  border-radius: 12px;
-  padding: 24px;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.06);
-}
-
-.section-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 20px;
-}
-
-.section-header h3 {
-  font-size: 1rem;
-  font-weight: 700;
-  color: #111;
-  margin: 0;
-}
-
-.view-all {
-  font-size: 0.82rem;
-  font-weight: 600;
-  color: #3b82f6;
-  text-decoration: none;
-  transition: color 0.15s;
-}
-.view-all:hover { color: #1d4ed8; text-decoration: underline; }
-
-/* ── Table ── */
-.table-wrap { overflow-x: auto; }
-
-.table {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: 0.88rem;
-}
-
-.table thead tr { border-bottom: 1px solid #e5e7eb; }
-
-.table th {
-  text-align: center;
-  padding: 8px 12px;
-  font-size: 0.75rem;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-  color: #9ca3af;
-  white-space: nowrap;
-}
-
-.table tbody tr {
-  border-bottom: 1px solid #f3f4f6;
-  transition: background 0.12s;
-}
-.table tbody tr:last-child { border-bottom: none; }
-.table tbody tr:hover { background: #f9fafb; }
-
-.table td {
-  padding: 12px;
-  color: #374151;
-  vertical-align: middle;
-}
-
-.td-name {
-  font-weight: 600;
-  color: #111;
-  white-space: nowrap; 
-  text-align: left;
-}
-
-/* ── Progress ── */
-.progress-wrap {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  min-width: 120px;
-}
-
-.progress-bar {
-  flex: 1;
-  height: 6px;
-  background: #e5e7eb;
-  border-radius: 99px;
-  overflow: hidden;
-}
-
-.progress-fill {
-  height: 100%;
-  background: linear-gradient(90deg, #3b82f6, #2563eb);
-  border-radius: 99px;
-  transition: width 0.4s;
-}
-
-.progress-pct {
-  font-size: 0.78rem;
-  font-weight: 600;
-  color: #6b7280;
-  white-space: nowrap;
-}
-
-/* ── Badges ── */
-.badge {
-  display: inline-block;
-  font-size: 0.72rem;
-  font-weight: 700;
-  text-transform: uppercase;
-  padding: 3px 10px;
-  border-radius: 99px;
-  letter-spacing: 0.04em;
-}
-
-.badge-active    { background: #f0fdf4; color: #15803d; border: 1px solid #bbf7d0; }
-.badge-completed { background: #eff6ff; color: #1d4ed8; border: 1px solid #bfdbfe; }
-.badge-pending   { background: #fff7ed; color: #c2410c; border: 1px solid #fed7aa; }
-
-/* ── Activity ── */
-.activity-list { display: flex; flex-direction: column; }
-
-.activity-item {
-  display: flex;
-  align-items: flex-start;
-  gap: 12px;
-  padding: 14px 0;
-  border-bottom: 1px solid #f3f4f6;
-  text-align: left;
-}
-.activity-item:last-child { border-bottom: none; }
-
-.activity-icon {
-  width: 36px;
-  height: 36px;
-  border-radius: 50%;
-  background: #f0f4ff;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 1rem;
-  flex-shrink: 0;
-}
-
-.activity-body {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  gap: 3px;
-}
-
-.activity-text {
-  font-size: 0.88rem;
-  color: #374151;
-  font-weight: 500;
-  line-height: 1.4;
-}
-
-.activity-time { font-size: 0.75rem; color: #9ca3af; }
-
-/* ── Responsive ── */
-@media (max-width: 900px) {
-  .stats-grid { grid-template-columns: repeat(2, 1fr); }
-}
-
-@media (max-width: 600px) {
-  .dash-main { padding: 20px 16px 40px; }
-  .stats-grid { grid-template-columns: 1fr 1fr; }
-  .dash-topbar { flex-wrap: wrap; }
-}
-</style>
