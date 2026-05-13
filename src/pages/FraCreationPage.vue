@@ -1,19 +1,18 @@
+// FraCreationPage.vue
 <script setup lang="ts">
-import { ref, reactive } from 'vue'
+import { ref, reactive, watch } from 'vue'
 import { fraController } from '../controllers/fraController'
 
-// FR-2-01 Boundary attributes
+// FR-2-01 Boundary
 const emit = defineEmits(['go-home', 'go-logout', 'go-search', 'campaign-created'])
 
-// Boundary attributes from class diagram
-const title       = ref('')
-const description = ref('')
-const targetAmount = ref<number | null>(null)
-const categoryId  = ref('')
+//const { userId } = useAuth()
 
-const step = ref(1)
+const step       = ref(1)
 const submitting = ref(false)
-const errorMsg    = ref('')
+const errorMsg   = ref('')
+const showSuccess = ref(false)
+
 const steps = ['Basic Info', 'Funding', 'Media', 'Review']
 
 const categories = [
@@ -22,65 +21,73 @@ const categories = [
 ]
 
 const form = reactive({
-  title: '', description: '', category: '', beneficiary: '',
-  goal: null, minDonation: null, startDate: '', endDate: '',
-  tiers: [],
-  bannerPreview: '', videoUrl: '', visibility: 'public',
-  agreed: false
+  title:         '',
+  description:   '',
+  category:      '',
+  beneficiary:   '',
+  goal:          null as number | null,
+  minDonation:   null as number | null,
+  startDate:     '',
+  endDate:       '',
+  tiers:         [] as { amount: string; label: string }[],
+  bannerPreview: '',
+  videoUrl:      '',
+  visibility:    'public',
+  agreed:        false,
 })
 
-function handleFileChange(e) {
-  const file = e.target.files[0]
+// Image handling
+function handleFileChange(e: Event) {
+  const file = (e.target as HTMLInputElement).files?.[0]
   if (!file) return
   const reader = new FileReader()
-  reader.onload = ev => { form.bannerPreview = ev.target.result }
+  reader.onload = ev => { form.bannerPreview = (ev.target as FileReader).result as string }
   reader.readAsDataURL(file)
 }
 
-function handleDrop(e) {
-  const file = e.dataTransfer.files[0]
+function handleDrop(e: DragEvent) {
+  const file = e.dataTransfer?.files[0]
   if (!file) return
   const reader = new FileReader()
-  reader.onload = ev => { form.bannerPreview = ev.target.result }
+  reader.onload = ev => { form.bannerPreview = (ev.target as FileReader).result as string }
   reader.readAsDataURL(file)
 }
 
-async function handleSubmit() {
-  submitting.value = true
-  await new Promise(r => setTimeout(r, 1400))
-  submitting.value = false
-  emit('campaign-created', { ...form })
-}
-
-// FR-2-01: handleCreateFra
+// FR-2-01: Create campaign
 async function handleCreateFra(): Promise<void> {
-  errorMsg.value  = ''
+  errorMsg.value   = ''
   submitting.value = true
- 
+
   try {
-    const accessToken = localStorage.getItem('accessToken') || ''
-    const userId      = localStorage.getItem('userId') || ''
- 
-    const controller = new fraController(userId, accessToken)
- 
+    const controller = new fraController()
+
     await controller.createFra(
-      title.value,
-      description.value,
-      targetAmount.value!,
-      categoryId.value
+      //userId.value,
+      {
+        title:        form.title,
+        description:  form.description,
+        targetAmount: form.goal!,
+        categoryId:   form.category,
+      }
     )
- 
-    emit('campaign-created', {
-      title:        title.value,
-      description:  description.value,
-      targetAmount: targetAmount.value,
-      categoryId:   categoryId.value,
-    })
+
+    showSuccess.value = true
+
   } catch (err: any) {
     errorMsg.value = err.message || 'Failed to create campaign. Please try again.'
   } finally {
     submitting.value = false
   }
+}
+
+function handleSuccessClose() {
+  showSuccess.value = false
+  emit('campaign-created', {
+    title:        form.title,
+    description:  form.description,
+    targetAmount: form.goal,
+    categoryId:   form.category,
+  })
 }
 </script>
 
@@ -107,10 +114,10 @@ async function handleCreateFra(): Promise<void> {
 
     <div class="creation-container">
 
-      <!-- Back link — top left -->
+      <!-- Back link -->
       <a href="#" class="back-link" @click.prevent="emit('go-search')">← Back to Campaigns</a>
 
-      <!-- Page title — centered -->
+      <!-- Page title -->
       <div class="dashboard-header">
         <h1>Create New Campaign</h1>
         <p>Fill in the details to launch a fundraising campaign</p>
@@ -126,6 +133,11 @@ async function handleCreateFra(): Promise<void> {
             <span class="step-label">{{ s }}</span>
           </div>
         </div>
+      </div>
+
+      <!-- Error Banner -->
+      <div v-if="errorMsg" class="error-banner">
+        ⚠️ {{ errorMsg }}
       </div>
 
       <!-- Form Card -->
@@ -228,7 +240,7 @@ async function handleCreateFra(): Promise<void> {
               class="image-upload-zone"
               @dragover.prevent
               @drop.prevent="handleDrop"
-              @click="$refs.bannerInput.click()"
+              @click="($refs.bannerInput as HTMLInputElement).click()"
             >
               <div class="upload-icon">🖼️</div>
               <p class="upload-title">Drag &amp; drop or click to upload</p>
@@ -240,7 +252,7 @@ async function handleCreateFra(): Promise<void> {
               <img :src="form.bannerPreview" alt="Banner preview" class="image-preview" />
               <div class="image-preview-overlay">
                 <button type="button" class="btn btn-change-image"
-                  @click="$refs.bannerInput.click()">Change Image</button>
+                  @click="($refs.bannerInput as HTMLInputElement).click()">Change Image</button>
                 <button type="button" class="btn btn-remove-image"
                   @click="form.bannerPreview = ''">Remove</button>
               </div>
@@ -328,7 +340,7 @@ async function handleCreateFra(): Promise<void> {
             type="button"
             class="btn btn-create step-btn"
             :disabled="!form.agreed || submitting"
-            @click="handleSubmit()"
+            @click="handleCreateFra"
           >
             <span v-if="submitting" class="spinner"></span>
             {{ submitting ? 'Submitting…' : 'Submit Campaign' }}
@@ -337,6 +349,23 @@ async function handleCreateFra(): Promise<void> {
 
       </section>
     </div>
+
+    <!-- ── Success Modal ── -->
+    <Teleport to="body">
+      <div v-if="showSuccess" class="modal-backdrop" @click.self="handleSuccessClose">
+        <div class="modal-card">
+          <div class="modal-icon">🎉</div>
+          <h2 class="modal-title">Campaign Created!</h2>
+          <p class="modal-body">
+            <strong>{{ form.title }}</strong> has been successfully submitted.
+            It will be reviewed and activated shortly.
+          </p>
+          <button class="btn btn-create modal-btn" @click="handleSuccessClose">
+            Done
+          </button>
+        </div>
+      </div>
+    </Teleport>
 
     <footer class="footer">
       <p>© 2026 FundRise. Supporting dreams, one donation at a time.</p>
@@ -363,7 +392,7 @@ async function handleCreateFra(): Promise<void> {
   box-sizing: border-box;
 }
 
-/* ── Back Link — top left ── */
+/* ── Back Link ── */
 .back-link {
   display: block;
   text-align: left;
@@ -375,7 +404,7 @@ async function handleCreateFra(): Promise<void> {
 }
 .back-link:hover { text-decoration: underline; }
 
-/* ── Page Header — centered ── */
+/* ── Page Header ── */
 .dashboard-header {
   display: flex;
   flex-direction: column;
@@ -384,18 +413,28 @@ async function handleCreateFra(): Promise<void> {
   margin-bottom: 28px;
   text-align: center;
 }
-
 .dashboard-header h1 {
   font-size: 1.8rem;
   font-weight: 700;
   color: #111;
   margin: 0;
 }
-
 .dashboard-header p {
   color: #666;
   margin: 0;
   font-size: 0.9rem;
+}
+
+/* ── Error Banner ── */
+.error-banner {
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  color: #b91c1c;
+  border-radius: 8px;
+  padding: 12px 16px;
+  font-size: 0.88rem;
+  font-weight: 500;
+  margin-bottom: 16px;
 }
 
 /* ── Step Indicator ── */
@@ -405,7 +444,6 @@ async function handleCreateFra(): Promise<void> {
   flex-wrap: wrap;
   justify-content: center;
 }
-
 .step-item {
   display: flex;
   align-items: center;
@@ -421,7 +459,6 @@ async function handleCreateFra(): Promise<void> {
 }
 .step-item.active { background: #3b82f6; border-color: #3b82f6; color: #fff; }
 .step-item.done   { background: #f0fdf4; border-color: #bbf7d0; color: #15803d; }
-
 .step-num {
   width: 22px;
   height: 22px;
@@ -436,7 +473,6 @@ async function handleCreateFra(): Promise<void> {
 }
 .step-item.active .step-num { background: rgba(255,255,255,0.25); }
 .step-item.done .step-num   { background: #dcfce7; color: #15803d; }
-
 .step-label { white-space: nowrap; }
 
 /* ── Form Card ── */
@@ -459,13 +495,11 @@ async function handleCreateFra(): Promise<void> {
 
 /* ── Form Elements ── */
 .form-group { margin-bottom: 20px; }
-
 .form-row {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 20px;
 }
-
 .form-group label {
   display: block;
   margin-bottom: 8px;
@@ -474,15 +508,36 @@ async function handleCreateFra(): Promise<void> {
   font-size: 0.88rem;
   text-align: left;
 }
-.form-group p {
-  text-align: center;
+.form-group p { text-align: center; }
+.form-hint {
+  font-size: 0.75rem;
+  color: #9ca3af;
+  margin: 4px 0 0;
+  text-align: right !important;
 }
-
+.required { color: #ef4444; }
 .optional-label {
   font-size: 0.75rem;
   color: #9ca3af;
   font-weight: 400;
 }
+
+.form-input, .form-textarea, .form-select {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  font-size: 0.88rem;
+  color: #111;
+  background: #fff;
+  box-sizing: border-box;
+  transition: border-color 0.15s;
+}
+.form-input:focus, .form-textarea:focus, .form-select:focus {
+  outline: none;
+  border-color: #3b82f6;
+}
+.form-textarea { resize: vertical; }
 
 /* ── Prefix Input ── */
 .input-prefix-wrap {
@@ -510,21 +565,11 @@ async function handleCreateFra(): Promise<void> {
 }
 
 /* ── Tiers ── */
-.tiers-list {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  margin-bottom: 10px;
-}
-.tier-row {
-  display: flex;
-  gap: 10px;
-  align-items: center;
-}
+.tiers-list { display: flex; flex-direction: column; gap: 10px; margin-bottom: 10px; }
+.tier-row { display: flex; gap: 10px; align-items: center; }
 .tier-amount { width: 120px; flex-shrink: 0; }
 .tier-label  { flex: 1; }
 .tier-remove { flex-shrink: 0; padding: 8px 12px; }
-
 .btn-add-tier {
   background: #f9fafb;
   border: 1px dashed #d1d5db;
@@ -537,11 +582,7 @@ async function handleCreateFra(): Promise<void> {
   transition: all 0.15s;
   width: 100%;
 }
-.btn-add-tier:hover {
-  background: #f0f4ff;
-  border-color: #93c5fd;
-  color: #3b82f6;
-}
+.btn-add-tier:hover { background: #f0f4ff; border-color: #93c5fd; color: #3b82f6; }
 
 /* ── Image Upload ── */
 .image-upload-zone {
@@ -554,11 +595,9 @@ async function handleCreateFra(): Promise<void> {
   transition: border-color 0.2s, background 0.2s;
 }
 .image-upload-zone:hover { border-color: #3b82f6; background: #f0f5ff; }
-
 .upload-icon  { font-size: 2.5rem; margin-bottom: 10px; }
 .upload-title { font-weight: 600; margin: 0 0 4px; }
 .upload-hint  { font-size: 0.82rem; color: #9ca3af; margin: 0 0 14px; }
-
 .btn-upload {
   background: #fff;
   border: 1px solid #d1d5db;
@@ -568,22 +607,9 @@ async function handleCreateFra(): Promise<void> {
   cursor: pointer;
   color: #111;
 }
-
 .image-preview-wrapper { position: relative; border-radius: 10px; overflow: hidden; }
-.image-preview {
-  width: 100%;
-  max-height: 260px;
-  object-fit: cover;
-  display: block;
-  border-radius: 10px;
-}
-.image-preview-overlay {
-  position: absolute;
-  top: 10px;
-  right: 10px;
-  display: flex;
-  gap: 8px;
-}
+.image-preview { width: 100%; max-height: 260px; object-fit: cover; display: block; border-radius: 10px; }
+.image-preview-overlay { position: absolute; top: 10px; right: 10px; display: flex; gap: 8px; }
 .btn-change-image {
   background: rgba(255,255,255,0.92);
   border: none;
@@ -666,7 +692,6 @@ async function handleCreateFra(): Promise<void> {
   gap: 12px;
 }
 .spacer { flex: 1; }
-
 .step-actions .btn {
   padding: 10px 22px;
   border-radius: 8px;
@@ -675,17 +700,28 @@ async function handleCreateFra(): Promise<void> {
   cursor: pointer;
   transition: all 0.15s;
 }
+.step-btn { flex: unset !important; }
 
-/* Small Continue / Submit button */
-.step-btn {
-  flex: unset !important;
-  display: block;
-  text-align: left;
-  font-size: 0.85rem;
-  text-decoration: none;
+/* ── Buttons (shared globals assumed in project) ── */
+.btn { border: none; cursor: pointer; }
+.btn-create {
+  background: #3b82f6;
+  color: #fff;
+  padding: 10px 20px;
+  border-radius: 8px;
   font-weight: 600;
-  margin-bottom: 16px;
 }
+.btn-create:hover:not(:disabled) { background: #2563eb; }
+.btn-create:disabled { opacity: 0.55; cursor: not-allowed; }
+.btn-cancel {
+  background: #f3f4f6;
+  color: #374151;
+  padding: 10px 20px;
+  border-radius: 8px;
+  font-weight: 600;
+  border: 1px solid #e5e7eb;
+}
+.btn-cancel:hover { background: #e5e7eb; }
 
 /* ── Spinner ── */
 .spinner {
@@ -700,4 +736,88 @@ async function handleCreateFra(): Promise<void> {
   vertical-align: middle;
 }
 @keyframes spin { to { transform: rotate(360deg); } }
+
+/* ── Success Modal ── */
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  backdrop-filter: blur(2px);
+}
+.modal-card {
+  background: #fff;
+  border-radius: 16px;
+  padding: 40px 36px;
+  max-width: 420px;
+  width: 90%;
+  text-align: center;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.2);
+  animation: modal-in 0.25s ease;
+}
+@keyframes modal-in {
+  from { transform: scale(0.92); opacity: 0; }
+  to   { transform: scale(1);    opacity: 1; }
+}
+.modal-icon  { font-size: 3rem; margin-bottom: 12px; }
+.modal-title {
+  font-size: 1.4rem;
+  font-weight: 700;
+  color: #111;
+  margin: 0 0 12px;
+}
+.modal-body {
+  font-size: 0.9rem;
+  color: #555;
+  line-height: 1.6;
+  margin: 0 0 24px;
+}
+.modal-btn { width: 100%; justify-content: center; font-size: 0.95rem; padding: 12px; }
+
+/* ── Header / Footer (shared) ── */
+.header {
+  display: flex;
+  align-items: center;
+  padding: 0 32px;
+  height: 60px;
+  background: #fff;
+  border-bottom: 1px solid #e5e7eb;
+  gap: 24px;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  text-decoration: none;
+  font-weight: 700;
+  font-size: 1.1rem;
+  color: #111;
+}
+.logo { color: #ef4444; font-size: 1.2rem; }
+.nav, .nav-actions { display: flex; align-items: center; gap: 16px; }
+.nav-actions { margin-left: auto; }
+.nav-link {
+  font-size: 0.88rem;
+  color: #555;
+  text-decoration: none;
+  font-weight: 500;
+}
+.nav-link:hover { color: #111; }
+.logout-link { color: #ef4444; }
+.logout-icon { margin-right: 4px; }
+
+.footer {
+  text-align: center;
+  padding: 24px;
+  font-size: 0.8rem;
+  color: #9ca3af;
+  border-top: 1px solid #e5e7eb;
+  background: #fff;
+}
 </style>

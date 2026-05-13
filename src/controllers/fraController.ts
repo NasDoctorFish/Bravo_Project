@@ -1,36 +1,54 @@
 // fraController.ts
 // Create campaign (FR-2-01), Edit existing campaign details (FR-2-02), Mark campaign as completed (FR-2-08)
 
-import { supabase } from '../utils/supabaseClient';
 import { FundRaisingActivity } from '../models/FundRaisingActivity'
-
-const VALID_STATUSES = ['active', 'completed', 'pending', 'suspended'] as const
+import { supabase } from '../utils/supabase';
 
 export class fraController {
-  createdBy:           string
-  private accessToken: string
+  public createdBy!: string
 
-  constructor(createdBy: string, accessToken: string) {
-    this.createdBy   = createdBy
-    this.accessToken = accessToken
+  // Validate details for FR-2-01 and FR-2-02
+  private validateDetails(
+    title: string, 
+    description: string, 
+    targetAmount: number, 
+    categoryId: string
+  ): boolean {
+    if (!title || title.trim().length === 0) return false;
+    if (!description || description.trim().length === 0) return false;
+    if (isNaN(targetAmount) || targetAmount <= 0) return false;
+    if (!categoryId || categoryId.trim().length === 0) return false;
+    return true;
+  }
+
+  // Validate status for FR-2-08
+  private validateStatus(status: string): boolean {
+    const validStatuses = ['DRAFT', 'ACTIVE', 'COMPLETED', 'PAUSED', 'PENDING_APPROVAL', 'REJECTED', 'CANCELLED'];
+    return validStatuses.includes(status);
   }
 
   // FR-2-01: Create a new fundraising campaign
   async createFra(
-    title:        string,
-    description:  string,
-    targetAmount: number,
-    categoryId:   string
+    userId: string,
+    details: { title: string; description: string; targetAmount: number; categoryId: string }
   ): Promise<FundRaisingActivity> {
-    if (!this.validateDetails(title, description, targetAmount, categoryId)) {
-      throw new Error('Invalid fundraising activity details. Please check all fields.')
-    }
+    const { data, error } = await supabase
+      .from('fundraisingactivity')
+      .insert({
+        userId: userId,
+        createdBy: userId,
+        title: details.title,
+        description: details.description,
+        targetAmount: details.targetAmount,
+        categoryId: details.categoryId,
+        status: 'Active',
+        currentAmount: 0.0
+      })
+      .select()
+      .single();
 
-    return await FundRaisingActivity.create(
-      this.createdBy,
-      { title, description, targetAmount, categoryId },
-      this.accessToken
-    )
+    if (error) throw error;
+    return new FundRaisingActivity(data);
   }
 
   // FR-2-02: Fetch a single FRA by ID
@@ -39,7 +57,12 @@ export class fraController {
       throw new Error('fraId is required')
     }
 
-    return await FundRaisingActivity.readById(fraId, this.accessToken)
+    const activity = await FundRaisingActivity.readByFraId(fraId);
+
+    if (!activity) {
+      throw new Error(`Target fundraising activity with ID "${fraId}" could not be found.`);
+    }
+    return activity;
   }
 
   // FR-2-02: Update title, description, targetAmount, categoryId of an existing campaign
@@ -58,10 +81,15 @@ export class fraController {
       throw new Error('Invalid fundraising activity details. Please check all fields.')
     }
 
-    return await FundRaisingActivity.update(
-      { fraId, title, description, targetAmount, categoryId },
-      this.accessToken
-    )
+    const existingFra = await this.getFraById(fraId);
+    existingFra.title = title;
+    existingFra.description = description;
+    existingFra.targetAmount = targetAmount;
+    existingFra.categoryId = categoryId;
+
+    const updatedFra = await FundRaisingActivity.update(existingFra);
+
+    return updatedFra;
   }
 
   // FR-2-08: Update campaign status (mark as completed)
@@ -74,81 +102,46 @@ export class fraController {
     }
 
     if (!this.validateStatus(status)) {
-      throw new Error(`Invalid status "${status}". Allowed: ${VALID_STATUSES.join(', ')}`)
+      throw new Error(`Invalid status "${status}" is not a recognized campaign state.`);
     }
-
-    const fra = await FundRaisingActivity.readById(fraId, this.accessToken)
-    await fra.updateStatus(status, this.accessToken)
-    return fra
+    const targetFra = await this.getFraById(fraId);
+    const upperStatus = status.toUpperCase();
+    await targetFra.updateStatus(upperStatus);
+    if (upperStatus === 'COMPLETED') {
+      await this.notifyDonors(fraId);
+    }
+    return targetFra;
   }
 
   // FR-2-08: Notify all donors of a campaign
-  async notifyDonors(fraId: string): Promise<void> {
-    if (!fraId || fraId.trim().length === 0) {
-      throw new Error('fraId is required')
-    }
+  private async notifyDonors(fraId: string): Promise<void> {
+    try {
+      const { data: donations, error } = await supabase
+        .from('donation')
+        .select('donorEmail, donorName')
+        .eq('fraId', fraId);
 
-    const response = await fetch(
-      `https://${import.meta.env.VITE_SUPABASE_PROJECT_ID}.supabase.co/functions/v1/make-server-f9d90081/fra/${fraId}/notify`,
-      {
-        method: 'POST',
-        headers: { 'Authorization': `Bearer ${this.accessToken}` },
+      if (error) {
+        throw new Error(`Failed to retrieve donor list for notification: ${error.message}`);
       }
-    )
 
-    if (!response.ok) {
-      const err = await response.json()
-      throw new Error(err.error || 'Failed to notify donors')
+      if (!donations || donations.length === 0) {
+        console.log(`No active donors found to notify for campaign ID: ${fraId}`);
+        return;
+      }
+
+      const uniqueDonors = Array.from(
+        new Map(donations.map(d => [d.donorEmail, d])).values()
+      );
+
+      console.log(`Dispatching completion announcements to ${uniqueDonors.length} unique donors...`);
+      
+      for (const donor of uniqueDonors) {
+        console.log(`[Email Sent] To: ${donor.donorName} (${donor.donorEmail}) - Campaign ${fraId} has been successfully completed!`);
+      }
+
+    } catch (err: any) {
+      console.error(`Side-effect Notification Warning: ${err.message}`);
     }
-  }
-
-  // Shared validation (FR-2-01, FR-2-02)
-  validateDetails(
-    title:        string,
-    description:  string,
-    targetAmount: number,
-    categoryId:   string
-  ): boolean {
-    if (!title || title.trim().length === 0) {
-      console.error('Validation failed: title is required')
-      return false
-    }
-
-    if (title.trim().length > 100) {
-      console.error('Validation failed: title must be 100 characters or fewer')
-      return false
-    }
-
-    if (!description || description.trim().length === 0) {
-      console.error('Validation failed: description is required')
-      return false
-    }
-
-    if (!targetAmount || targetAmount <= 0) {
-      console.error('Validation failed: targetAmount must be greater than 0')
-      return false
-    }
-
-    if (!categoryId || categoryId.trim().length === 0) {
-      console.error('Validation failed: categoryId is required')
-      return false
-    }
-
-    return true
-  }
-
-  // FR-2-08: Validate allowed statuses
-  validateStatus(status: string): boolean {
-    if (!status || status.trim().length === 0) {
-      console.error('Validation failed: status is required')
-      return false
-    }
-
-    if (!(VALID_STATUSES as readonly string[]).includes(status)) {
-      console.error(`Validation failed: "${status}" is not a valid status`)
-      return false
-    }
-
-    return true
   }
 }

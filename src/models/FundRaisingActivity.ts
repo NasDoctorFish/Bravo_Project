@@ -1,6 +1,8 @@
 // FundRaisingActivity.ts
 // Create campaign (FR-2-01), Edit existing campaign details (FR-2-02), Mark campaign as completed (FR-2-08)
 
+import { supabase } from '../utils/supabase';
+
 export class FundRaisingActivity {
   // Entity fields
   fraId:         string
@@ -42,136 +44,117 @@ export class FundRaisingActivity {
   }
 
   // FR-2-01: Create a new FRA
-  static async create(
-    userId: string,
-    payload: {
-      title:        string
-      description:  string
-      targetAmount: number
-      categoryId:   string
-    },
-    accessToken: string
-  ): Promise<FundRaisingActivity> {
-    const response = await fetch(`${BASE_URL}/fra`, {
-      method: 'POST',
-      headers: {
-        'Content-Type':  'application/json',
-        'Authorization': `Bearer ${accessToken}`,
-      },
-      body: JSON.stringify({ userId, ...payload }),
-    })
+  static async create(userId: string): Promise<FundRaisingActivity> {
+    const newFraData = {
+      userId: userId,
+      createdBy: userId,
+      status: 'Active',
+      currentAmount: 0.0,
+      title: '',
+      description: '',
+      targetAmount: 0.0,
+      categoryId: '',
+    };
 
-    if (!response.ok) {
-      const err = await response.json()
-      throw new Error(err.error || 'Failed to create fundraising activity')
+    const { data, error } = await supabase
+      .from('fundraisingactivity')
+      .insert(newFraData)
+      .select()
+      .single();
+
+    if (error) {
+      console.error('Failed to create FRA in Supabase:', error.message);
+      throw error;
     }
-
-    const data = await response.json()
-    return new FundRaisingActivity(data.fra)
+    return data;
   }
 
   // Read all FRAs for a user
-  static async readByUser(
-    userId: string,
-    accessToken: string
-  ): Promise<FundRaisingActivity[]> {
-    const response = await fetch(`${BASE_URL}/fra?userId=${userId}`, {
-      headers: { 'Authorization': `Bearer ${accessToken}` },
-    })
+  static async readByUserId(userId: string): Promise<FundRaisingActivity[]> {
+    const { data, error } = await supabase
+      .from('fundraisingactivity')
+      .select('*')
+      .eq('userId', userId);
 
-    if (!response.ok) {
-      const err = await response.json()
-      throw new Error(err.error || 'Failed to fetch fundraising activities')
+    if (error) {
+      console.error('Failed to fetch user activities:', error.message);
+      throw error;
     }
-
-    const data = await response.json()
-    return (data.fras as any[]).map(f => new FundRaisingActivity(f))
+    return data || [];
   }
 
   // Read a single FRA by fraId
-  static async readById(
-    fraId: string,
-    accessToken: string
-  ): Promise<FundRaisingActivity> {
-    const response = await fetch(`${BASE_URL}/fra/${fraId}`, {
-      headers: { 'Authorization': `Bearer ${accessToken}` },
-    })
+  static async readByFraId(fraId: string): Promise<FundRaisingActivity | null> {
+    const { data, error } = await supabase
+      .from('fundraisingactivity')
+      .select('*')
+      .eq('fraId', fraId)
+      .maybeSingle();
 
-    if (!response.ok) {
-      const err = await response.json()
-      throw new Error(err.error || 'Failed to fetch fundraising activity')
+    if (error) {
+      console.error('Failed to fetch activity by fraId:', error.message);
+      throw error;
     }
-
-    const data = await response.json()
-    return new FundRaisingActivity(data.fra)
+    return data;
   }
 
   // FR-2-02: Update an existing FRA
-  static async update(
-    toUpdate: Partial<FundRaisingActivity> & { fraId: string },
-    accessToken: string
-  ): Promise<FundRaisingActivity> {
-    const response = await fetch(`${BASE_URL}/fra/${toUpdate.fraId}`, {
-      method: 'PUT',
-      headers: {
-        'Content-Type':  'application/json',
-        'Authorization': `Bearer ${accessToken}`,
-      },
-      body: JSON.stringify(toUpdate),
-    })
+  static async update(toUpdate: FundRaisingActivity): Promise<FundRaisingActivity> {
+    const { fraId, userId, ...dataPayload } = toUpdate;
 
-    if (!response.ok) {
-      const err = await response.json()
-      throw new Error(err.error || 'Failed to update fundraising activity')
+    const { data, error } = await supabase
+      .from('fundraisingactivity')
+      .update(dataPayload)
+      .eq('fraId', fraId)
+      .eq('userId', userId)
+      .select()
+      .single();
+
+    if (error) {
+      console.error('Failed to update record in Supabase:', error.message);
+      throw error;
     }
-
-    const data = await response.json()
-    return new FundRaisingActivity(data.fra)
+    return data;
   }
+  
+  // Delete a FRA
+  static async delete(userId: string, fraId: string, hard: boolean): Promise<boolean> {
+    let query = supabase.from('fundraisingactivity');
+    
+    if (hard) {
+      const { error } = await query
+        .delete()
+        .eq('fraId', fraId)
+        .eq('userId', userId);
+    
+      if (error) throw error;
+      return true;
+    } else {
+      const { error } = await query
+        .update({ status: 'Archived' })
+        .eq('fraId', fraId)
+        .eq('userId', userId);
 
-  // FR-2-08: Update only the status field (instance method)
-  async updateStatus(
-    status: string,
-    accessToken: string
-  ): Promise<void> {
-    const response = await fetch(`${BASE_URL}/fra/${this.fraId}/status`, {
-      method: 'PATCH',
-      headers: {
-        'Content-Type':  'application/json',
-        'Authorization': `Bearer ${accessToken}`,
-      },
-      body: JSON.stringify({ status }),
-    })
-
-    if (!response.ok) {
-      const err = await response.json()
-      throw new Error(err.error || 'Failed to update status')
+      if (error) {
+        console.error('Failed to delete record from Supabase:', error.message);
+        throw error;
+      }
+      return true;
     }
+  }
+  // FR-2-08: Update only the status field
+  async updateStatus(status: string): Promise<void> {
+    const { error } = await supabase
+      .from('fundraisingactivity')
+      .update({ status: status })
+      .eq('fraId', this.fraId)
+      .eq('userId', this.userId);
 
-    // Reflect the new status locally
+    if (error) {
+      console.error('Failed to update status in Supabase:', error.message);
+      throw error;
+    }
     this.status = status
   }
 
-  // Delete a FRA
-  static async delete(
-    userId: string,
-    fraId: string,
-    hard: boolean,
-    accessToken: string
-  ): Promise<boolean> {
-    const response = await fetch(
-      `${BASE_URL}/fra/${fraId}?userId=${userId}&hard=${hard}`,
-      {
-        method: 'DELETE',
-        headers: { 'Authorization': `Bearer ${accessToken}` },
-      }
-    )
-
-    if (!response.ok) {
-      const err = await response.json()
-      throw new Error(err.error || 'Failed to delete fundraising activity')
-    }
-
-    return true
-  }
 }
