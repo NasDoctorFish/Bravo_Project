@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref } from 'vue'
+
 import LoginPage from './pages/LoginPage.vue'
 import HomePage from './pages/HomePage.vue'
 import SignupPage from './pages/SignupPage.vue'
@@ -58,7 +59,7 @@ function goLogout() {
   page.value = 'home'
 }
 
-function handleCampaignCreated(campaignData) {
+function handleCampaignCreated(campaignData: any) {
   console.log('New campaign created:', campaignData)
   page.value = 'search'
 }
@@ -186,4 +187,5 @@ function goFavourites() {
     @go-creation="goCreate"
     @go-campaigndetail="goDetail"
   /> -->
+
 </template>
