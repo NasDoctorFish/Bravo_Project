@@ -43,19 +43,19 @@ const progressPercent = (c: FundRaisingActivity): number =>
 
     <!-- Header -->
     <header class="header">
-      <a href="#" class="brand" @click.prevent="emit('go-home')">
+      <RouterLink to="/" class="brand" @click="emit('go-home')">
         <span class="logo">♥</span>
         <span>FundRise</span>
-      </a>
+      </RouterLink>
 
       <nav class="nav">
-        <a href="#" class="nav-link">⌕ Donate</a>
-        <a href="#" class="nav-link">Fundraising</a>
+        <RouterLink to="/fra/search" class="nav-link">⌕ Donate</RouterLink>
+        <RouterLink to="/fra/create" class="nav-link" @click="emit('go-create')">Fundraising</RouterLink>
       </nav>
 
       <nav class="nav-actions">
-        <a href="#" class="nav-link" @click.prevent="emit('go-home')">Home</a>
-        <a href="#" class="btn btn-primary" @click.prevent="emit('go-create')">Start Campaign</a>
+        <RouterLink to="/" class="nav-link" @click="emit('go-home')">Home</RouterLink>
+        <RouterLink to="/fra/create" class="btn btn-primary" @click="emit('go-create')">Start Campaign</RouterLink>
       </nav>
     </header>
 
@@ -127,7 +127,7 @@ const progressPercent = (c: FundRaisingActivity): number =>
           v-for="c in results"
           :key="c.fraId"
           class="campaign-card"
-          @click="emit('go-campaigndetail', c)"
+          @click="emit('go-campaigndetail', c); $router.push(`/fra/${c.fraId}`)"
         >
           <!-- Image -->
           <div class="campaign-image-wrap">
@@ -177,6 +177,71 @@ const progressPercent = (c: FundRaisingActivity): number =>
 </template>
 
 <style scoped>
+/* ── Shared Header / Nav / Footer ── */
+.header {
+  display: flex;
+  align-items: center;
+  padding: 0 32px;
+  height: 60px;
+  background: #fff;
+  border-bottom: 1px solid #e5e7eb;
+  gap: 24px;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  text-decoration: none;
+  font-weight: 700;
+  font-size: 1.1rem;
+  color: #111;
+}
+.logo { color: #ef4444; font-size: 1.2rem; }
+.nav { display: flex; align-items: center; gap: 16px; }
+.nav-actions { display: flex; align-items: center; gap: 16px; margin-left: auto; }
+.nav-link { font-size: 0.88rem; color: #555; text-decoration: none; font-weight: 500; }
+.nav-link:hover { color: #111; }
+.footer {
+  text-align: center;
+  padding: 24px;
+  font-size: 0.8rem;
+  color: #9ca3af;
+  border-top: 1px solid #e5e7eb;
+  background: #fff;
+}
+
+/* ── Shared Form / Button ── */
+.form-group { margin-bottom: 0; }
+.form-group label { display: block; margin-bottom: 6px; font-weight: 600; font-size: 0.82rem; color: #374151; }
+.form-select {
+  width: 100%;
+  padding: 9px 12px;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  font-size: 0.88rem;
+  color: #111;
+  background: #fff;
+  box-sizing: border-box;
+}
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  padding: 9px 16px;
+  font-weight: 700;
+  text-decoration: none;
+  border: 1px solid transparent;
+  cursor: pointer;
+  font-size: 0.88rem;
+}
+.btn-primary { background: #2563eb; color: #fff; }
+.btn-cancel { background: #f3f4f6; color: #374151; border: 1px solid #e5e7eb; }
+.btn-cancel:hover { background: #e5e7eb; }
+
 /* ── Layout ── */
 .search-page {
   min-height: 100vh;

@@ -53,6 +53,17 @@ function toggleSuspend(user) {
   user.status = user.status === 'suspended' ? 'active' : 'suspended'
 }
 
+function suspendSelected() {
+  users.value = users.value.map(user =>
+    selected.value.includes(user.id) ? { ...user, status: 'suspended' } : user
+  )
+}
+
+function deleteSelected() {
+  users.value = users.value.filter(user => !selected.value.includes(user.id))
+  selected.value = []
+}
+
 function confirmDelete(user) {
   if (confirm(`Delete ${user.name}?`)) {
     users.value = users.value.filter(u => u.id !== user.id)
@@ -65,19 +76,19 @@ function confirmDelete(user) {
 
     <!-- Header -->
     <header class="header">
-      <a href="#" class="brand" @click.prevent="emit('go-home')">
+      <RouterLink to="/" class="brand" @click="emit('go-home')">
         <span class="logo">♥</span>
         <span>FundRise</span>
-      </a>
+      </RouterLink>
       <nav class="nav">
-        <a href="#" class="nav-link" @click.prevent="emit('go-search')">⌕ Donate</a>
-        <a href="#" class="nav-link">Fundraising</a>
+        <RouterLink to="/fra/search" class="nav-link" @click="emit('go-search')">⌕ Donate</RouterLink>
+        <RouterLink to="/fra/create" class="nav-link">Fundraising</RouterLink>
       </nav>
       <nav class="nav-actions">
-        <a href="#" class="nav-link" @click.prevent="emit('go-home')">Home</a>
-        <a href="#" class="nav-link logout-link" @click.prevent="emit('go-logout')">
+        <RouterLink to="/" class="nav-link" @click="emit('go-home')">Home</RouterLink>
+        <RouterLink to="/" class="nav-link logout-link" @click="emit('go-logout')">
           <span class="logout-icon">⇢</span> Logout
-        </a>
+        </RouterLink>
       </nav>
     </header>
 
@@ -180,8 +191,8 @@ function confirmDelete(user) {
         <div class="bulk-actions" v-if="selected.length > 0">
           <span class="bulk-count">{{ selected.length }} selected</span>
           <button class="btn-bulk" @click="selected = []">Deselect</button>
-          <button class="btn-bulk danger">Suspend Selected</button>
-          <button class="btn-bulk danger">Delete Selected</button>
+          <button class="btn-bulk danger" @click="suspendSelected">Suspend Selected</button>
+          <button class="btn-bulk danger" @click="deleteSelected">Delete Selected</button>
         </div>
       </section>
 
@@ -228,6 +239,69 @@ function confirmDelete(user) {
 </template>
 
 <style scoped>
+/* ── Shared Header / Nav / Footer ── */
+.header {
+  display: flex;
+  align-items: center;
+  padding: 0 32px;
+  height: 60px;
+  background: #fff;
+  border-bottom: 1px solid #e5e7eb;
+  gap: 24px;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  text-decoration: none;
+  font-weight: 700;
+  font-size: 1.1rem;
+  color: #111;
+}
+.logo { color: #ef4444; font-size: 1.2rem; }
+.nav { display: flex; align-items: center; gap: 16px; }
+.nav-actions { display: flex; align-items: center; gap: 16px; margin-left: auto; }
+.nav-link { font-size: 0.88rem; color: #555; text-decoration: none; font-weight: 500; }
+.nav-link:hover { color: #111; }
+.logout-link { color: #ef4444; }
+.logout-icon { margin-right: 4px; }
+.footer {
+  text-align: center;
+  padding: 24px;
+  font-size: 0.8rem;
+  color: #9ca3af;
+  border-top: 1px solid #e5e7eb;
+  background: #fff;
+}
+
+/* ── Shared Form Elements ── */
+.form-group { display: flex; flex-direction: column; gap: 6px; }
+.form-group label { font-size: 0.82rem; font-weight: 600; color: #374151; }
+.form-input {
+  padding: 9px 12px;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  font-size: 0.88rem;
+  color: #111;
+  background: #fff;
+  box-sizing: border-box;
+  width: 100%;
+}
+.form-input:focus { outline: none; border-color: #3b82f6; }
+.form-select {
+  padding: 9px 12px;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  font-size: 0.88rem;
+  color: #111;
+  background: #fff;
+  box-sizing: border-box;
+  width: 100%;
+}
+
 /* ── Layout ── */
 .admin-page {
   min-height: 100vh;

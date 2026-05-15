@@ -158,22 +158,22 @@ function displayCategoryMessage(message: string) {
 
     <!-- Header -->
     <header class="header">
-      <a href="#" class="brand" @click.prevent="emit('go-home')">
+      <RouterLink to="/" class="brand" @click="emit('go-home')">
         <span class="logo">♥</span>
         <span>FundRise</span>
-      </a>
+      </RouterLink>
 
       <nav class="nav">
-        <a href="#" class="nav-link" @click.prevent="emit('go-search')">⌕ Donate</a>
-        <a href="#" class="nav-link">Fundraising</a>
+        <RouterLink to="/fra/search" class="nav-link" @click="emit('go-search')">⌕ Donate</RouterLink>
+        <RouterLink to="/fra/create" class="nav-link">Fundraising</RouterLink>
       </nav>
 
       <nav class="nav-actions">
-        <a href="#" class="nav-link" @click.prevent="emit('go-home')">Home</a>
+        <RouterLink to="/" class="nav-link" @click="emit('go-home')">Home</RouterLink>
         <span class="user-info">Platform Manager</span>
-        <a href="#" class="nav-link logout-link" @click.prevent="emit('go-logout')">
+        <RouterLink to="/" class="nav-link logout-link" @click="emit('go-logout')">
           <span class="logout-icon">⇢</span> Logout
-        </a>
+        </RouterLink>
       </nav>
     </header>
 
@@ -183,7 +183,7 @@ function displayCategoryMessage(message: string) {
       <div class="dashboard-header">
         <div>
           <h1>Platform Management</h1>
-          <p>Review and approve fundraising campaigns</p>
+          <p>Review campaigns, categories, and platform controls</p>
         </div>
         <div class="header-stats">
           <div class="hstat">
@@ -196,6 +196,27 @@ function displayCategoryMessage(message: string) {
           </div>
         </div>
       </div>
+
+      <section class="dashboard-section category-management">
+        <div class="section-title-row">
+          <div>
+            <h2>Category Management</h2>
+            <p>Create categories used by campaign search and campaign setup.</p>
+          </div>
+          <button class="toolbar-btn" @click="openForm">New Category</button>
+        </div>
+
+        <div class="category-grid">
+          <div v-for="c in categories" :key="c" class="category-card">
+            <span class="category-name">{{ c }}</span>
+            <span class="category-meta">Active category</span>
+          </div>
+        </div>
+
+        <p v-if="showNotification" class="notification-message">
+          {{ notificationMessage }}
+        </p>
+      </section>
 
       <!-- Main Section -->
       <section class="dashboard-section">
@@ -215,11 +236,6 @@ function displayCategoryMessage(message: string) {
 
         <!-- Toolbar -->
         <div class="toolbar">
-          <!-- DEV PM-7-01 -->
-          <button class="toolbar-btn" @click="openForm">
-            New Category
-          </button>
-          <!-- DEV PM-7-01 -->
           <div class="search-pill">
             <span class="search-icon">⌕</span>
             <input
@@ -373,6 +389,66 @@ function displayCategoryMessage(message: string) {
 </template>
 
 <style scoped>
+/* ── Shared Header / Nav / Footer ── */
+.header {
+  display: flex;
+  align-items: center;
+  padding: 0 32px;
+  height: 60px;
+  background: #fff;
+  border-bottom: 1px solid #e5e7eb;
+  gap: 24px;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  text-decoration: none;
+  font-weight: 700;
+  font-size: 1.1rem;
+  color: #111;
+}
+.logo { color: #ef4444; font-size: 1.2rem; }
+.nav { display: flex; align-items: center; gap: 16px; }
+.nav-actions { display: flex; align-items: center; gap: 16px; margin-left: auto; }
+.nav-link { font-size: 0.88rem; color: #555; text-decoration: none; font-weight: 500; }
+.nav-link:hover { color: #111; }
+.user-info { font-size: 0.82rem; color: #6b7280; }
+.logout-link { color: #ef4444; }
+.logout-icon { margin-right: 4px; }
+.footer {
+  text-align: center;
+  padding: 24px;
+  font-size: 0.8rem;
+  color: #9ca3af;
+  border-top: 1px solid #e5e7eb;
+  background: #fff;
+}
+
+/* ── Shared Buttons ── */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  padding: 8px 14px;
+  font-weight: 600;
+  border: 1px solid transparent;
+  cursor: pointer;
+  font-size: 0.85rem;
+}
+.form-select {
+  padding: 9px 12px;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  font-size: 0.88rem;
+  color: #111;
+  background: #fff;
+}
+
 /* --- Modal Overlay --- */
 .modal-overlay {
   position: fixed;
@@ -514,6 +590,59 @@ function displayCategoryMessage(message: string) {
   border-radius: 12px;
   padding: 24px;
   box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+  margin-bottom: 24px;
+}
+
+.section-title-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.section-title-row h2 {
+  margin: 0 0 4px;
+  color: #111827;
+  font-size: 1.05rem;
+}
+
+.section-title-row p {
+  margin: 0;
+  color: #6b7280;
+  font-size: 0.88rem;
+}
+
+.category-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 12px;
+}
+
+.category-card {
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  background: #f9fafb;
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.category-name {
+  color: #111827;
+  font-weight: 700;
+}
+
+.category-meta {
+  color: #6b7280;
+  font-size: 0.78rem;
+}
+
+.notification-message {
+  margin: 14px 0 0;
+  color: #15803d;
+  font-size: 0.88rem;
 }
 
 /* ── Tabs ── */

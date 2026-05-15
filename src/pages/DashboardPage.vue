@@ -28,19 +28,19 @@ const activity = [
 
     <!-- Header -->
     <header class="header">
-      <a href="#" class="brand" @click.prevent="emit('go-home')">
+      <RouterLink to="/" class="brand" @click="emit('go-home')">
         <span class="logo">♥</span>
         <span>FundRise</span>
-      </a>
+      </RouterLink>
       <nav class="nav">
-        <a href="#" class="nav-link" @click.prevent="emit('go-search')">⌕ Donate</a>
-        <a href="#" class="nav-link">Fundraising</a>
+        <RouterLink to="/fra/search" class="nav-link" @click="emit('go-search')">⌕ Donate</RouterLink>
+        <RouterLink to="/fra/create" class="nav-link" @click="emit('go-create')">Fundraising</RouterLink>
       </nav>
       <nav class="nav-actions">
-        <a href="#" class="nav-link" @click.prevent="emit('go-home')">Home</a>
-        <a href="#" class="nav-link logout-link" @click.prevent="emit('go-logout')">
+        <RouterLink to="/" class="nav-link" @click="emit('go-home')">Home</RouterLink>
+        <RouterLink to="/" class="nav-link logout-link" @click="emit('go-logout')">
           <span class="logout-icon">⇢</span> Logout
-        </a>
+        </RouterLink>
       </nav>
     </header>
 
@@ -53,7 +53,7 @@ const activity = [
           <h2 class="dash-title">Dashboard</h2>
           <p class="dash-subtitle">Welcome back, Jane 👋</p>
         </div>
-        <button class="btn-create" @click="emit('go-create')">+ New Campaign</button>
+        <RouterLink to="/fra/create" class="btn-create" @click="emit('go-create')">+ New Campaign</RouterLink>
       </div>
 
       <!-- Stats Grid -->
@@ -68,11 +68,26 @@ const activity = [
         </div>
       </div>
 
+      <section class="dashboard-section chart-placeholder-section">
+        <div class="section-header">
+          <h3>Campaign Overview</h3>
+          <span class="placeholder-note">Wireframe chart placeholder</span>
+        </div>
+        <div class="chart-placeholder">
+          <div class="chart-bar" style="height: 45%;"></div>
+          <div class="chart-bar" style="height: 68%;"></div>
+          <div class="chart-bar" style="height: 52%;"></div>
+          <div class="chart-bar" style="height: 84%;"></div>
+          <div class="chart-bar" style="height: 61%;"></div>
+          <div class="chart-bar" style="height: 76%;"></div>
+        </div>
+      </section>
+
       <!-- Recent Campaigns -->
       <section class="dashboard-section">
         <div class="section-header">
           <h3>Recent Campaigns</h3>
-          <a href="#" class="view-all" @click.prevent="emit('go-search')">View all →</a>
+          <RouterLink to="/fra/search" class="view-all" @click="emit('go-search')">View all →</RouterLink>
         </div>
         <div class="table-wrap">
           <table class="table">
@@ -136,6 +151,44 @@ const activity = [
 </template>
 
 <style scoped>
+/* ── Shared Header / Nav / Footer ── */
+.header {
+  display: flex;
+  align-items: center;
+  padding: 0 32px;
+  height: 60px;
+  background: #fff;
+  border-bottom: 1px solid #e5e7eb;
+  gap: 24px;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  text-decoration: none;
+  font-weight: 700;
+  font-size: 1.1rem;
+  color: #111;
+}
+.logo { color: #ef4444; font-size: 1.2rem; }
+.nav { display: flex; align-items: center; gap: 16px; }
+.nav-actions { display: flex; align-items: center; gap: 16px; margin-left: auto; }
+.nav-link { font-size: 0.88rem; color: #555; text-decoration: none; font-weight: 500; }
+.nav-link:hover { color: #111; }
+.logout-link { color: #ef4444; }
+.logout-icon { margin-right: 4px; }
+.footer {
+  text-align: center;
+  padding: 24px;
+  font-size: 0.8rem;
+  color: #9ca3af;
+  border-top: 1px solid #e5e7eb;
+  background: #fff;
+}
+
 /* ── Page Layout ── */
 .dashboard-page {
   min-height: 100vh;
@@ -253,6 +306,29 @@ const activity = [
   transition: color 0.15s;
 }
 .view-all:hover { color: #1d4ed8; text-decoration: underline; }
+
+.placeholder-note {
+  color: #9ca3af;
+  font-size: 0.78rem;
+}
+
+.chart-placeholder {
+  height: 220px;
+  border: 1px dashed #d1d5db;
+  border-radius: 8px;
+  background: #f9fafb;
+  display: flex;
+  align-items: end;
+  gap: 14px;
+  padding: 24px;
+}
+
+.chart-bar {
+  flex: 1;
+  min-width: 24px;
+  background: #bfdbfe;
+  border-radius: 6px 6px 0 0;
+}
 
 /* ── Table ── */
 .table-wrap { overflow-x: auto; }

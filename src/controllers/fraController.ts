@@ -4,7 +4,7 @@ import { fraService } from '../services/fraService'
 // fraController.ts
 // Create campaign (FR-2-01), Edit existing campaign details (FR-2-02), Mark campaign as completed (FR-2-08)
 
-import { supabase } from '../utils/supabase'
+import { supabase } from '../lib/supabaseClient'
 
 export function searchFraByFilter(categoryId: number): FundRaisingActivity[] {
   return fraService.filterByCategoryId(categoryId)

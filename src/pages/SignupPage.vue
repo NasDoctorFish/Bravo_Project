@@ -1,7 +1,7 @@
 <script setup>
 import { ref, reactive, computed } from 'vue'
 
-const emit = defineEmits(['go-home', 'go-login', 'signup-success'])
+const emit = defineEmits(['go-home', 'go-login', 'go-signup', 'signup-success'])
 
 const form = reactive({
   firstName: '', lastName: '', email: '',
@@ -45,19 +45,19 @@ async function handleSignup() {
 
     <!-- Header -->
     <header class="header">
-      <a href="#" class="brand" @click.prevent="emit('go-home')">
+      <RouterLink to="/" class="brand" @click="emit('go-home')">
         <span class="logo">♥</span>
         <span>FundRise</span>
-      </a>
+      </RouterLink>
 
       <nav class="nav">
-        <a href="#" class="nav-link">⌕ Donate</a>
-        <a href="#" class="nav-link">Fundraising</a>
+        <RouterLink to="/fra/search" class="nav-link">⌕ Donate</RouterLink>
+        <RouterLink to="/fra/create" class="nav-link">Fundraising</RouterLink>
       </nav>
 
       <nav class="nav-actions">
-        <a href="#" class="nav-link" @click.prevent="emit('go-login')">Login</a>
-        <a href="#" class="btn btn-primary" @click.prevent="emit('go-signup')">Sign Up</a>
+        <RouterLink to="/login" class="nav-link" @click="emit('go-login')">Login</RouterLink>
+        <RouterLink to="/signup" class="btn btn-primary" @click="emit('go-signup')">Sign Up</RouterLink>
       </nav>
     </header>
 
@@ -172,7 +172,7 @@ async function handleSignup() {
           <div class="form-group">
             <label class="checkbox-label">
               <input type="checkbox" v-model="form.agreed" required />
-              I agree to the <a href="#">Terms of Service</a> and <a href="#">Privacy Policy</a>
+              I agree to the <RouterLink to="/signup">Terms of Service</RouterLink> and <RouterLink to="/signup">Privacy Policy</RouterLink>
             </label>
           </div>
 
@@ -192,7 +192,7 @@ async function handleSignup() {
 
         <p class="login-prompt">
           Already have an account?
-          <a href="#" @click.prevent="emit('go-login')">Sign in</a>
+          <RouterLink to="/login" @click="emit('go-login')">Sign in</RouterLink>
         </p>
 
       </div>
@@ -207,6 +207,118 @@ async function handleSignup() {
 </template>
 
 <style scoped>
+/* ── Shared Header / Nav / Footer ── */
+.header {
+  display: flex;
+  align-items: center;
+  padding: 0 32px;
+  height: 60px;
+  background: #fff;
+  border-bottom: 1px solid #e5e7eb;
+  gap: 24px;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  text-decoration: none;
+  font-weight: 700;
+  font-size: 1.1rem;
+  color: #111;
+}
+.logo { color: #ef4444; font-size: 1.2rem; }
+.nav, .nav-actions { display: flex; align-items: center; gap: 16px; }
+.nav-actions { margin-left: auto; }
+.nav-link { font-size: 0.88rem; color: #555; text-decoration: none; font-weight: 500; }
+.nav-link:hover { color: #111; }
+.footer {
+  text-align: center;
+  padding: 24px;
+  font-size: 0.8rem;
+  color: #9ca3af;
+  border-top: 1px solid #e5e7eb;
+  background: #fff;
+}
+
+/* ── Shared Form Elements ── */
+.form-group { margin-bottom: 20px; }
+.form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+@media (max-width: 480px) {
+  .form-row { grid-template-columns: 1fr; }
+}
+.form-group label {
+  display: block;
+  margin-bottom: 6px;
+  font-weight: 600;
+  font-size: 0.88rem;
+  color: #1f2937;
+}
+.required { color: #ef4444; }
+.form-input {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  font-size: 0.88rem;
+  color: #111;
+  background: #fff;
+  box-sizing: border-box;
+  transition: border-color 0.15s;
+}
+.form-input:focus { outline: none; border-color: #3b82f6; }
+.form-select {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  font-size: 0.88rem;
+  color: #111;
+  background: #fff;
+  box-sizing: border-box;
+}
+
+/* Shared button base */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  padding: 9px 16px;
+  font-weight: 700;
+  text-decoration: none;
+  border: 1px solid transparent;
+  cursor: pointer;
+  font-size: 0.88rem;
+}
+.btn-primary { background: #2563eb; color: #fff; }
+.btn-primary:hover { background: #1d4ed8; }
+
+.form-actions { margin-top: 4px; }
+.btn-create {
+  width: 100%;
+  background: #2563eb;
+  color: #fff;
+  padding: 11px 20px;
+  border-radius: 8px;
+  font-weight: 700;
+  font-size: 0.95rem;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.15s;
+}
+.btn-create:hover:not(:disabled) { background: #1d4ed8; }
+.btn-create:disabled { opacity: 0.55; cursor: not-allowed; }
+
 /* ── Layout ── */
 .signup-page {
   min-height: 100vh;

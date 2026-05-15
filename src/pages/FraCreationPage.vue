@@ -2,7 +2,7 @@
 <script setup lang="ts">
 import { ref, reactive } from 'vue'
 import { fraController } from '../controllers/fraController'
-import { supabase } from '../utils/supabase'
+import { supabase } from '../lib/supabaseClient'
 
 // FR-2-01 Boundary
 const emit = defineEmits(['go-home', 'go-logout', 'go-search', 'campaign-created'])
@@ -100,26 +100,26 @@ function handleSuccessClose() {
 
     <!-- Header -->
     <header class="header">
-      <a href="#" class="brand" @click.prevent="emit('go-home')">
+      <RouterLink to="/" class="brand" @click="emit('go-home')">
         <span class="logo">♥</span>
         <span>FundRise</span>
-      </a>
+      </RouterLink>
       <nav class="nav">
-        <a href="#" class="nav-link" @click.prevent="emit('go-search')">⌕ Donate</a>
-        <a href="#" class="nav-link">Fundraising</a>
+        <RouterLink to="/fra/search" class="nav-link" @click="emit('go-search')">⌕ Donate</RouterLink>
+        <RouterLink to="/fra/create" class="nav-link">Fundraising</RouterLink>
       </nav>
       <nav class="nav-actions">
-        <a href="#" class="nav-link" @click.prevent="emit('go-home')">Home</a>
-        <a href="#" class="nav-link logout-link" @click.prevent="emit('go-logout')">
+        <RouterLink to="/" class="nav-link" @click="emit('go-home')">Home</RouterLink>
+        <RouterLink to="/" class="nav-link logout-link" @click="emit('go-logout')">
           <span class="logout-icon">⇢</span> Logout
-        </a>
+        </RouterLink>
       </nav>
     </header>
 
     <div class="creation-container">
 
       <!-- Back link -->
-      <a href="#" class="back-link" @click.prevent="emit('go-search')">← Back to Campaigns</a>
+      <RouterLink to="/fra/search" class="back-link" @click="emit('go-search')">← Back to Campaigns</RouterLink>
 
       <!-- Page title -->
       <div class="dashboard-header">

@@ -4,131 +4,69 @@ import { ref, computed, onMounted } from 'vue'
 import { useRoute } from 'vue-router'
 import { fraController } from '../controllers/fraController'
 //import { useAuth } from '../composables/useAuth' // useAuth
-import type { FundRaisingActivity } from '../models/FundRaisingActivity'
+
+//  BOUNDARY — FraDetailPage
+import { useFraDetailController } from '../entity/FraDetailPage_Entity'
+
+const props = defineProps({
+  fraId: { type: String, default: '1' },
+})
 
 const emit = defineEmits(['go-home', 'go-logout', 'go-search', 'go-edit'])
 
 // Auth & Route
-
 const route = useRoute()
 const fraId = Number(route.params.id)
 const userId = ref<number | null>(null)
 
-// Data & State
-const campaign   = ref<FundRaisingActivity | null>(null)
-const loading    = ref(true)
-const fetchError = ref('')
-
-const activeTab    = ref('About')
-const donateAmount = ref(50)
-const message      = ref('')
-const donating     = ref(false)
-const copied       = ref(false)
-const favoriteMessage = ref('')
-
-// Owner status toggle
+// Owner status toggle (FR-2-08)
 const updatingStatus = ref(false)
 const statusError    = ref('')
 
-const tabs = ['About', 'Updates', 'Donors']
+const {
+  campaign,
+  donations,
+  error,
+  isLoading,
+  hasError,
 
-/*
-  Temporary static campaign data
-  Will be replaced by the fetched campaign data once the controller is implemented.
+  donateAmount,
+  donateMessage,
+  isDonating,
+  donateSuccess,
+  donateError,
 
-const campaign = {
-  id: 1,
-  title: 'Clean Water for Rural Schools',
-  organizer: 'Jane Doe',
-  category: 'Education',
-  status: 'active',
-  endDate: '30 Jun 2026',
-  goal: 10000,
-  raised: 7400,
-  description: 'Thousands of children in rural schools lack access to clean drinking water, leading to preventable illnesses and school absences. This campaign aims to install water filtration systems in 5 schools, benefiting over 2,000 students.',
-  impact: [
-    '5 schools to receive clean water filtration systems',
-    'Over 2,000 students will benefit',
-    'Expected to reduce waterborne illnesses by 60%',
-    'Maintenance training provided to school staff',
-  ],
-  tiers: [25, 50, 100, 250],
-  updates: [
-    { date: 'Apr 28, 2026', text: 'We have reached 70% of our goal! Thank you to all our amazing donors. First installation begins next month.' },
-    { date: 'Mar 15, 2026', text: 'Campaign launched! We are excited to start this journey with your support.' },
-  ],
-  donors: [
-    { name: 'Michael T.', amount: 250, time: '2 mins ago' },
-    { name: 'Sara L.', amount: 100, time: '1 hour ago' },
-    { name: 'Anonymous', amount: 50, time: '3 hours ago' },
-    { name: 'David K.', amount: 500, time: 'Yesterday' },
-  ],
-}
+  isFavorited,
+  favoriteMessage,
+  daysLeft,
+  donorCount,
 
-const pct = computed(() => Math.round((campaign.raised / campaign.goal) * 100))
-const daysLeft = computed(() => 60)
-*/
+  getCampaignDetail,
+  getDonations,
+  submitDonation,
+  toggleFavorite,
+} = useFraDetailController()
 
-// Fetch campaign on mount
+const activeTab = ref('About')
+const copied    = ref(false)
+const tabs      = ['About', 'Updates', 'Donors']
+
 onMounted(async () => {
-  try {
-    const controller = new fraController()
-    campaign.value = await controller.getFraById(fraId)
-  } catch (err: any) {
-    fetchError.value = err.message || 'Failed to load campaign.'
-  } finally {
-    loading.value = false
-  }
+  await getCampaignDetail(props.fraId)   // displayCampaignDetail()
+  await getDonations(props.fraId)        // displayDonations()
 })
 
 // Computed
-const pct      = computed(() => campaign.value
-  ? Math.round((campaign.value.currentAmount / campaign.value.targetAmount) * 100)
-  : 0
-)
-const isOwner  = computed(() =>
+const isOwner = computed(() =>
   !!campaign.value && !!userId.value && campaign.value.userId === userId.value
 )
 const isCompleted = computed(() =>
   campaign.value?.status?.toUpperCase() === 'COMPLETED'
 )
 
-// Favourites
-const FAVORITES_KEY = 'fundrise-favorites'
-
-const getSavedFavorites = () => {
-  try { return JSON.parse(localStorage.getItem(FAVORITES_KEY) || '[]') }
-  catch { return [] }
-}
-
-const favoriteList = ref(getSavedFavorites())
-
-const saveFavorites = (list: any[]) => {
-  localStorage.setItem(FAVORITES_KEY, JSON.stringify(list))
-}
-
-const isFavorited = computed(() =>
-  favoriteList.value.some((item: any) => item.fraId === fraId)
-)
-
-function toggleFavorite() {
-  const exists = favoriteList.value.some((item: any) => item.fraId === fraId)
-  const updated = exists
-    ? favoriteList.value.filter((item: any) => item.fraId !== fraId)
-    : [...favoriteList.value, campaign.value]
-
-  saveFavorites(updated)
-  favoriteList.value = updated
-  favoriteMessage.value = exists ? 'Removed from favourites' : 'Saved to favourites'
-  setTimeout(() => { favoriteMessage.value = '' }, 2200)
-}
-
-// Donate
-async function handleDonate() {
-  if (!donateAmount.value) return
-  donating.value = true
-  await new Promise(r => setTimeout(r, 1200))
-  donating.value = false
+// Donate (req 3)
+function handleDonate() {
+  submitDonation('currentUser')
 }
 
 // Share
@@ -136,6 +74,15 @@ function copyLink() {
   navigator.clipboard.writeText(window.location.href)
   copied.value = true
   setTimeout(() => { copied.value = false }, 2000)
+}
+
+function shareCampaign(platform: 'instagram' | 'facebook') {
+  const url = encodeURIComponent(window.location.href)
+  const text = encodeURIComponent(campaign.value?.title ?? 'FundRise campaign')
+  const shareUrl = platform === 'facebook'
+    ? `https://www.facebook.com/sharer/sharer.php?u=${url}`
+    : `https://www.instagram.com/?url=${url}&text=${text}`
+  window.open(shareUrl, '_blank', 'noopener,noreferrer')
 }
 
 // FR-2-08: Mark as Completed
@@ -164,47 +111,41 @@ function handleEditFra() {
 <template>
   <div class="detail-page">
 
-    <!-- Header -->
+    <!-- ── Header ── -->
     <header class="header">
-      <a href="#" class="brand" @click.prevent="emit('go-home')">
+      <RouterLink to="/" class="brand" @click="emit('go-home')">
         <span class="logo">♥</span>
         <span>FundRise</span>
-      </a>
+      </RouterLink>
       <nav class="nav">
-        <a href="#" class="nav-link" @click.prevent="emit('go-search')">⌕ Donate</a>
-        <a href="#" class="nav-link">Fundraising</a>
+        <RouterLink to="/fra/search" class="nav-link" @click="emit('go-search')">⌕ Donate</RouterLink>
+        <RouterLink to="/fra/create" class="nav-link">Fundraising</RouterLink>
       </nav>
       <nav class="nav-actions">
-        <a href="#" class="nav-link" @click.prevent="emit('go-home')">Home</a>
-        <a href="#" class="nav-link logout-link" @click.prevent="emit('go-logout')">
+        <RouterLink to="/" class="nav-link" @click="emit('go-home')">Home</RouterLink>
+        <RouterLink to="/" class="nav-link logout-link" @click="emit('go-logout')">
           <span class="logout-icon">⇢</span> Logout
-        </a>
+        </RouterLink>
       </nav>
     </header>
 
     <div class="detail-container">
 
-      <!-- Back link -->
-      <a href="#" class="back-link" @click.prevent="emit('go-search')">← Back to Campaigns</a>
+      <RouterLink to="/fra/search" class="back-link" @click="emit('go-search')">← Back to Campaigns</RouterLink>
 
-      <!-- ── Loading State ── -->
-      <div v-if="loading" class="state-box">
-        <span class="spinner"></span>
-        <p>Loading campaign…</p>
-      </div>
+      <!-- displayError(msg) -->
+      <div v-if="hasError" class="error-banner">⚠ {{ error }}</div>
 
-      <!-- ── Fetch Error State ── -->
-      <div v-else-if="fetchError" class="error-banner">
-        ⚠️ {{ fetchError }}
-      </div>
+      <!-- Loading State -->
+      <div v-if="isLoading" class="loading-state">Loading campaign…</div>
 
-      <!-- ── Campaign Content ── -->
+      <!-- displayCampaignDetail() -->
       <template v-else-if="campaign">
 
         <!-- Hero Banner -->
         <div class="hero">
           <img
-            src="https://placehold.co/1100x320/d8f3dc/2d6a4f?text=Campaign+Banner"
+            :src="campaign.image || 'https://placehold.co/1100x320/d8f3dc/2d6a4f?text=Campaign+Banner'"
             alt="Campaign Banner"
             class="hero-img"
           />
@@ -223,17 +164,17 @@ function handleEditFra() {
             </button>
             <h1>{{ campaign.title }}</h1>
             <p class="hero-meta">
-              By <strong>{{ campaign.name || campaign.createdBy }}</strong>
-              · Ends —
+              By <strong>{{ campaign.createdBy }}</strong>
+              · {{ campaign.categoryId }}
+              · Ends {{ campaign.endDate ?? 'TBD' }}
             </p>
             <p v-if="favoriteMessage" class="favorite-message">{{ favoriteMessage }}</p>
           </div>
         </div>
 
-        <!-- Owner Controls -->
+        <!-- Owner Controls (FR-2-08) -->
         <div v-if="isOwner" class="owner-controls">
           <span class="owner-badge">👤 You own this campaign</span>
-
           <div class="owner-actions">
             <button class="btn btn-edit" @click="handleEditFra">
               ✏️ Edit Campaign
@@ -247,7 +188,6 @@ function handleEditFra() {
               {{ isCompleted ? '✅ Completed' : updatingStatus ? 'Updating…' : '🏁 Mark as Completed' }}
             </button>
           </div>
-
           <p v-if="statusError" class="status-error">⚠️ {{ statusError }}</p>
         </div>
 
@@ -264,9 +204,7 @@ function handleEditFra() {
                   :key="tab"
                   :class="['tab-btn', { active: activeTab === tab }]"
                   @click="activeTab = tab"
-                >
-                  {{ tab }}
-                </button>
+                >{{ tab }}</button>
               </div>
 
               <!-- About -->
@@ -275,14 +213,24 @@ function handleEditFra() {
                 <p class="tab-text">{{ campaign.description }}</p>
               </div>
 
-              <!-- Updates (static for now — extend when updates model exists) -->
+              <!-- Updates -->
               <div v-if="activeTab === 'Updates'" class="tab-content">
                 <p class="empty-state">No updates yet.</p>
               </div>
 
-              <!-- Donors (static for now — extend when donations model is fetched) -->
+              <!-- Donors (displayDonations) -->
               <div v-if="activeTab === 'Donors'" class="tab-content">
-                <p class="empty-state">No donor information available.</p>
+                <div v-if="donations.length === 0" class="empty-donors">
+                  No donations yet — be the first!
+                </div>
+                <div v-for="d in donations" :key="d.donationId" class="donor-item">
+                  <div class="donor-avatar">{{ d.avatarInitial }}</div>
+                  <div class="donor-info">
+                    <span class="donor-name">{{ d.displayName }}</span>
+                    <span class="donor-time">{{ d.timeAgo }}</span>
+                  </div>
+                  <span class="donor-amount">${{ d.amount }}</span>
+                </div>
               </div>
 
             </section>
@@ -293,23 +241,25 @@ function handleEditFra() {
 
             <!-- Donate Card -->
             <section class="dashboard-section donate-card">
+
+              <!-- progress stats -->
               <div class="progress-section">
                 <p class="raised-amount">${{ campaign.currentAmount.toLocaleString() }}</p>
                 <p class="goal-text">raised of ${{ campaign.targetAmount.toLocaleString() }} goal</p>
                 <div class="progress-bar">
-                  <div class="progress-fill" :style="{ width: Math.min(pct, 100) + '%' }"></div>
+                  <div class="progress-fill" :style="{ width: campaign.progressPercent + '%' }"></div>
                 </div>
                 <div class="progress-stats">
                   <div class="pstat">
-                    <span class="pstat-val">—</span>
+                    <span class="pstat-val">{{ donorCount }}</span>
                     <span class="pstat-lbl">donors</span>
                   </div>
                   <div class="pstat">
-                    <span class="pstat-val">—</span>
+                    <span class="pstat-val">{{ daysLeft }}</span>
                     <span class="pstat-lbl">days left</span>
                   </div>
                   <div class="pstat">
-                    <span class="pstat-val">{{ pct }}%</span>
+                    <span class="pstat-val">{{ campaign.progressPercent }}%</span>
                     <span class="pstat-lbl">funded</span>
                   </div>
                 </div>
@@ -317,18 +267,20 @@ function handleEditFra() {
 
               <div class="divider"></div>
 
+              <!-- Donate Form -->
               <div class="donate-section">
                 <h4>Make a Donation</h4>
 
+                <div v-if="donateError" class="donate-error">⚠ {{ donateError }}</div>
+                <div v-if="donateSuccess" class="donate-success">✅ Thank you for your donation!</div>
+
                 <div class="tier-options">
                   <button
-                    v-for="t in [25, 50, 100, 250]"
+                    v-for="t in (campaign.tiers ?? [25, 50, 100, 250])"
                     :key="t"
                     :class="['tier-btn', { selected: donateAmount === t }]"
                     @click="donateAmount = t"
-                  >
-                    ${{ t }}
-                  </button>
+                  >${{ t }}</button>
                 </div>
 
                 <div class="form-group">
@@ -348,7 +300,7 @@ function handleEditFra() {
                 <div class="form-group">
                   <label>Message <span class="optional">(optional)</span></label>
                   <textarea
-                    v-model="message"
+                    v-model="donateMessage"
                     rows="2"
                     placeholder="Leave a message…"
                     class="form-textarea"
@@ -359,10 +311,10 @@ function handleEditFra() {
                   <button
                     class="btn btn-create donate-btn"
                     @click="handleDonate"
-                    :disabled="donating || !donateAmount"
+                    :disabled="isDonating || !donateAmount"
                   >
-                    <span v-if="donating" class="spinner"></span>
-                    {{ donating ? 'Processing…' : `Donate $${donateAmount || '—'}` }}
+                    <span v-if="isDonating" class="spinner"></span>
+                    {{ isDonating ? 'Processing…' : `Donate $${donateAmount || '—'}` }}
                   </button>
                 </div>
 
@@ -374,8 +326,8 @@ function handleEditFra() {
             <section class="dashboard-section share-card">
               <h4>Share This Campaign</h4>
               <div class="share-buttons">
-                <button class="btn share-btn">📕 Instagram</button>
-                <button class="btn share-btn">📘 Facebook</button>
+                <button class="btn share-btn" @click="shareCampaign('instagram')">📕 Instagram</button>
+                <button class="btn share-btn" @click="shareCampaign('facebook')">📘 Facebook</button>
                 <button class="btn share-btn" @click="copyLink">🔗 Copy Link</button>
               </div>
               <span v-if="copied" class="copied-msg">✅ Link copied!</span>
@@ -425,13 +377,9 @@ function handleEditFra() {
 .back-link:hover { text-decoration: underline; }
 
 /* ── Loading / Error States ── */
-.state-box {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 14px;
-  padding: 80px 0;
+.loading-state {
+  padding: 60px;
+  text-align: center;
   color: #6b7280;
   font-size: 0.9rem;
 }
@@ -445,6 +393,8 @@ function handleEditFra() {
   font-weight: 500;
   margin-bottom: 20px;
 }
+.donate-error  { background: #fff5f5; border: 1px solid #fecaca; color: #b91c1c; border-radius: 6px; padding: 8px 12px; font-size: 0.82rem; margin-bottom: 12px; }
+.donate-success{ background: #f0fdf4; border: 1px solid #bbf7d0; color: #15803d; border-radius: 6px; padding: 8px 12px; font-size: 0.82rem; margin-bottom: 12px; }
 
 /* ── Owner Controls ── */
 .owner-controls {
@@ -481,7 +431,6 @@ function handleEditFra() {
   transition: all 0.15s;
 }
 .btn-edit:hover { background: #f0f4ff; border-color: #93c5fd; color: #1d4ed8; }
-
 .btn-complete {
   background: #16a34a;
   color: #fff;
@@ -495,7 +444,6 @@ function handleEditFra() {
 }
 .btn-complete:hover:not(:disabled) { background: #15803d; }
 .btn-complete:disabled { opacity: 0.6; cursor: not-allowed; }
-
 .status-error {
   width: 100%;
   font-size: 0.82rem;
@@ -512,45 +460,37 @@ function handleEditFra() {
 }
 .hero-img {
   width: 100%;
-  height: 280px;
+  height: 320px;
   object-fit: cover;
   display: block;
 }
 .hero-overlay {
   position: absolute;
-  inset: 0;
-  background: linear-gradient(to top, rgba(0,0,0,0.65) 60%, transparent);
-  display: flex;
-  flex-direction: column;
-  justify-content: flex-end;
-  align-items: center;
-  text-align: center;
-  padding: 28px;
-}
-.hero-overlay .status-badge {
-  position: absolute;
-  bottom: 28px;
-  left: 28px;
+  bottom: 0; left: 0; right: 0;
+  background: linear-gradient(to top, rgba(0,0,0,0.75) 0%, transparent 100%);
+  padding: 32px 28px 24px;
+  color: #fff;
 }
 .hero-overlay h1 {
   font-size: 1.8rem;
-  font-weight: 700;
-  color: #fff;
+  font-weight: 800;
   margin: 8px 0 6px;
+  line-height: 1.2;
   text-shadow: 0 1px 4px rgba(0,0,0,0.3);
 }
-.hero-meta { font-size: 0.88rem; color: rgba(255,255,255,0.85); margin: 0; }
+.hero-meta { font-size: 0.88rem; opacity: 0.9; margin: 0; }
 
 /* ── Status Badge ── */
 .status-badge {
-  display: inline-block;
+  position: absolute;
+  top: 20px;
+  left: 24px;
   font-size: 0.72rem;
   font-weight: 700;
   text-transform: uppercase;
-  padding: 3px 12px;
+  padding: 4px 12px;
   border-radius: 99px;
   letter-spacing: 0.04em;
-  width: fit-content;
 }
 .status-active    { background: #f0fdf4; color: #15803d; border: 1px solid #bbf7d0; }
 .status-completed { background: #eff6ff; color: #1d4ed8; border: 1px solid #bfdbfe; }
@@ -560,6 +500,30 @@ function handleEditFra() {
 .status-cancelled { background: #fef2f2; color: #b91c1c; border: 1px solid #fecaca; }
 .status-rejected  { background: #fef2f2; color: #b91c1c; border: 1px solid #fecaca; }
 .status-pending_approval { background: #fff7ed; color: #c2410c; border: 1px solid #fed7aa; }
+
+/* ── Favourite Button ── */
+.favorite-btn {
+  position: absolute;
+  top: 24px;
+  right: 24px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  border: 1px solid rgba(255,255,255,0.9);
+  border-radius: 999px;
+  background: rgba(255,255,255,0.18);
+  color: #fff;
+  backdrop-filter: blur(10px);
+  cursor: pointer;
+  font-size: 0.92rem;
+  font-weight: 700;
+  transition: transform 0.15s, background 0.15s;
+}
+.favorite-btn:hover { transform: translateY(-1px); background: rgba(255,255,255,0.26); }
+.favorite-btn.saved { background: rgba(220,38,38,0.92); border-color: rgba(220,38,38,0.92); }
+.favorite-icon { font-size: 1rem; }
+.favorite-message { color: #d1fae5; margin-top: 10px; font-size: 0.88rem; }
 
 /* ── Content Grid ── */
 .content-grid {
@@ -580,13 +544,14 @@ function handleEditFra() {
   box-shadow: 0 2px 8px rgba(0,0,0,0.06);
 }
 
-/* ── Empty State ── */
+/* ── Empty States ── */
 .empty-state {
   font-size: 0.88rem;
   color: #9ca3af;
   text-align: center;
   padding: 32px 0;
 }
+.empty-donors { color: #9ca3af; font-size: 0.88rem; text-align: center; padding: 24px 0; }
 
 /* ── Tabs ── */
 .tabs {
@@ -600,12 +565,12 @@ function handleEditFra() {
   border: none;
   background: none;
   font-size: 0.9rem;
-  font-weight: 500;
-  color: #6b7280;
+  font-weight: 600;
+  color: #9ca3af;
   cursor: pointer;
   border-bottom: 2px solid transparent;
+  transition: all 0.15s;
   margin-bottom: -1px;
-  transition: color 0.15s, border-color 0.15s;
 }
 .tab-btn:hover { color: #3b82f6; }
 .tab-btn.active { color: #3b82f6; border-bottom-color: #3b82f6; font-weight: 700; }
@@ -624,6 +589,33 @@ function handleEditFra() {
   line-height: 1.7;
   margin: 0 0 20px;
 }
+
+/* ── Donor Items ── */
+.donor-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 0;
+  border-bottom: 1px solid #f3f4f6;
+}
+.donor-item:last-child { border-bottom: none; }
+.donor-avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: #e0e7ff;
+  color: #3730a3;
+  font-size: 0.85rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.donor-info { flex: 1; display: flex; flex-direction: column; gap: 2px; }
+.donor-name { font-size: 0.88rem; font-weight: 600; color: #111; }
+.donor-time { font-size: 0.75rem; color: #9ca3af; }
+.donor-amount { font-size: 0.9rem; font-weight: 700; color: #111; }
 
 /* ── Donate Card ── */
 .donate-card { margin-bottom: 16px; }
@@ -762,30 +754,6 @@ function handleEditFra() {
   border-top-color: #374151;
 }
 @keyframes spin { to { transform: rotate(360deg); } }
-
-/* ── Favourite Button ── */
-.favorite-btn {
-  position: absolute;
-  top: 24px;
-  right: 24px;
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  padding: 10px 14px;
-  border: 1px solid rgba(255,255,255,0.9);
-  border-radius: 999px;
-  background: rgba(255,255,255,0.18);
-  color: #fff;
-  backdrop-filter: blur(10px);
-  cursor: pointer;
-  font-size: 0.92rem;
-  font-weight: 700;
-  transition: transform 0.15s, background 0.15s;
-}
-.favorite-btn:hover { transform: translateY(-1px); background: rgba(255,255,255,0.26); }
-.favorite-btn.saved { background: rgba(220,38,38,0.92); border-color: rgba(220,38,38,0.92); }
-.favorite-icon { font-size: 1rem; }
-.favorite-message { color: #d1fae5; margin-top: 10px; font-size: 0.88rem; }
 
 /* ── Header / Footer ── */
 .header {

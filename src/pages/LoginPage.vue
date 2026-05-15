@@ -1,7 +1,12 @@
-<script setup>
+<script setup lang="ts">
 import { ref, reactive } from 'vue'
+import { useAuth } from '../composables/useAuth'
+import { useRouter } from 'vue-router'
 
-const emit = defineEmits(['go-home', 'go-signup', 'login-success'])
+const emit = defineEmits(['go-home', 'go-login', 'go-signup', 'login-success'])
+
+const { signIn } = useAuth()
+const router = useRouter()
 
 const form = reactive({ email: '', password: '', remember: false })
 const errors = reactive({ email: '', password: '' })
@@ -32,9 +37,15 @@ async function handleLogin() {
   }
 
   loading.value = true
-  await new Promise(r => setTimeout(r, 1200))
-  loading.value = false
-  emit('login-success')
+  try {
+    await signIn(form.email, form.password)
+    emit('login-success')
+    router.push('/')
+  } catch (err: any) {
+    loginError.value = err.message || 'Login failed. Please check your credentials.'
+  } finally {
+    loading.value = false
+  }
 }
 </script>
 
@@ -43,19 +54,19 @@ async function handleLogin() {
 
     <!-- Header -->
     <header class="header">
-      <a href="#" class="brand" @click.prevent="emit('go-home')">
+      <RouterLink to="/" class="brand" @click="emit('go-home')">
         <span class="logo">♥</span>
         <span>FundRise</span>
-      </a>
+      </RouterLink>
 
       <nav class="nav">
-        <a href="#" class="nav-link">⌕ Donate</a>
-        <a href="#" class="nav-link">Fundraising</a>
+        <RouterLink to="/fra/search" class="nav-link">⌕ Donate</RouterLink>
+        <RouterLink to="/fra/create" class="nav-link">Fundraising</RouterLink>
       </nav>
 
       <nav class="nav-actions">
-        <a href="#" class="nav-link" @click.prevent="emit('go-login')">Login</a>
-        <a href="#" class="btn btn-primary" @click.prevent="emit('go-signup')">Sign Up</a>
+        <RouterLink to="/login" class="nav-link" @click="emit('go-login')">Login</RouterLink>
+        <RouterLink to="/signup" class="btn btn-primary" @click="emit('go-signup')">Sign Up</RouterLink>
       </nav>
     </header>
 
@@ -116,7 +127,7 @@ async function handleLogin() {
               <input type="checkbox" v-model="form.remember" />
               Remember me
             </label>
-            <a href="#" class="forgot-link">Forgot password?</a>
+            <RouterLink to="/signup" class="forgot-link">Forgot password?</RouterLink>
           </div>
 
           <!-- Error Banner -->
@@ -138,7 +149,7 @@ async function handleLogin() {
 
         <p class="signup-prompt">
           Don't have an account?
-          <a href="#" @click.prevent="emit('go-signup')">Sign up</a>
+          <RouterLink to="/signup" @click="emit('go-signup')">Sign up</RouterLink>
         </p>
 
       </div>
@@ -153,6 +164,100 @@ async function handleLogin() {
 </template>
 
 <style scoped>
+/* ── Shared Header / Nav / Footer ── */
+.header {
+  display: flex;
+  align-items: center;
+  padding: 0 32px;
+  height: 60px;
+  background: #fff;
+  border-bottom: 1px solid #e5e7eb;
+  gap: 24px;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  text-decoration: none;
+  font-weight: 700;
+  font-size: 1.1rem;
+  color: #111;
+}
+.logo { color: #ef4444; font-size: 1.2rem; }
+.nav, .nav-actions { display: flex; align-items: center; gap: 16px; }
+.nav-actions { margin-left: auto; }
+.nav-link { font-size: 0.88rem; color: #555; text-decoration: none; font-weight: 500; }
+.nav-link:hover { color: #111; }
+.footer {
+  text-align: center;
+  padding: 24px;
+  font-size: 0.8rem;
+  color: #9ca3af;
+  border-top: 1px solid #e5e7eb;
+  background: #fff;
+}
+
+/* ── Shared Form Elements ── */
+.form-group { margin-bottom: 20px; }
+.form-group label {
+  display: block;
+  margin-bottom: 6px;
+  font-weight: 600;
+  font-size: 0.88rem;
+  color: #1f2937;
+}
+.required { color: #ef4444; }
+.form-input {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  font-size: 0.88rem;
+  color: #111;
+  background: #fff;
+  box-sizing: border-box;
+  transition: border-color 0.15s;
+}
+.form-input:focus { outline: none; border-color: #3b82f6; }
+
+/* Shared button base */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  padding: 9px 16px;
+  font-weight: 700;
+  text-decoration: none;
+  border: 1px solid transparent;
+  cursor: pointer;
+  font-size: 0.88rem;
+}
+.btn-primary { background: #2563eb; color: #fff; }
+.btn-primary:hover { background: #1d4ed8; }
+
+.form-actions { margin-top: 4px; }
+.btn-create {
+  width: 100%;
+  background: #2563eb;
+  color: #fff;
+  padding: 11px 20px;
+  border-radius: 8px;
+  font-weight: 700;
+  font-size: 0.95rem;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.15s;
+}
+.btn-create:hover:not(:disabled) { background: #1d4ed8; }
+.btn-create:disabled { opacity: 0.55; cursor: not-allowed; }
+
 /* ── Layout ── */
 .login-page {
   min-height: 100vh;
