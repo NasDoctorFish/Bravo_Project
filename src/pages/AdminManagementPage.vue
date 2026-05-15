@@ -1,5 +1,7 @@
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
+import { create } from '../controllers/authController'
+import { updateUser, searchUser} from '../controllers/userController'
 
 const emit = defineEmits(['go-home', 'go-logout', 'go-search'])
 
@@ -9,28 +11,107 @@ const filterStatus = ref('')
 const selected = ref([])
 const showCreateModal = ref(false)
 const editingUser = ref(null)
-const modalForm = ref({ name: '', email: '', role: 'Fund Raiser' })
+const modalForm = ref({ name: '', email: '', role: 'Fund Raiser', password: '' })
 
-const roles = ['User Admin', 'Platform Manager', 'Fund Raiser', 'Donee']
+const roles = [
+  { label: 'User Admin', value: 'UA' },
+  { label: 'Platform Manager', value: 'PM' },
+  { label: 'Fund Raiser', value: 'DR' }, 
+  { label: 'Donee', value: 'DO' }
+]
 
-const users = ref([
-  { id: 1, name: 'Jane Doe',  email: 'jane@example.com',  role: 'Fund Raiser',      status: 'active',    joined: 'Jan 2026', lastActive: '2 mins ago',  initials: 'JD', color: '#2d6a4f' },
-  { id: 2, name: 'Mark Tan',  email: 'mark@example.com',  role: 'Donee',            status: 'active',    joined: 'Feb 2026', lastActive: '1 hour ago',  initials: 'MT', color: '#2b6cb0' },
-  { id: 3, name: 'Sarah Lim', email: 'sarah@example.com', role: 'User Admin',       status: 'active',    joined: 'Mar 2026', lastActive: 'Yesterday',   initials: 'SL', color: '#b7791f' },
-  { id: 4, name: 'David Koh', email: 'david@example.com', role: 'Fund Raiser',      status: 'suspended', joined: 'Dec 2025', lastActive: '2 weeks ago', initials: 'DK', color: '#c53030' },
-  { id: 5, name: 'Amy Chen',  email: 'amy@example.com',   role: 'Platform Manager', status: 'pending',   joined: 'Apr 2026', lastActive: 'Never',       initials: 'AC', color: '#6b46c1' },
-])
+const Users = ref([])
+const userDemoData = {}
 
-const filteredUsers = computed(() => users.value.filter(u => {
-  const q = searchQuery.value.toLowerCase()
-  const matchSearch = !q || u.name.toLowerCase().includes(q) || u.email.toLowerCase().includes(q) || u.role.toLowerCase().includes(q)
-  const matchRole   = !filterRole.value   || u.role   === filterRole.value
-  const matchStatus = !filterStatus.value || u.status === filterStatus.value
-  return matchSearch && matchRole && matchStatus
-}))
+// Generate random status for display
+function randomStatus() {
+  const values = ['active', 'active', 'active', 'pending', 'suspended']
+  return values[Math.floor(Math.random() * values.length)]
+}
 
+// Generate random last active text for display
+function randomLastActive() {
+  const values = [
+    '2 mins ago',
+    '1 hour ago',
+    'Yesterday',
+    '2 weeks ago',
+    'Never',
+  ]
+
+  return values[Math.floor(Math.random() * values.length)]
+}
+
+// Generate random avatar colors for display
+function randomAvatarColor() {
+  const colors = [
+    '#2d6a4f',
+    '#2b6cb0',
+    '#b7791f', 
+    '#c53030',
+    '#6b46c1' 
+  ]
+
+  return colors[Math.floor(Math.random() * colors.length)]
+}
+
+const handleUserSearchClick = async () => {
+  const query = searchQuery.value.trim()
+  const selectedRole = filterRole.value
+  const selectedStatus = filterStatus.value.toLowerCase()
+
+  try {
+    const results = await searchUser(
+      null,
+      selectedRole,
+      query
+    )
+    Users.value = results.map((u) => {
+
+  if (!userDemoData[u.userid]) {
+    userDemoData[u.userid] = {
+      status: randomStatus(),
+      lastActive: randomLastActive(),
+      color: randomAvatarColor()
+    }
+  }
+  return {
+    id: u.userid,
+    name: u.name,
+    email: u.useraccount?.[0]?.email || '',
+    role: u.role,
+
+    status: userDemoData[u.userid].status,
+    lastActive: userDemoData[u.userid].lastActive,
+    color: userDemoData[u.userid].color,
+
+    joined: u.createdat 
+      ? new Date(u.createdat).toLocaleDateString('en-US', { 
+        month: 'short', 
+        year: 'numeric' 
+      }) 
+      : 'Recently',
+
+    initials: u.name
+      .split(' ')
+      .map((n) => n[0])
+      .join('')
+  }
+})
+      .filter((u) => {
+        const matchesStatus =
+          !selectedStatus ||
+          u.status.toLowerCase() === selectedStatus
+
+        return matchesStatus
+      })
+
+  } catch (err) {
+    alert("Search Error: " + err.message)
+  }
+}
 function toggleAll(e) {
-  selected.value = e.target.checked ? users.value.map(u => u.id) : []
+  selected.value = e.target.checked ? Users.value.map(u => u.id) : []
 }
 
 function editUser(user) {
@@ -39,14 +120,63 @@ function editUser(user) {
   showCreateModal.value = true
 }
 
-function saveUser() {
+async function saveUser() {
   if (editingUser.value) {
-    const u = users.value.find(u => u.id === editingUser.value.id)
-    if (u) { u.name = modalForm.value.name; u.email = modalForm.value.email; u.role = modalForm.value.role }
+
+    // User Story 2: Assign Role
+    try{
+      const success = await updateUser(
+        editingUser.value.id,
+        modalForm.value.name,
+        modalForm.value.role
+    );
+
+    if (success) {
+      const u = Users.value.find(user => user.id === editingUser.value.id);
+      if (u) {
+        u.name = modalForm.value.name;
+        u.role = modalForm.value.role;
+      }
+      alert('User role updated successfully!');
+     }
+    } catch(err) {
+      alert("Update Error: " + err.message);
+      return;
+    }
+  } else {
+
+    // User Story 1: Add User
+    try {
+      const newId = await create(
+        modalForm.value.name,
+        modalForm.value.role,
+        modalForm.value.password,
+        modalForm.value.email
+      )
+
+      if (newId) {
+        alert('User successfully created and stored in database!')
+
+        Users.value.push({
+          id: newId,
+          name: modalForm.value.name,
+          email: modalForm.value.email,
+          role: modalForm.value.role,
+          status: 'active',
+          joined: 'May 2026',
+          lastActive: 'Just now',
+          initials: modalForm.value.name.split(' ').map(n => n[0]).join(''),
+          color: '#4a5568'
+        })
+      }
+  } catch (err) {
+    alert("Error: " + err.message)
+    return;
   }
+}
   showCreateModal.value = false
   editingUser.value = null
-  modalForm.value = { name: '', email: '', role: 'Fund Raiser' }
+  modalForm.value = { id: '', name: '', email: '', role: 'Fund Raiser', password: '' }
 }
 
 function toggleSuspend(user) {
@@ -66,9 +196,67 @@ function deleteSelected() {
 
 function confirmDelete(user) {
   if (confirm(`Delete ${user.name}?`)) {
-    users.value = users.value.filter(u => u.id !== user.id)
+    Users.value = Users.value.filter(u => u.id !== user.id)
   }
 }
+
+const roleLabels = {
+  'UA': 'User Admin',
+  'PM': 'Platform Manager',
+  'DR': 'Fund Raiser',
+  'DO': 'Donee'
+}
+
+function getRoleLabel(code) {
+  return roleLabels[code] || code 
+}
+
+const loadAdminMgntPage = async () => {
+
+  try {
+
+    const results = await searchUser(null, '', '')
+
+    Users.value = results.map((u) => {
+
+  // Create demo data only once per user
+  if (!userDemoData[u.userid]) {
+    userDemoData[u.userid] = {
+      status: randomStatus(),
+      lastActive: randomLastActive(),
+      color: randomAvatarColor()
+    }
+  }
+
+  return {
+    id: u.userid,
+    name: u.name,
+    email: u.useraccount?.[0]?.email || '',
+    role: u.role,
+    status: userDemoData[u.userid].status,
+    lastActive: userDemoData[u.userid].lastActive,
+    color: userDemoData[u.userid].color,
+    joined: u.createdat 
+      ? new Date(u.createdat).toLocaleDateString('en-US', { 
+        month: 'short', 
+        year: 'numeric' 
+      }) 
+      : 'Recently',
+    initials: u.name
+      .split(' ')
+      .map((n) => n[0])
+      .join('')
+  }
+})
+
+  } catch (err) {
+    alert("Load Error: " + err.message)
+  }
+}
+
+onMounted(() => {
+  loadAdminMgntPage()
+})
 </script>
 
 <template>
@@ -110,16 +298,17 @@ function confirmDelete(user) {
             <span class="search-icon">🔍</span>
             <input
               v-model="searchQuery"
+              @input="handleUserSearchClick"
               type="text"
               placeholder="Search by name, email, or role…"
               class="search-input"
             />
           </div>
-          <select v-model="filterRole" class="filter-select">
+          <select v-model="filterRole" class="filter-select" @change="handleUserSearchClick">
             <option value="">All Roles</option>
-            <option v-for="r in roles" :key="r" :value="r">{{ r }}</option>
+            <option v-for="r in roles" :key="r.value" :value="r.value">{{ r.label }}</option>
           </select>
-          <select v-model="filterStatus" class="filter-select">
+          <select v-model="filterStatus" class="filter-select" @change="handleUserSearchClick">
             <option value="">All Status</option>
             <option value="active">Active</option>
             <option value="suspended">Suspended</option>
@@ -153,7 +342,7 @@ function confirmDelete(user) {
               </tr>
             </thead>
             <tbody>
-              <tr v-for="user in filteredUsers" :key="user.id">
+              <tr v-for="user in Users" :key="'db-' + user.id">
                 <td class="td-center"><input type="checkbox" v-model="selected" :value="user.id" /></td>
                 <td>
                   <div class="user-cell">
@@ -166,7 +355,7 @@ function confirmDelete(user) {
                     </div>
                   </div>
                 </td>
-                <td class="td-center"><span class="role-tag">{{ user.role }}</span></td>
+                <td class="td-center"><span class="role-tag">{{ getRoleLabel(user.role) }}</span></td>
                 <td class="td-center"><span :class="['badge', 'badge-' + user.status]">{{ user.status }}</span></td>
                 <td class="td-center td-muted">{{ user.joined }}</td>
                 <td class="td-center td-muted">{{ user.lastActive }}</td>
@@ -180,7 +369,7 @@ function confirmDelete(user) {
                   </div>
                 </td>
               </tr>
-              <tr v-if="filteredUsers.length === 0">
+              <tr v-if="Users.length === 0">
                 <td colspan="7" class="empty-row">No users found.</td>
               </tr>
             </tbody>
@@ -208,16 +397,22 @@ function confirmDelete(user) {
         <div class="modal-body">
           <div class="form-group">
             <label>Full Name</label>
-            <input v-model="modalForm.name" type="text" placeholder="Jane Doe" class="form-input" />
+            <input v-model="modalForm.name" type="text" placeholder="Jane Doe" class="form-input" required />
           </div>
           <div class="form-group">
             <label>Email</label>
             <input v-model="modalForm.email" type="email" placeholder="jane@example.com" class="form-input" />
           </div>
           <div class="form-group">
+            <label>Password</label>
+            <input v-model="modalForm.password" type="password" class="form-input" placeholder="••••••••" required />
+          </div>
+          <div class="form-group">
             <label>Role</label>
             <select v-model="modalForm.role" class="form-select">
-              <option v-for="r in roles" :key="r" :value="r">{{ r }}</option>
+              <option v-for="r in roles" :key="r.value" :value="r.value"> 
+                {{ r.label }}
+              </option>
             </select>
           </div>
         </div>
@@ -513,6 +708,7 @@ function confirmDelete(user) {
   padding: 3px 10px;
   border-radius: 99px;
   letter-spacing: 0.04em;
+
 }
 .badge-active    { background: #f0fdf4; color: #15803d; border: 1px solid #bbf7d0; }
 .badge-suspended { background: #fef2f2; color: #dc2626; border: 1px solid #fecaca; }
