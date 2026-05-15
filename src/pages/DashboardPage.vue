@@ -1,26 +1,80 @@
-<script setup>
+<script setup lang="ts">
+import { ref, onMounted } from 'vue'
+import { supabase } from '../lib/supabaseClient.ts'
+import { getStoryData } from '../controllers/StoryController.ts'
+
+const totalRaised = ref<number>(0)
+const activeCampaigns = ref<number>(0)
+const totalViews = ref<number>(0)
+const goalsReached = ref<number>(0)
+const campaigns = ref<any[]>([])
+const activity = ref<any[]>([])
+const story = ref<any>(null)
+
+// Date filter
+const startDate = ref(new Date().toISOString().split('T')[0])
+const endDate = ref(new Date().toISOString().split('T')[0])
+
+function formatTime(dateString: string): string {
+  const diff = Date.now() - new Date(dateString).getTime()
+  const mins = Math.floor(diff / 60000)
+  if (mins < 60) return `${mins} mins ago`
+  const hours = Math.floor(mins / 60)
+  if (hours < 24) return `${hours} hours ago`
+  const days = Math.floor(hours / 24)
+  return `${days} days ago`
+}
+
+// Helper to get the first FundRaisingActivity ID
+async function getFirstFraId(): Promise<string | null> {
+  const { data, error } = await supabase
+    .from('FundRaisingActivity')
+    .select('id')
+    .limit(1)
+    .single()
+  if (error || !data) return null
+  return data.id
+}
+
+// Update dashboard
+async function updateDashboard(): Promise<void> {
+  const fraId = await getFirstFraId()
+  if (!fraId) return
+
+  // Optional: log VIEW
+  const storyData = await getStoryData(fraId, "VIEW")
+  story.value = storyData
+
+  // Total views
+  totalViews.value = 0 //use the version from feature/dashboard_totalviews
+
+  // Get all campaigns
+  const { data, error } = await supabase.from('FundRaisingActivity').select('*')
+  if (error || !data) {
+    console.error(error)
+    return
+  }
+
+  // Filter campaigns by date if filter applied
+  const filtered = data.filter(c =>
+    new Date(c.created_at) >= new Date(startDate.value) &&
+    new Date(c.created_at) <= new Date(endDate.value)
+  )
+
+  totalRaised.value = filtered.reduce((sum, fra) => sum + fra.currentAmount, 0)
+  activeCampaigns.value = filtered.filter(fra => fra.status === 'active').length
+  goalsReached.value = filtered.filter(fra => fra.currentAmount >= fra.targetAmount).length
+  campaigns.value = filtered.map(fra => ({
+    name: fra.title,
+    goal: fra.targetAmount,
+    raised: fra.currentAmount,
+    status: fra.status
+  }))
+}
+
+onMounted(() => updateDashboard())
+
 const emit = defineEmits(['go-home', 'go-logout', 'go-search', 'go-create'])
-
-const stats = [
-  { icon: '💰', value: '$48,200', label: 'Total Raised',     change: '12% this month', positive: true },
-  { icon: '📋', value: '7',       label: 'Active Campaigns', change: '2 new',           positive: true },
-  { icon: '👥', value: '324',     label: 'Total Donors',     change: '8% this month',   positive: true },
-  { icon: '✅', value: '3',       label: 'Goals Reached',    change: '1 this week',     positive: true },
-]
-
-const campaigns = [
-  { name: 'Clean Water Initiative', goal: 10000, raised: 7400, status: 'active' },
-  { name: 'School Supplies Drive',  goal: 5000,  raised: 5000, status: 'completed' },
-  { name: 'Medical Aid Fund',       goal: 20000, raised: 9200, status: 'active' },
-  { name: 'Elderly Care Program',   goal: 8000,  raised: 1200, status: 'pending' },
-]
-
-const activity = [
-  { icon: '💳', text: 'New donation of $250 received for Clean Water Initiative', time: '2 mins ago' },
-  { icon: '✅', text: 'School Supplies Drive reached its goal!',                  time: '1 hour ago' },
-  { icon: '👤', text: 'New donor registered: michael.t@gmail.com',               time: '3 hours ago' },
-  { icon: '📋', text: 'Medical Aid Fund campaign approved',                       time: 'Yesterday' },
-]
 </script>
 
 <template>
@@ -37,8 +91,8 @@ const activity = [
         <RouterLink to="/fra/create" class="nav-link" @click="emit('go-create')">Fundraising</RouterLink>
       </nav>
       <nav class="nav-actions">
-        <RouterLink to="/" class="nav-link" @click="emit('go-home')">Home</RouterLink>
-        <RouterLink to="/" class="nav-link logout-link" @click="emit('go-logout')">
+        <RouterLink to="/" class="nav-link" @click.prevent="emit('go-home')">Home</RouterLink>
+        <RouterLink to="/" class="nav-link logout-link" @click.prevent="emit('go-logout')">
           <span class="logout-icon">⇢</span> Logout
         </RouterLink>
       </nav>
@@ -56,15 +110,47 @@ const activity = [
         <RouterLink to="/fra/create" class="btn-create" @click="emit('go-create')">+ New Campaign</RouterLink>
       </div>
 
+      <!-- Date Filter Section -->
+      <section class="dashboard-section date-filter">
+        <div class="section-header">
+          <h3>Filter by Date</h3>
+        </div>
+        <div class="date-inputs">
+          <label>
+            Start Date:
+            <input type="date" v-model="startDate" @change="updateDashboard" />
+          </label>
+          <label>
+            End Date:
+            <input type="date" v-model="endDate" @change="updateDashboard" />
+          </label>
+        </div>
+      </section>
+
       <!-- Stats Grid -->
       <div class="stats-grid">
-        <div class="stat-card" v-for="stat in stats" :key="stat.label">
-          <div class="stat-icon">{{ stat.icon }}</div>
-          <div class="stat-value">{{ stat.value }}</div>
-          <div class="stat-label">{{ stat.label }}</div>
-          <div :class="['stat-change', stat.positive ? 'up' : 'down']">
-            {{ stat.positive ? '▲' : '▼' }} {{ stat.change }}
-          </div>
+        <div class="stat-card">
+          <div class="stat-icon">💰</div>
+          <div class="stat-value">${{ totalRaised.toLocaleString() }}</div>
+          <div class="stat-label">Total Raised</div>
+        </div>
+
+        <div class="stat-card">
+          <div class="stat-icon">📋</div>
+          <div class="stat-value">{{ activeCampaigns }}</div>
+          <div class="stat-label">Active Campaigns</div>
+        </div>
+
+        <div class="stat-card">
+          <div class="stat-icon">👁️</div>
+          <div class="stat-value">{{ totalViews }}</div>
+          <div class="stat-label">Total Views</div>
+        </div>
+
+        <div class="stat-card">
+          <div class="stat-icon">✅</div>
+          <div class="stat-value">{{ goalsReached }}</div>
+          <div class="stat-label">Goals Reached</div>
         </div>
       </div>
 
@@ -108,9 +194,7 @@ const activity = [
                 <td>
                   <div class="progress-wrap">
                     <div class="progress-bar">
-                      <div class="progress-fill"
-                        :style="{ width: (c.raised / c.goal * 100) + '%' }">
-                      </div>
+                      <div class="progress-fill" :style="{ width: (c.raised / c.goal * 100) + '%' }"></div>
                     </div>
                     <span class="progress-pct">{{ Math.round(c.raised / c.goal * 100) }}%</span>
                   </div>
@@ -148,6 +232,7 @@ const activity = [
     </footer>
 
   </div>
+<<<<<<< HEAD
 </template>
 
 <style scoped>
@@ -469,3 +554,6 @@ const activity = [
   .dash-topbar { flex-wrap: wrap; }
 }
 </style>
+=======
+</template>
+>>>>>>> origin/feature/dashboard_filter
