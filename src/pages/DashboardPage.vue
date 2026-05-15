@@ -1,4 +1,9 @@
 <script setup lang="ts">
+
+// req 5
+import { useRouter } from 'vue-router'
+const router = useRouter()
+
 import { RouterLink } from 'vue-router'
 import { ref, onMounted } from 'vue'
 import { supabase } from '../lib/supabaseClient.ts'
@@ -74,7 +79,6 @@ async function updateDashboard(): Promise<void> {
 }
 
 onMounted(() => updateDashboard())
-
 const emit = defineEmits(['go-home', 'go-logout', 'go-search', 'go-create'])
 </script>
 
@@ -109,6 +113,11 @@ const emit = defineEmits(['go-home', 'go-logout', 'go-search', 'go-create'])
           <p class="dash-subtitle">Welcome back, Jane 👋</p>
         </div>
         <RouterLink to="/fra/create" class="btn-create" @click.prevent="emit('go-create')">+ New Campaign</RouterLink>
+        <div class="topbar-actions">
+          <button class="btn-secondary" @click="router.push('/fra-history')">📋 FRA History</button>
+          <button class="btn-secondary" @click="router.push('/donation-history')">💰 Donation History</button>
+          <button class="btn-create" @click="emit('go-create')">+ New Campaign</button>
+        </div>
       </div>
 
       <!-- Date Filter Section -->
@@ -317,9 +326,14 @@ const emit = defineEmits(['go-home', 'go-logout', 'go-search', 'go-create'])
   margin: 0;
 }
 
+.topbar-actions {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
 .btn-create {
   padding: 8px 20px;
-  max-width: 200px;
   background: #2563eb;
   color: #fff;
   border: none;
@@ -328,12 +342,27 @@ const emit = defineEmits(['go-home', 'go-logout', 'go-search', 'go-create'])
   font-size: 0.88rem;
   cursor: pointer;
   transition: background 0.15s, box-shadow 0.15s;
-  white-space: normal;   /* allow text to wrap inside the box */
   text-align: center;
 }
 .btn-create:hover {
   background: #1d4ed8;
   box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
+}
+
+.btn-secondary {
+  padding: 8px 20px;
+  background: #fff;
+  color: #2563eb;
+  border: 1.5px solid #2563eb;
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 0.88rem;
+  cursor: pointer;
+  transition: all 0.15s;
+  text-align: center;
+}
+.btn-secondary:hover {
+  background: #eff6ff;
 }
 
 /* ── Stats Grid ── */
@@ -453,7 +482,7 @@ const emit = defineEmits(['go-home', 'go-logout', 'go-search', 'go-create'])
 .td-name {
   font-weight: 600;
   color: #111;
-  white-space: nowrap; 
+  white-space: nowrap;
   text-align: left;
 }
 
