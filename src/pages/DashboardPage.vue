@@ -1,12 +1,8 @@
 <script setup lang="ts">
+import { RouterLink } from 'vue-router'
 import { ref, onMounted } from 'vue'
-<<<<<<< HEAD
 import { supabase } from '../lib/supabaseClient.ts'
 import { getStoryData } from '../controllers/StoryController.ts'
-=======
-import { getStoryData, getTotalViews } from '../controllers/StoryController'
-import { supabase } from '../lib/supabaseClient'
->>>>>>> origin/feature/dashboard_totalviews
 
 const totalRaised = ref<number>(0)
 const activeCampaigns = ref<number>(0)
@@ -16,7 +12,6 @@ const campaigns = ref<any[]>([])
 const activity = ref<any[]>([])
 const story = ref<any>(null)
 
-<<<<<<< HEAD
 // Date filter
 const startDate = ref(new Date().toISOString().split('T')[0])
 const endDate = ref(new Date().toISOString().split('T')[0])
@@ -27,17 +22,6 @@ function formatTime(dateString: string): string {
   if (mins < 60) return `${mins} mins ago`
   const hours = Math.floor(mins / 60)
   if (hours < 24) return `${hours} hours ago`
-=======
-function formatTime(dateString: string): string {
-  const diff = Date.now() - new Date(dateString).getTime()
-
-  const mins = Math.floor(diff / 60000)
-  if (mins < 60) return `${mins} mins ago`
-
-  const hours = Math.floor(mins / 60)
-  if (hours < 24) return `${hours} hours ago`
-
->>>>>>> origin/feature/dashboard_totalviews
   const days = Math.floor(hours / 24)
   return `${days} days ago`
 }
@@ -49,23 +33,15 @@ async function getFirstFraId(): Promise<string | null> {
     .select('id')
     .limit(1)
     .single()
-<<<<<<< HEAD
-=======
-
->>>>>>> origin/feature/dashboard_totalviews
   if (error || !data) return null
   return data.id
 }
 
-<<<<<<< HEAD
 // Update dashboard
-=======
->>>>>>> origin/feature/dashboard_totalviews
 async function updateDashboard(): Promise<void> {
   const fraId = await getFirstFraId()
   if (!fraId) return
 
-<<<<<<< HEAD
   // Optional: log VIEW
   const storyData = await getStoryData(fraId, "VIEW")
   story.value = storyData
@@ -75,23 +51,11 @@ async function updateDashboard(): Promise<void> {
 
   // Get all campaigns
   const { data, error } = await supabase.from('FundRaisingActivity').select('*')
-=======
-  const storyData = await getStoryData(fraId, "VIEW")
-  story.value = storyData
-
-  totalViews.value = await getTotalViews(fraId)
-
-  const { data, error } = await supabase
-    .from('FundRaisingActivity')
-    .select('*')
-
->>>>>>> origin/feature/dashboard_totalviews
   if (error || !data) {
     console.error(error)
     return
   }
 
-<<<<<<< HEAD
   // Filter campaigns by date if filter applied
   const filtered = data.filter(c =>
     new Date(c.created_at) >= new Date(startDate.value) &&
@@ -102,22 +66,6 @@ async function updateDashboard(): Promise<void> {
   activeCampaigns.value = filtered.filter(fra => fra.status === 'active').length
   goalsReached.value = filtered.filter(fra => fra.currentAmount >= fra.targetAmount).length
   campaigns.value = filtered.map(fra => ({
-=======
-  totalRaised.value = data.reduce(
-    (sum, fra) => sum + fra.currentAmount,
-    0
-  )
- 
-  activeCampaigns.value = data.filter(
-    fra => fra.status === 'active'
-  ).length
-
-  goalsReached.value = data.filter(
-    fra => fra.currentAmount >= fra.targetAmount
-  ).length
-
-  campaigns.value = data.map(fra => ({
->>>>>>> origin/feature/dashboard_totalviews
     name: fra.title,
     goal: fra.targetAmount,
     raised: fra.currentAmount,
@@ -125,35 +73,23 @@ async function updateDashboard(): Promise<void> {
   }))
 }
 
-<<<<<<< HEAD
 onMounted(() => updateDashboard())
 
 const emit = defineEmits(['go-home', 'go-logout', 'go-search', 'go-create'])
-=======
-onMounted(() => {
-  updateDashboard()
-})
-
-
-const emit = defineEmits(['go-home', 'go-logout', 'go-search', 'go-create'])
-
->>>>>>> origin/feature/dashboard_totalviews
 </script>
-
 
 <template>
   <div class="dashboard-page">
 
-
     <!-- Header -->
     <header class="header">
-      <RouterLink to="/" class="brand" @click="emit('go-home')">
+      <RouterLink to="/" class="brand" @click.prevent="emit('go-home')">
         <span class="logo">♥</span>
         <span>FundRise</span>
       </RouterLink>
       <nav class="nav">
-        <RouterLink to="/fra/search" class="nav-link" @click="emit('go-search')">⌕ Donate</RouterLink>
-        <RouterLink to="/fra/create" class="nav-link" @click="emit('go-create')">Fundraising</RouterLink>
+        <RouterLink to="/fra/search" class="nav-link" @click.prevent="emit('go-search')">⌕ Donate</RouterLink>
+        <RouterLink to="/fra/create" class="nav-link" @click.prevent="emit('go-create')">Fundraising</RouterLink>
       </nav>
       <nav class="nav-actions">
         <RouterLink to="/" class="nav-link" @click.prevent="emit('go-home')">Home</RouterLink>
@@ -163,10 +99,8 @@ const emit = defineEmits(['go-home', 'go-logout', 'go-search', 'go-create'])
       </nav>
     </header>
 
-
     <!-- Main Content -->
     <main class="dash-main">
-
 
       <!-- Topbar -->
       <div class="dash-topbar">
@@ -174,10 +108,9 @@ const emit = defineEmits(['go-home', 'go-logout', 'go-search', 'go-create'])
           <h2 class="dash-title">Dashboard</h2>
           <p class="dash-subtitle">Welcome back, Jane 👋</p>
         </div>
-        <RouterLink to="/fra/create" class="btn-create" @click="emit('go-create')">+ New Campaign</RouterLink>
+        <RouterLink to="/fra/create" class="btn-create" @click.prevent="emit('go-create')">+ New Campaign</RouterLink>
       </div>
 
-<<<<<<< HEAD
       <!-- Date Filter Section -->
       <section class="dashboard-section date-filter">
         <div class="section-header">
@@ -221,50 +154,6 @@ const emit = defineEmits(['go-home', 'go-logout', 'go-search', 'go-create'])
           <div class="stat-label">Goals Reached</div>
         </div>
       </div>
-=======
-
-      <!-- Stats Grid -->
-      <div class="stats-grid">
-
-
-  <div class="stat-card">
-    <div class="stat-icon">💰</div>
-    <div class="stat-value">
-      ${{ totalRaised.toLocaleString() }}
-    </div>
-    <div class="stat-label">Total Raised</div>
-  </div>
-
-
-  <div class="stat-card">
-    <div class="stat-icon">📋</div>
-    <div class="stat-value">
-      {{ activeCampaigns }}
-    </div>
-    <div class="stat-label">Active Campaigns</div>
-  </div>
-
-
-  <div class="stat-card">
-    <div class="stat-icon">👁️</div>
-    <div class="stat-value">
-      {{ totalViews }}
-    </div>
-    <div class="stat-label">Total Views</div>
-  </div>
-
-
-  <div class="stat-card">
-    <div class="stat-icon">✅</div>
-    <div class="stat-value">
-      {{ goalsReached }}
-    </div>
-    <div class="stat-label">Goals Reached</div>
-  </div>
-
-
-</div>
->>>>>>> origin/feature/dashboard_totalviews
 
       <section class="dashboard-section chart-placeholder-section">
         <div class="section-header">
@@ -285,7 +174,7 @@ const emit = defineEmits(['go-home', 'go-logout', 'go-search', 'go-create'])
       <section class="dashboard-section">
         <div class="section-header">
           <h3>Recent Campaigns</h3>
-          <RouterLink to="/fra/search" class="view-all" @click="emit('go-search')">View all →</RouterLink>
+          <RouterLink to="/fra/search" class="view-all" @click.prevent="emit('go-search')">View all →</RouterLink>
         </div>
         <div class="table-wrap">
           <table class="table">
@@ -320,7 +209,6 @@ const emit = defineEmits(['go-home', 'go-logout', 'go-search', 'go-create'])
         </div>
       </section>
 
-
       <!-- Recent Activity -->
       <section class="dashboard-section">
         <div class="section-header">
@@ -337,20 +225,15 @@ const emit = defineEmits(['go-home', 'go-logout', 'go-search', 'go-create'])
         </div>
       </section>
 
-
     </main>
-
 
     <!-- Footer -->
     <footer class="footer">
       <p>© 2026 FundRise. Supporting dreams, one donation at a time.</p>
     </footer>
 
-
   </div>
-<<<<<<< HEAD
 </template>
-
 
 <style scoped>
 /* ── Shared Header / Nav / Footer ── */
@@ -399,7 +282,6 @@ const emit = defineEmits(['go-home', 'go-logout', 'go-search', 'go-create'])
   background: #f5f5f5;
 }
 
-
 /* ── Main Content ── */
 .dash-main {
   flex: 1;
@@ -413,7 +295,6 @@ const emit = defineEmits(['go-home', 'go-logout', 'go-search', 'go-create'])
   gap: 24px;
 }
 
-
 /* ── Topbar ── */
 .dash-topbar {
   display: flex;
@@ -421,7 +302,6 @@ const emit = defineEmits(['go-home', 'go-logout', 'go-search', 'go-create'])
   justify-content: space-between;
   gap: 16px;
 }
-
 
 .dash-title {
   font-size: 2rem;
@@ -431,13 +311,11 @@ const emit = defineEmits(['go-home', 'go-logout', 'go-search', 'go-create'])
   text-align: left;
 }
 
-
 .dash-subtitle {
   font-size: 1rem;
   color: #64748b;
   margin: 0;
 }
-
 
 .btn-create {
   padding: 8px 20px;
@@ -458,14 +336,12 @@ const emit = defineEmits(['go-home', 'go-logout', 'go-search', 'go-create'])
   box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
 }
 
-
 /* ── Stats Grid ── */
 .stats-grid {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
   gap: 16px;
 }
-
 
 .stat-card {
   background: #fff;
@@ -477,16 +353,13 @@ const emit = defineEmits(['go-home', 'go-logout', 'go-search', 'go-create'])
   gap: 4px;
 }
 
-
 .stat-icon  { font-size: 1.4rem; margin-bottom: 6px; }
 .stat-value { font-size: 1.5rem; font-weight: 700; color: #111; }
 .stat-label { font-size: 0.8rem; color: #6b7280; font-weight: 500; }
 
-
 .stat-change { font-size: 0.75rem; font-weight: 600; margin-top: 4px; }
 .stat-change.up   { color: #16a34a; }
 .stat-change.down { color: #dc2626; }
-
 
 /* ── Section Card ── */
 .dashboard-section {
@@ -496,7 +369,6 @@ const emit = defineEmits(['go-home', 'go-logout', 'go-search', 'go-create'])
   box-shadow: 0 2px 8px rgba(0,0,0,0.06);
 }
 
-
 .section-header {
   display: flex;
   align-items: center;
@@ -504,14 +376,12 @@ const emit = defineEmits(['go-home', 'go-logout', 'go-search', 'go-create'])
   margin-bottom: 20px;
 }
 
-
 .section-header h3 {
   font-size: 1rem;
   font-weight: 700;
   color: #111;
   margin: 0;
 }
-
 
 .view-all {
   font-size: 0.82rem;
@@ -522,7 +392,6 @@ const emit = defineEmits(['go-home', 'go-logout', 'go-search', 'go-create'])
 }
 .view-all:hover { color: #1d4ed8; text-decoration: underline; }
 
-<<<<<<< HEAD
 .placeholder-note {
   color: #9ca3af;
   font-size: 0.78rem;
@@ -545,12 +414,9 @@ const emit = defineEmits(['go-home', 'go-logout', 'go-search', 'go-create'])
   background: #bfdbfe;
   border-radius: 6px 6px 0 0;
 }
-=======
->>>>>>> origin/feature/dashboard_totalviews
 
 /* ── Table ── */
 .table-wrap { overflow-x: auto; }
-
 
 .table {
   width: 100%;
@@ -558,9 +424,7 @@ const emit = defineEmits(['go-home', 'go-logout', 'go-search', 'go-create'])
   font-size: 0.88rem;
 }
 
-
 .table thead tr { border-bottom: 1px solid #e5e7eb; }
-
 
 .table th {
   text-align: center;
@@ -573,7 +437,6 @@ const emit = defineEmits(['go-home', 'go-logout', 'go-search', 'go-create'])
   white-space: nowrap;
 }
 
-
 .table tbody tr {
   border-bottom: 1px solid #f3f4f6;
   transition: background 0.12s;
@@ -581,21 +444,18 @@ const emit = defineEmits(['go-home', 'go-logout', 'go-search', 'go-create'])
 .table tbody tr:last-child { border-bottom: none; }
 .table tbody tr:hover { background: #f9fafb; }
 
-
 .table td {
   padding: 12px;
   color: #374151;
   vertical-align: middle;
 }
 
-
 .td-name {
   font-weight: 600;
   color: #111;
-  white-space: nowrap;
+  white-space: nowrap; 
   text-align: left;
 }
-
 
 /* ── Progress ── */
 .progress-wrap {
@@ -605,7 +465,6 @@ const emit = defineEmits(['go-home', 'go-logout', 'go-search', 'go-create'])
   min-width: 120px;
 }
 
-
 .progress-bar {
   flex: 1;
   height: 6px;
@@ -614,7 +473,6 @@ const emit = defineEmits(['go-home', 'go-logout', 'go-search', 'go-create'])
   overflow: hidden;
 }
 
-
 .progress-fill {
   height: 100%;
   background: linear-gradient(90deg, #3b82f6, #2563eb);
@@ -622,14 +480,12 @@ const emit = defineEmits(['go-home', 'go-logout', 'go-search', 'go-create'])
   transition: width 0.4s;
 }
 
-
 .progress-pct {
   font-size: 0.78rem;
   font-weight: 600;
   color: #6b7280;
   white-space: nowrap;
 }
-
 
 /* ── Badges ── */
 .badge {
@@ -642,15 +498,12 @@ const emit = defineEmits(['go-home', 'go-logout', 'go-search', 'go-create'])
   letter-spacing: 0.04em;
 }
 
-
 .badge-active    { background: #f0fdf4; color: #15803d; border: 1px solid #bbf7d0; }
 .badge-completed { background: #eff6ff; color: #1d4ed8; border: 1px solid #bfdbfe; }
 .badge-pending   { background: #fff7ed; color: #c2410c; border: 1px solid #fed7aa; }
 
-
 /* ── Activity ── */
 .activity-list { display: flex; flex-direction: column; }
-
 
 .activity-item {
   display: flex;
@@ -661,7 +514,6 @@ const emit = defineEmits(['go-home', 'go-logout', 'go-search', 'go-create'])
   text-align: left;
 }
 .activity-item:last-child { border-bottom: none; }
-
 
 .activity-icon {
   width: 36px;
@@ -675,14 +527,12 @@ const emit = defineEmits(['go-home', 'go-logout', 'go-search', 'go-create'])
   flex-shrink: 0;
 }
 
-
 .activity-body {
   flex: 1;
   display: flex;
   flex-direction: column;
   gap: 3px;
 }
-
 
 .activity-text {
   font-size: 0.88rem;
@@ -691,15 +541,12 @@ const emit = defineEmits(['go-home', 'go-logout', 'go-search', 'go-create'])
   line-height: 1.4;
 }
 
-
 .activity-time { font-size: 0.75rem; color: #9ca3af; }
-
 
 /* ── Responsive ── */
 @media (max-width: 900px) {
   .stats-grid { grid-template-columns: repeat(2, 1fr); }
 }
-
 
 @media (max-width: 600px) {
   .dash-main { padding: 20px 16px 40px; }
@@ -707,6 +554,3 @@ const emit = defineEmits(['go-home', 'go-logout', 'go-search', 'go-create'])
   .dash-topbar { flex-wrap: wrap; }
 }
 </style>
-=======
-</template>
->>>>>>> origin/feature/dashboard_filter
