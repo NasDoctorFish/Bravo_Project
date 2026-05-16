@@ -32,9 +32,9 @@ const mockData: FundRaisingActivity[] = [
 // fraService.ts - Service layer for FRA filtering logic (FR-5-01, FR-5-02, FR-5-05)
 export const fraService = {
   // FR-5-01: Filter by category
-  filterByCategoryId(categoryId: string, fraList: any[]) {
+  filterByCategoryId(categoryId: string | number, fraList: any[] = mockData) {
     if (!categoryId) return fraList
-    return fraList.filter(f => f.category === categoryId)
+    return fraList.filter(f => f.categoryId === categoryId)
   },
 
   search(query: string): FundRaisingActivity[] {
@@ -58,7 +58,7 @@ export const fraService = {
   // FR-5-01 + FR-5-02: Combined filter
   filterByAllFilters(categoryId: string, startDate: string, endDate: string, fraList: any[]) {
     let result = [...fraList]
-    if (categoryId) result = result.filter(f => f.category === categoryId)
+    if (categoryId) result = result.filter(f => f.categoryId === categoryId)
     if (startDate) result = result.filter(f => f.completedAt >= startDate)
     if (endDate) result = result.filter(f => f.completedAt <= endDate)
     return result

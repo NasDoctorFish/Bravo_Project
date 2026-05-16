@@ -15,6 +15,7 @@ const STORAGE_KEY = 'fr_auth'
 // Module-level singleton so all components share the same reactive state
 const _userId    = ref<number | null>(null)
 const _userRole  = ref<string | null>(null)
+const _userName = ref<string | null>(null)
 const _sessionId = ref<number | null>(null)
 const _ready     = ref(false)                    // true after restoreSession() finishes
 
@@ -29,8 +30,21 @@ async function restoreSession() {
       if (parsed.userId && parsed.sessionId) {
         const valid = await validateSession(String(parsed.userId), parsed.sessionId)
         if (valid) {
+          const { data: profileData, error: profileError } = await supabase
+            .from('userprofile')
+            .select('name, role')
+            .eq('userid', parsed.userId)
+            .single()
+
+          if (profileError) {
+            localStorage.removeItem(STORAGE_KEY)
+            deleteSession(parsed.sessionId)
+            throw profileError
+          }
+
           _userId.value    = parsed.userId
-          _userRole.value  = parsed.role   ?? null
+          _userRole.value  = profileData.role
+          _userName.value = profileData.name
           _sessionId.value = parsed.sessionId
         } else {
           localStorage.removeItem(STORAGE_KEY)
@@ -50,6 +64,7 @@ export function useAuth() {
   // Return as string for compatibility with Supabase query params
   const userId    = computed(() => _userId.value !== null ? String(_userId.value) : null)
   const userRole  = computed(() => _userRole.value)
+  const userName = computed(() => _userName.value)
   const userEmail = computed(() => null as string | null)
 
   async function signIn(email: string, password: string): Promise<void> {
@@ -66,10 +81,22 @@ export function useAuth() {
 
     if (sessionError) throw sessionError
 
+    const { data: profileData, error: profileError } = await supabase
+            .from('userprofile')
+            .select('name, role')
+            .eq('userid', result.userid)
+            .single()
+
+          if (profileError) {
+            localStorage.removeItem(STORAGE_KEY)
+            return
+          }
+
     const sessionId: number = sessionData.sessionid
 
     _userId.value    = result.userid
     _userRole.value  = result.role
+    _userName.value = profileData.name
     _sessionId.value = sessionId
     localStorage.setItem(STORAGE_KEY, JSON.stringify({
       userId:    result.userid,
@@ -84,6 +111,7 @@ export function useAuth() {
     }
     _userId.value    = null
     _userRole.value  = null
+    _userName.value = null
     _sessionId.value = null
     localStorage.removeItem(STORAGE_KEY)
   }
@@ -92,6 +120,7 @@ export function useAuth() {
     userId,
     userEmail,
     userRole,
+    userName,
     isLoggedIn,
     sessionReady,
     existingSessions,

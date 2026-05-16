@@ -1,7 +1,24 @@
 <script setup lang="ts">
+import { useAuth } from '../composables/useAuth'
+const { isLoggedIn, userId, userRole, sessionReady, signOut } = useAuth()
+import { useRouter } from 'vue-router'
 import { ref} from 'vue'
 import type { FundRaisingActivity } from '../models/FundRaisingActivity'
 import { searchFraByFilter } from '../controllers/fraController'
+
+const router = useRouter()
+
+if (isLoggedIn.value) {
+  console.log(
+    'Logged in as...\n',
+    'userid: ', userId.value,
+    '\nRole: ', userRole.value,
+    '\nsessionReady: ', sessionReady.value
+  )
+}
+else {
+  console.log('Logged Out')
+}
 
 const query = ref<string>('')
 

@@ -1,6 +1,24 @@
 <script setup lang="ts">
+import { useAuth } from '../composables/useAuth'
+const { isLoggedIn, userId, userRole, sessionReady, signOut } = useAuth()
+import { useRouter } from 'vue-router'
 import { ref, computed } from 'vue'
 import { generateReportData, exportReportAsDocx } from '../controllers/reportController'
+
+const router = useRouter()
+const emit = defineEmits(['go-home', 'go-login', 'go-signup', 'go-search'])
+
+if (isLoggedIn.value) {
+  console.log(
+    'Logged in as...\n',
+    'userid: ', userId.value,
+    '\nRole: ', userRole.value,
+    '\nsessionReady: ', sessionReady.value
+  )
+}
+else {
+  console.log('Logged Out')
+}
 
 
 // For Chart
@@ -62,44 +80,38 @@ type KpiItem = {
   label: string
 }
 
-const emit = defineEmits<{
-  (event: 'go-home'): void
-  (event: 'go-logout'): void
-  (event: 'go-search'): void
-}>()
-
 // -- Static Dashboard Data (from ReportDashboardPage) --
 const period = ref('30')
 
 const staticKpis = [
-  { icon: '💰', value: '$86,400', label: 'Total Raised',          change: '18%', positive: true },
-  { icon: '📋', value: '24',      label: 'Active Campaigns',      change: '4',   positive: true },
-  { icon: '👥', value: '1,248',   label: 'Total Donors',          change: '22%', positive: true },
-  { icon: '🎯', value: '68%',     label: 'Avg. Completion Rate',  change: '5%',  positive: true },
+  { icon: '💰', value: '$86,400', label: 'Total Raised', change: '18%', positive: true },
+  { icon: '📋', value: '24', label: 'Active Campaigns', change: '4', positive: true },
+  { icon: '👥', value: '1,248', label: 'Total Donors', change: '22%', positive: true },
+  { icon: '🎯', value: '68%', label: 'Avg. Completion Rate', change: '5%', positive: true },
 ]
 
 const weeklyChartData = [
-  { label: 'W1', value: 4200  }, { label: 'W2', value: 7800  },
-  { label: 'W3', value: 5400  }, { label: 'W4', value: 9200  },
-  { label: 'W5', value: 6600  }, { label: 'W6', value: 11000 },
-  { label: 'W7', value: 8400  }, { label: 'W8', value: 13200 },
+  { label: 'W1', value: 4200 }, { label: 'W2', value: 7800 },
+  { label: 'W3', value: 5400 }, { label: 'W4', value: 9200 },
+  { label: 'W5', value: 6600 }, { label: 'W6', value: 11000 },
+  { label: 'W7', value: 8400 }, { label: 'W8', value: 13200 },
 ]
 
 const maxBar = computed(() => Math.max(...weeklyChartData.map(d => d.value)))
 
 const categoryBreakdown = [
-  { name: 'Education',      pct: 34, amount: 29376, color: '#2d6a4f' },
-  { name: 'Healthcare',     pct: 28, amount: 24192, color: '#2b6cb0' },
-  { name: 'Environment',    pct: 18, amount: 15552, color: '#276749' },
-  { name: 'Disaster Relief',pct: 12, amount: 10368, color: '#b7791f' },
-  { name: 'Community',      pct: 8,  amount: 6912,  color: '#6b46c1' },
+  { name: 'Education', pct: 34, amount: 29376, color: '#2d6a4f' },
+  { name: 'Healthcare', pct: 28, amount: 24192, color: '#2b6cb0' },
+  { name: 'Environment', pct: 18, amount: 15552, color: '#276749' },
+  { name: 'Disaster Relief', pct: 12, amount: 10368, color: '#b7791f' },
+  { name: 'Community', pct: 8, amount: 6912, color: '#6b46c1' },
 ]
 
 const campaignReport = [
-  { name: 'Clean Water Initiative', category: 'Education',      raised: 7400,  goal: 10000, donors: 88,  trend: 12  },
-  { name: 'Medical Aid Fund',       category: 'Healthcare',     raised: 9200,  goal: 20000, donors: 74,  trend: -3  },
-  { name: 'Flood Relief Fund',      category: 'Disaster Relief',raised: 22000, goal: 30000, donors: 210, trend: 28  },
-  { name: 'Reforestation Project',  category: 'Environment',    raised: 4800,  goal: 15000, donors: 43,  trend: 7   },
+  { name: 'Clean Water Initiative', category: 'Education', raised: 7400, goal: 10000, donors: 88, trend: 12 },
+  { name: 'Medical Aid Fund', category: 'Healthcare', raised: 9200, goal: 20000, donors: 74, trend: -3 },
+  { name: 'Flood Relief Fund', category: 'Disaster Relief', raised: 22000, goal: 30000, donors: 210, trend: 28 },
+  { name: 'Reforestation Project', category: 'Environment', raised: 4800, goal: 15000, donors: 43, trend: 7 },
 ]
 
 function exportCSV() {
@@ -135,10 +147,10 @@ const reportDetailsVisible = ref<boolean>(false)
 const reports = ref<Report[]>([])
 
 const periodOptions: { value: PeriodType; label: string }[] = [
-  { value: 'DAILY',   label: 'Daily'   },
+  { value: 'DAILY', label: 'Daily' },
   { value: 'MONTHLY', label: 'Monthly' },
-  { value: 'YEARLY',  label: 'Yearly'  },
-  { value: 'CUSTOM',  label: 'Custom'  },
+  { value: 'YEARLY', label: 'Yearly' },
+  { value: 'CUSTOM', label: 'Custom' },
 ]
 
 const kpis = computed<KpiItem[]>(() => {
@@ -425,11 +437,7 @@ async function downloadReport(report: Report): Promise<void> {
           <p>Generate and review platform-wide performance reports.</p>
         </div>
 
-        <button
-          class="btn btn-cancel export-btn"
-          :disabled="!selectedReport"
-          @click="exportReport"
-        >
+        <button class="btn btn-cancel export-btn" :disabled="!selectedReport" @click="exportReport">
           ↓ Export Report
         </button>
       </div>
@@ -442,11 +450,7 @@ async function downloadReport(report: Report): Promise<void> {
           <div class="form-group">
             <label>Period Type</label>
             <select v-model="periodType" class="form-select">
-              <option
-                v-for="option in periodOptions"
-                :key="option.value"
-                :value="option.value"
-              >
+              <option v-for="option in periodOptions" :key="option.value" :value="option.value">
                 {{ option.label }}
               </option>
             </select>
@@ -464,13 +468,8 @@ async function downloadReport(report: Report): Promise<void> {
 
           <div class="form-group">
             <label>Target ID</label>
-            <input
-              v-model="targetId"
-              type="text"
-              class="form-input"
-              placeholder="PLATFORM"
-              title="Enter 'PLATFORM' or blank for platform-wise report, else leave it as blank or input specific Id for specific reports."
-            />
+            <input v-model="targetId" type="text" class="form-input" placeholder="PLATFORM"
+              title="Enter 'PLATFORM' or blank for platform-wise report, else leave it as blank or input specific Id for specific reports." />
           </div>
 
           <div class="form-group">
@@ -485,11 +484,7 @@ async function downloadReport(report: Report): Promise<void> {
         </div>
 
         <div class="form-actions">
-          <button
-            class="btn generate-btn"
-            :disabled="isLoading"
-            @click="handleGenerateReport"
-          >
+          <button class="btn generate-btn" :disabled="isLoading" @click="handleGenerateReport">
             {{ isLoading ? 'Generating...' : 'Generate Report' }}
           </button>
         </div>
@@ -623,6 +618,7 @@ async function downloadReport(report: Report): Promise<void> {
   top: 0;
   z-index: 100;
 }
+
 .brand {
   display: flex;
   align-items: center;
@@ -632,14 +628,49 @@ async function downloadReport(report: Report): Promise<void> {
   font-size: 1.1rem;
   color: #111;
 }
-.logo { color: #ef4444; font-size: 1.2rem; }
-.nav { display: flex; align-items: center; gap: 16px; }
-.nav-actions { display: flex; align-items: center; gap: 16px; margin-left: auto; }
-.nav-link { font-size: 0.88rem; color: #555; text-decoration: none; font-weight: 500; }
-.nav-link:hover { color: #111; }
-.user-info { font-size: 0.82rem; color: #6b7280; }
-.logout-link { color: #ef4444; }
-.logout-icon { margin-right: 4px; }
+
+.logo {
+  color: #ef4444;
+  font-size: 1.2rem;
+}
+
+.nav {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.nav-actions {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-left: auto;
+}
+
+.nav-link {
+  font-size: 0.88rem;
+  color: #555;
+  text-decoration: none;
+  font-weight: 500;
+}
+
+.nav-link:hover {
+  color: #111;
+}
+
+.user-info {
+  font-size: 0.82rem;
+  color: #6b7280;
+}
+
+.logout-link {
+  color: #ef4444;
+}
+
+.logout-icon {
+  margin-right: 4px;
+}
+
 .footer {
   text-align: center;
   padding: 24px;
@@ -697,9 +728,14 @@ async function downloadReport(report: Report): Promise<void> {
   flex-wrap: wrap;
 }
 
-.period-select { width: auto; padding: 8px 12px; }
+.period-select {
+  width: auto;
+  padding: 8px 12px;
+}
 
-.export-btn { white-space: nowrap; }
+.export-btn {
+  white-space: nowrap;
+}
 
 /* ── KPI Cards ── */
 .kpi-grid {
@@ -713,15 +749,28 @@ async function downloadReport(report: Report): Promise<void> {
   background: #fff;
   border-radius: 12px;
   padding: 20px;
-  box-shadow: 0 1px 6px rgba(0,0,0,0.08);
+  box-shadow: 0 1px 6px rgba(0, 0, 0, 0.08);
   display: flex;
   flex-direction: column;
   gap: 4px;
 }
 
-.kpi-icon  { font-size: 1.6rem; margin-bottom: 4px; }
-.kpi-value { font-size: 1.8rem; font-weight: 700; color: #111; }
-.kpi-label { font-size: 0.8rem; color: #6b7280; font-weight: 500; }
+.kpi-icon {
+  font-size: 1.6rem;
+  margin-bottom: 4px;
+}
+
+.kpi-value {
+  font-size: 1.8rem;
+  font-weight: 700;
+  color: #111;
+}
+
+.kpi-label {
+  font-size: 0.8rem;
+  color: #6b7280;
+  font-weight: 500;
+}
 
 .kpi-change {
   font-size: 0.75rem;
@@ -729,8 +778,13 @@ async function downloadReport(report: Report): Promise<void> {
   margin-top: 4px;
 }
 
-.kpi-up   { color: #16a34a; }
-.kpi-down { color: #dc2626; }
+.kpi-up {
+  color: #16a34a;
+}
+
+.kpi-down {
+  color: #dc2626;
+}
 
 /* ── Charts Grid ── */
 .charts-grid {
@@ -741,10 +795,21 @@ async function downloadReport(report: Report): Promise<void> {
 }
 
 @media (max-width: 750px) {
-  .charts-grid { grid-template-columns: 1fr; }
-  .dashboard-header { flex-direction: column; }
-  .form-actions { justify-content: stretch; }
-  .generate-btn { width: 100%; }
+  .charts-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .dashboard-header {
+    flex-direction: column;
+  }
+
+  .form-actions {
+    justify-content: stretch;
+  }
+
+  .generate-btn {
+    width: 100%;
+  }
 }
 
 /* ── Section Card ── */
@@ -752,7 +817,7 @@ async function downloadReport(report: Report): Promise<void> {
   background: #fff;
   border-radius: 12px;
   padding: 24px;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
   margin-bottom: 24px;
 }
 
@@ -843,7 +908,11 @@ async function downloadReport(report: Report): Promise<void> {
   gap: 14px;
 }
 
-.cat-item { display: flex; flex-direction: column; gap: 4px; }
+.cat-item {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
 
 .cat-top {
   display: flex;
@@ -851,8 +920,17 @@ async function downloadReport(report: Report): Promise<void> {
   align-items: center;
 }
 
-.cat-name { font-size: 0.85rem; font-weight: 600; color: #374151; }
-.cat-pct  { font-size: 0.82rem; font-weight: 700; color: #111; }
+.cat-name {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #374151;
+}
+
+.cat-pct {
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: #111;
+}
 
 .cat-bar {
   background: #e5e7eb;
@@ -894,10 +972,14 @@ async function downloadReport(report: Report): Promise<void> {
   font-weight: 500;
 }
 
-.view-all-link:hover { text-decoration: underline; }
+.view-all-link:hover {
+  text-decoration: underline;
+}
 
 /* ── Table ── */
-.table-wrapper { overflow-x: auto; }
+.table-wrapper {
+  overflow-x: auto;
+}
 
 .data-table {
   width: 100%;
@@ -925,13 +1007,30 @@ async function downloadReport(report: Report): Promise<void> {
   transition: background 0.15s;
 }
 
-.data-table tbody tr:hover { background: #f9fafb; }
+.data-table tbody tr:hover {
+  background: #f9fafb;
+}
 
-.data-table td { padding: 12px 16px; font-size: 0.88rem; color: #555; text-align: center; }
+.data-table td {
+  padding: 12px 16px;
+  font-size: 0.88rem;
+  color: #555;
+  text-align: center;
+}
 
-.td-name  { font-weight: 600; color: #111; }
-.td-green { color: #16a34a; font-weight: 600; }
-.td-muted { color: #9ca3af; }
+.td-name {
+  font-weight: 600;
+  color: #111;
+}
+
+.td-green {
+  color: #16a34a;
+  font-weight: 600;
+}
+
+.td-muted {
+  color: #9ca3af;
+}
 
 /* ── Category Tag ── */
 .cat-tag {
@@ -974,9 +1073,18 @@ async function downloadReport(report: Report): Promise<void> {
 }
 
 /* ── Trend ── */
-.trend-cell { font-weight: 700; font-size: 0.82rem; }
-.trend-up   { color: #16a34a; }
-.trend-down { color: #dc2626; }
+.trend-cell {
+  font-weight: 700;
+  font-size: 0.82rem;
+}
+
+.trend-up {
+  color: #16a34a;
+}
+
+.trend-down {
+  color: #dc2626;
+}
 
 /* ── Generate Report Form ── */
 .report-form-section {

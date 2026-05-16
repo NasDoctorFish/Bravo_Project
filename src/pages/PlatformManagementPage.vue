@@ -1,9 +1,25 @@
 <script setup lang="ts">
+import { useAuth } from '../composables/useAuth'
+const { isLoggedIn, userId, userRole, sessionReady, signOut } = useAuth()
+import { useRouter } from 'vue-router'
 import { ref, computed } from 'vue'
 // import categoryController
 import { create, type CategoryData } from '../controllers/categoryController'
 
-const emit = defineEmits(['go-home', 'go-logout', 'go-search'])
+const router = useRouter()
+const emit = defineEmits(['go-home', 'go-logout', 'go-search', 'go-login', 'go-signup'])
+
+if (isLoggedIn.value) {
+  console.log(
+    'Logged in as...\n',
+    'userid: ', userId.value,
+    '\nRole: ', userRole.value,
+    '\nsessionReady: ', sessionReady.value
+  )
+}
+else {
+  console.log('Logged Out')
+}
 
 const activeTab = ref('Pending')
 const searchQuery = ref('')

@@ -1,8 +1,22 @@
 <script setup lang="ts">
+import { useAuth } from '../composables/useAuth'
+const { isLoggedIn, userId, userRole, sessionReady, signOut } = useAuth()
 
 // req 5
 import { useRouter } from 'vue-router'
 const router = useRouter()
+
+if (isLoggedIn.value) {
+  console.log(
+    'Logged in as...\n',
+    'userid: ', userId.value,
+    '\nRole: ', userRole.value,
+    '\nsessionReady: ', sessionReady.value
+  )
+}
+else {
+  console.log('Logged Out')
+}
 
 import { RouterLink } from 'vue-router'
 import { ref, onMounted } from 'vue'
@@ -79,7 +93,7 @@ async function updateDashboard(): Promise<void> {
 }
 
 onMounted(() => updateDashboard())
-const emit = defineEmits(['go-home', 'go-logout', 'go-search', 'go-create'])
+const emit = defineEmits(['go-home', 'go-logout', 'go-search', 'go-create', 'go-login', 'go-signup'])
 </script>
 
 <template>

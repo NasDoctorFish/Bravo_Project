@@ -3,7 +3,9 @@
 import { ref, computed, onMounted } from 'vue'
 import { useRoute } from 'vue-router'
 import { fraController } from '../controllers/fraController'
-//import { useAuth } from '../composables/useAuth' // useAuth
+import { useAuth } from '../composables/useAuth'
+const { isLoggedIn, userId: authUserId, userRole, sessionReady, signOut } = useAuth()
+import { useRouter } from 'vue-router'
 
 //  BOUNDARY — FraDetailPage
 import { useFraDetailController } from '../entity/FraDetailPage_Entity'
@@ -12,7 +14,20 @@ const props = defineProps({
   fraId: { type: String, default: '1' },
 })
 
-const emit = defineEmits(['go-home', 'go-logout', 'go-search', 'go-edit'])
+const router = useRouter()
+const emit = defineEmits(['go-home', 'go-logout', 'go-search', 'go-edit', 'go-login', 'go-signup'])
+
+if (isLoggedIn.value) {
+  console.log(
+    'Logged in as...\n',
+    'userid: ', authUserId.value,
+    '\nRole: ', userRole.value,
+    '\nsessionReady: ', sessionReady.value
+  )
+}
+else {
+  console.log('Logged Out')
+}
 
 // Auth & Route
 const route = useRoute()

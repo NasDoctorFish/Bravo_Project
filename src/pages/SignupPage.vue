@@ -1,12 +1,26 @@
 <script setup>
-import { ref, reactive, computed } from 'vue'
+import { useAuth } from '../composables/useAuth'
+const { isLoggedIn, userId, userRole, sessionReady, signOut } = useAuth()
 import { useRouter } from 'vue-router'
+import { ref, reactive, computed } from 'vue'
 import { create } from '../controllers/authController'
 
 // router
 const router = useRouter()
 
-const emit = defineEmits(['go-home', 'go-login', 'go-signup', 'signup-success'])
+const emit = defineEmits(['go-home', 'go-login', 'go-signup', 'signup-success', 'go-search'])
+
+if (isLoggedIn.value) {
+  console.log(
+    'Logged in as...\n',
+    'userid: ', userId.value,
+    '\nRole: ', userRole.value,
+    '\nsessionReady: ', sessionReady.value
+  )
+}
+else {
+  console.log('Logged Out')
+}
 
 const form = reactive({
   firstName: '', lastName: '', email: '',

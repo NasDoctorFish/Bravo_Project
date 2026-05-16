@@ -5,7 +5,19 @@ import { useRouter } from 'vue-router'
 
 const emit = defineEmits(['go-home', 'go-login', 'go-signup', 'login-success'])
 
-const { signIn, isLoggedIn, sessionReady } = useAuth()
+const { signIn, isLoggedIn, sessionReady, userId, userRole, signOut } = useAuth()
+
+if (isLoggedIn.value) {
+  console.log(
+    'Logged in as...\n',
+    'userid: ', userId.value,
+    '\nRole: ', userRole.value,
+    '\nsessionReady: ', sessionReady.value
+  )
+}
+else {
+  console.log('Logged Out')
+}
 const router = useRouter()
 
 // Redirect immediately if a valid session already exists
@@ -34,24 +46,43 @@ function validate() {
   return valid
 }
 
+// async function handleLogin() {
+//   loginError.value = ''
+//   if (!validate()) {
+//     loginError.value = 'Please fix the errors above.'
+//     return
+//   }
+
+//   loading.value = true
+//   try {
+//     await signIn(form.email, form.password)
+//     emit('login-success')
+//     router.push('/')
+//   } catch (err: any) {
+//     loginError.value = err.message || 'Login failed. Please check your credentials.'
+//   } finally {
+//     loading.value = false
+//   }
+// }
+
 async function handleLogin() {
-  loginError.value = ''
-  if (!validate()) {
-    loginError.value = 'Please fix the errors above.'
-    return
-  }
+  // Validate login form
+  if(!validate()) return
 
   loading.value = true
+  loginError.value = ''
+
   try {
-    await signIn(form.email, form.password)
-    emit('login-success')
+    await signIn(form.email, form.password) // from useAuth.ts
     router.push('/')
-  } catch (err: any) {
-    loginError.value = err.message || 'Login failed. Please check your credentials.'
+  } catch (err) {
+    console.log('LOGIN ERROR:', err)
+    loginError.value = 'Invalid email or password'
   } finally {
     loading.value = false
   }
 }
+
 </script>
 
 <template>

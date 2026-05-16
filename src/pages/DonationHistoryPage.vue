@@ -1,7 +1,23 @@
 <script setup>
+import { useAuth } from '../composables/useAuth'
+const { isLoggedIn, userId, userRole, sessionReady, signOut } = useAuth()
+import { useRouter } from 'vue-router'
 import { ref, computed } from 'vue'
 
-const emit = defineEmits(['go-home', 'go-login', 'go-logout', 'go-search', 'go-favorites', 'go-favourites', 'go-history', 'go-campaigndetail'])
+const router = useRouter()
+const emit = defineEmits(['go-home', 'go-login', 'go-logout', 'go-search', 'go-favorites', 'go-favourites', 'go-history', 'go-campaigndetail', 'go-signup'])
+
+if (isLoggedIn.value) {
+  console.log(
+    'Logged in as...\n',
+    'userid: ', userId.value,
+    '\nRole: ', userRole.value,
+    '\nsessionReady: ', sessionReady.value
+  )
+}
+else {
+  console.log('Logged Out')
+}
 
 const donations = ref([
   { donationId: 'D001', fsaName: 'Clean Water Initiative',  category: 'Environment', amount: 150, donatedAt: '2026-04-01', progress: 74,  fsaStatus: 'active'    },

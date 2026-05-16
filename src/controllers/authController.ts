@@ -99,6 +99,21 @@ export async function create(
 }
 
 
+/**
+ * Clean and Delete all expired authsessions before logging in()
+ * executes the sql trigger registered on supabase DB: delete_expired_authsessions()s
+ */
+export async function cleanupExpiredSessions() {
+  
+  // executes the sql trigger registered on supabase DB: delete_expired_authsessions()
+  const { error } = await supabase.rpc('delete_expired_authsessions')
+
+  if (error) {
+    throw error
+  }
+}
+
+
 export async function validateUser(id: number, pass: string): Promise<boolean> {
   const { data, error } = await supabase
     .from('useraccount')
@@ -141,6 +156,7 @@ export async function login(
 
 // Check whether a session is valid for the given user
 export async function validateSession(userId: string, sessionId: number): Promise<boolean> {
+  await cleanupExpiredSessions()
   if (!userId || !sessionId) return false
   const { data } = await supabase
     .from('authsession')

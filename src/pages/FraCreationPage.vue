@@ -1,13 +1,27 @@
 // FraCreationPage.vue
 <script setup lang="ts">
+import { useAuth } from '../composables/useAuth'
+const { isLoggedIn, userId, userRole, sessionReady, signOut } = useAuth()
+import { useRouter } from 'vue-router'
 import { ref, reactive } from 'vue'
 import { fraController } from '../controllers/fraController'
 import { supabase } from '../lib/supabaseClient'
 
 // FR-2-01 Boundary
-const emit = defineEmits(['go-home', 'go-logout', 'go-search', 'campaign-created'])
+const router = useRouter()
+const emit = defineEmits(['go-home', 'go-logout', 'go-search', 'campaign-created', 'go-login', 'go-signup'])
 
-//const { userId } = useAuth()
+if (isLoggedIn.value) {
+  console.log(
+    'Logged in as...\n',
+    'userid: ', userId.value,
+    '\nRole: ', userRole.value,
+    '\nsessionReady: ', sessionReady.value
+  )
+}
+else {
+  console.log('Logged Out')
+}
 
 const step       = ref(1)
 const submitting = ref(false)
