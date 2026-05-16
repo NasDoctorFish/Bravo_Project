@@ -9,71 +9,149 @@ export async function create(
   name: string,
   role: string,
   password: string,
-  email?: string // Optional
+  email: string
 ): Promise<number> {
-  
-  // System validates all fields are filled in
+  // Validate required fields
   if (
-    !name.trim() ||
-    !role.trim() ||
-    !password.trim()
+    !name?.trim() ||
+    !role?.trim() ||
+    !password?.trim() ||
+    !email?.trim()
   ) {
     throw new Error('Incorrect format data: All required fields must be filled.')
   }
 
-  // System validates duplicates
-  const { data, error: accountError } = await supabase
+    console.log('Create input:', {
+    name,
+    role,
+    password,
+    email
+  })
+
+  // Check duplicate email
+  const { data: existingUser, error: checkError } = await supabase
+    .from('useraccount')
+    .select('email')
+    .eq('email', email.trim())
+    .maybeSingle()
+
+  if (checkError) {
+    throw checkError
+  }
+
+  if (existingUser) {
+    throw new Error('This email is already registered.')
+  }
+
+  // Insert email and password into useraccount
+  const { data: accountData, error: accountError } = await supabase
     .from('useraccount')
     .insert([
       {
-        email: email?.trim() || null,
-        password: password
+        email: email.trim(),
+        password: password.trim()
       }
     ])
     .select('userid')
     .single()
 
   if (accountError) {
-    // If Duplicate emails detected
-    if (accountError.code === '23505') throw new Error('Account already exists')
-    throw accountError
+  console.log('ACCOUNT INSERT ERROR FULL:', accountError)
+
+  if (accountError.code === '23505') {
+    throw new Error(accountError.message)
   }
 
-  const newId = data.userid
+  throw accountError
+}
 
-  // Insert Name and Role to userprofile 
+  if (!accountData?.userid) {
+    throw new Error('User account was created, but userid was not returned.')
+  }
+
+  const newId = accountData.userid
+
+  // Map frontend role labels to DB-accepted codes: PM, DO, DR, UA
+  const roleMap: Record<string, string> = {
+    fundraiser: 'DR',
+    donee:      'DO',
+    PM: 'PM', UA: 'UA', DO: 'DO', DR: 'DR',
+  }
+  const dbRole = roleMap[role.trim()]
+  if (!dbRole) throw new Error('Invalid role selected.')
+
+  // Insert name and role into userprofile
   const { error: profileError } = await supabase
     .from('userprofile')
     .insert([
       {
         userid: newId,
-        name: name.trim(),
-        role: role
+        name:   name.trim(),
+        role:   dbRole,
       }
     ])
 
-  if (profileError) throw profileError
+  if (profileError) {
+    throw profileError
+  }
 
   return newId
 }
 
+
 export async function validateUser(id: number, pass: string): Promise<boolean> {
   const { data, error } = await supabase
     .from('useraccount')
-    .select('*, userprofile(role)') 
+    .select('*, userprofile(role)')
     .eq('userid', id)
     .eq('password', pass)
     .single()
 
   if (error || !data) return false
-  
+
   userid = id
   password = pass
   isAdmin = data.userprofile?.role === 'User Admin'
   return true
 }
 
-export async function validateSession(id: number, sessionId: string): Promise<boolean> {
-  if (!id || !sessionId) return false
-  return true
+// Look up user by email + password in useraccount table (no Supabase auth service)
+export async function login(
+  email: string,
+  password: string
+): Promise<{ userid: number; role: string }> {
+  const { data, error } = await supabase
+    .from('useraccount')
+    .select('userid, userprofile(role)')
+    .eq('email', email.trim())
+    .eq('password', password.trim())
+    .maybeSingle()
+
+  if (error) throw error
+  if (!data) throw new Error('Invalid email or password.')
+
+  const profile = (data as any).userprofile
+  const role = (Array.isArray(profile) ? profile[0]?.role : profile?.role) ?? ''
+
+  userid = data.userid
+  isAdmin = role === 'User Admin'
+
+  return { userid: data.userid, role }
+}
+
+// Check whether a session is valid for the given user
+export async function validateSession(userId: string, sessionId: number): Promise<boolean> {
+  if (!userId || !sessionId) return false
+  const { data } = await supabase
+    .from('authsession')
+    .select('sessionid')
+    .eq('userid', userId)
+    .eq('sessionid', sessionId)
+    .maybeSingle()
+  return !!data
+}
+
+// Remove a session record from authsession
+export async function deleteSession(sessionId: number): Promise<void> {
+  await supabase.from('authsession').delete().eq('sessionid', sessionId)
 }

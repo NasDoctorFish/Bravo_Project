@@ -1,9 +1,19 @@
 <script setup>
 import { ref, reactive, computed } from 'vue'
+import { useRouter } from 'vue-router'
+import { create } from '../controllers/authController'
+
+// router
+const router = useRouter()
 
 const emit = defineEmits(['go-home', 'go-login', 'go-signup', 'signup-success'])
 
 const form = reactive({
+  firstName: '', lastName: '', email: '',
+  role: '', password: '', confirm: '', agreed: false
+})
+
+const errors = reactive({
   firstName: '', lastName: '', email: '',
   role: '', password: '', confirm: '', agreed: false
 })
@@ -31,12 +41,61 @@ const strengthLabel = computed(() =>
   ['Weak', 'Fair', 'Good', 'Strong'][passwordStrength.value - 1] || 'Weak'
 )
 
+function validateSignup() {
+  errors.firstName = '' 
+  errors.lastName = '' 
+  errors.email = ''
+  errors.role = ''
+  errors.password = ''
+
+  let valid = true
+  if (!form.email.includes('@')) {
+    errors.email = 'Enter a valid email.'
+    valid = false
+  }
+  if (form.password.length < 6) {
+    errors.password = 'Password must be at least 6 characters.'
+    valid = false
+  }
+
+
+  return valid
+}
+
 async function handleSignup() {
-  if (form.password !== form.confirm) return
+  errors.password = ''
+
+  if (form.password !== form.confirm) {
+    errors.password = 'Password confirmation does not match the password.'
+    return
+  }
+
+  const valid = validateSignup()
+
+  if (!valid) {
+    return
+  }
+
   loading.value = true
-  await new Promise(r => setTimeout(r, 1200))
-  loading.value = false
-  emit('signup-success')
+
+  try {
+    const fullName = `${form.firstName} ${form.lastName}`.trim()
+
+    const newUserId = await create(
+      fullName,
+      form.role,
+      form.password,
+      form.email
+    )
+
+    console.log('Created user:', newUserId)
+
+    router.push('/login')
+  } catch (err) {
+    console.log('UNEXPECTED SIGN UP ERROR:', err)
+  } finally {
+    loading.value = false
+  }
 }
 </script>
 

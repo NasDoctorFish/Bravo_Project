@@ -14,12 +14,12 @@ export const supabase = createClient(supabaseUrl, supabasePublicKey)
 
 
 // Sign In
-async function signUpNewUser() {
-  const { data, error } = await supabase.auth.signUp({
-    email: 'valid.email@supabase.io',
-    password: 'example-password',
-    options: {
-      emailRedirectTo: 'localhost/home',
-    },
-  })
-}
+// export async function signUpNewUser(email: string, ) {
+//   const { data, error } = await supabase.auth.signUp({
+//     email: 'valid.email@supabase.io',
+//     password: 'example-password',
+//     options: {
+//       emailRedirectTo: 'localhost/home',
+//     },
+//   })
+// }

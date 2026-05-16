@@ -1,12 +1,17 @@
 <script setup lang="ts">
-import { ref, reactive } from 'vue'
+import { ref, reactive, watch } from 'vue'
 import { useAuth } from '../composables/useAuth'
 import { useRouter } from 'vue-router'
 
 const emit = defineEmits(['go-home', 'go-login', 'go-signup', 'login-success'])
 
-const { signIn } = useAuth()
+const { signIn, isLoggedIn, sessionReady } = useAuth()
 const router = useRouter()
+
+// Redirect immediately if a valid session already exists
+watch([sessionReady, isLoggedIn], ([ready, loggedIn]) => {
+  if (ready && loggedIn) router.push('/')
+}, { immediate: true })
 
 const form = reactive({ email: '', password: '', remember: false })
 const errors = reactive({ email: '', password: '' })
