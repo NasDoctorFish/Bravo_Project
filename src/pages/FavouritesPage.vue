@@ -80,9 +80,9 @@ function progressWidth(value: number | undefined) {
       </nav>
       <nav class="nav-actions">
         <RouterLink to="/" class="nav-link" @click="emit('go-home')">Home</RouterLink>
-        <RouterLink to="/" class="nav-link logout-link" @click="emit('go-logout')">
+        <button class="nav-link logout-link" @click="async () => { await signOut(); router.push('/') }">
           <span class="logout-icon">⇢</span> Logout
-        </RouterLink>
+        </button>
       </nav>
     </header>
 

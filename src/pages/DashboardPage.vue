@@ -106,19 +106,19 @@ const emit = defineEmits(['go-home', 'go-logout', 'go-search', 'go-create', 'go-
 
     <!-- Header -->
     <header class="header">
-      <RouterLink to="/" class="brand" @click.prevent="emit('go-home')">
+      <RouterLink to="/" class="brand">
         <span class="logo">♥</span>
         <span>FundRise</span>
       </RouterLink>
       <nav class="nav">
-        <RouterLink to="/fra/search" class="nav-link" @click.prevent="emit('go-search')">⌕ Donate</RouterLink>
-        <RouterLink to="/fra/create" class="nav-link" @click.prevent="emit('go-create')">Fundraising</RouterLink>
+        <RouterLink to="/fra/search" class="nav-link">⌕ Donate</RouterLink>
+        <RouterLink to="/fra/create" class="nav-link">Fundraising</RouterLink>
       </nav>
       <nav class="nav-actions">
-        <RouterLink to="/" class="nav-link" @click.prevent="emit('go-home')">Home</RouterLink>
-        <RouterLink to="/" class="nav-link logout-link" @click.prevent="emit('go-logout')">
+        <RouterLink to="/" class="nav-link">Home</RouterLink>
+        <button class="nav-link logout-link" @click="async () => { await signOut(); router.push('/') }">
           <span class="logout-icon">⇢</span> Logout
-        </RouterLink>
+        </button>
       </nav>
     </header>
 
@@ -131,11 +131,10 @@ const emit = defineEmits(['go-home', 'go-logout', 'go-search', 'go-create', 'go-
           <h2 class="dash-title">Dashboard</h2>
           <p class="dash-subtitle">Welcome back, Jane 👋</p>
         </div>
-        <RouterLink to="/fra/create" class="btn-create" @click.prevent="emit('go-create')">+ New Campaign</RouterLink>
         <div class="topbar-actions">
           <button class="btn-secondary" @click="router.push('/fra-history')">📋 FRA History</button>
           <button class="btn-secondary" @click="router.push('/donation-history')">💰 Donation History</button>
-          <button class="btn-create" @click="emit('go-create')">+ New Campaign</button>
+          <button class="btn-create" @click="router.push('/fra/create')">+ New Campaign</button>
         </div>
       </div>
 
@@ -202,7 +201,7 @@ const emit = defineEmits(['go-home', 'go-logout', 'go-search', 'go-create', 'go-
       <section class="dashboard-section">
         <div class="section-header">
           <h3>Recent Campaigns</h3>
-          <RouterLink to="/fra/search" class="view-all" @click.prevent="emit('go-search')">View all →</RouterLink>
+          <RouterLink to="/fra/search" class="view-all">View all →</RouterLink>
         </div>
         <div class="table-wrap">
           <table class="table">
@@ -291,7 +290,7 @@ const emit = defineEmits(['go-home', 'go-logout', 'go-search', 'go-create', 'go-
 .nav-actions { display: flex; align-items: center; gap: 16px; margin-left: auto; }
 .nav-link { font-size: 0.88rem; color: #555; text-decoration: none; font-weight: 500; }
 .nav-link:hover { color: #111; }
-.logout-link { color: #ef4444; }
+.logout-link { color: #ef4444; background: none; border: none; cursor: pointer; }
 .logout-icon { margin-right: 4px; }
 .footer {
   text-align: center;
