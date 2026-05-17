@@ -99,7 +99,7 @@ export class FundRaisingActivityClass {
     }
     return data;
   }
-
+  
   // Read all FRAs for a user
   static async readByUserId(userId: string): Promise<FundRaisingActivityClass[]> {
     const { data, error } = await supabase

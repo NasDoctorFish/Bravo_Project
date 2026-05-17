@@ -43,6 +43,23 @@ export function validateCategoryFormat(categoryData: any): boolean {
 }
 
 /**
+ * read category data from Category Column
+ */
+
+export async function readCategory(): Promise<Category[]>{
+  const { data: categoryData, error: categoryError } = await supabase
+      .from('category')
+      .select('*')
+  
+  if (categoryError) {
+    throw new Error('Error occured on categoryController')
+  }
+  return categoryData
+}
+
+
+
+/**
  * check any duplicates on Category SQL database
  * returns Promise<Boolean> type since it is async function
  */
