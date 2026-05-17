@@ -126,7 +126,7 @@ export async function validateUser(id: number, pass: string): Promise<boolean> {
 
   userid = id
   password = pass
-  isAdmin = data.userprofile?.role === 'User Admin'
+  isAdmin = data.userprofile?.role === 'UA' //User Admin
   return true
 }
 
