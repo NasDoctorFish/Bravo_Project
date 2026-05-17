@@ -19,9 +19,13 @@ else {
   console.log('Logged Out')
 }
 
-
-import { ref, computed } from 'vue'
+import { ref, computed, watch } from 'vue'
 import { fraController } from '../controllers/fraController'
+
+// Redirect unauthenticated users to login
+watch(sessionReady, (ready) => {
+  if (ready && !isLoggedIn.value) router.push('/login')
+}, { immediate: true })
 
 const selectedFra = ref<any>(null)
 

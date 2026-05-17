@@ -2,11 +2,11 @@
 import { useAuth } from '../composables/useAuth'
 const { isLoggedIn, userId, userRole, sessionReady, signOut } = useAuth()
 import { useRouter } from 'vue-router'
-import { ref, computed } from 'vue'
+import { ref, computed, watch } from 'vue'
 import { generateReportData, exportReportAsDocx } from '../controllers/reportController'
 
 const router = useRouter()
-const emit = defineEmits(['go-home', 'go-login', 'go-signup', 'go-search'])
+const emit = defineEmits(['go-home', 'go-login', 'go-signup', 'go-search', 'go-logout'])
 
 if (isLoggedIn.value) {
   console.log(
@@ -20,6 +20,15 @@ else {
   console.log('Logged Out')
 }
 
+// Redirect unauthenticated users; restrict to PM (Platform Manager) role only
+watch(sessionReady, (ready) => {
+  if (!ready) return
+  if (!isLoggedIn.value) {
+    router.push('/login')
+  } else if (userRole.value !== 'PM') {
+    router.push('/')
+  }
+}, { immediate: true })
 
 // For Chart
 import {

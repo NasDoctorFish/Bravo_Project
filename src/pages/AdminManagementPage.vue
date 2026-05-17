@@ -2,7 +2,7 @@
 import { useAuth } from '../composables/useAuth'
 const { isLoggedIn, userId, userRole, sessionReady, signOut } = useAuth()
 import { useRouter } from 'vue-router'
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import { create } from '../controllers/authController'
 import { updateUser, searchUser} from '../controllers/userController'
 
@@ -20,6 +20,16 @@ if (isLoggedIn.value) {
 else {
   console.log('Logged Out')
 }
+
+// Redirect unauthenticated users; restrict to UA (User Admin) role only
+watch(sessionReady, (ready) => {
+  if (!ready) return
+  if (!isLoggedIn.value) {
+    router.push('/login')
+  } else if (userRole.value !== 'UA') {
+    router.push('/')
+  }
+}, { immediate: true })
 
 const searchQuery = ref('')
 const filterRole = ref('')

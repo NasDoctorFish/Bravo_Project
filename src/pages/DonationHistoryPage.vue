@@ -2,7 +2,7 @@
 import { useAuth } from '../composables/useAuth'
 const { isLoggedIn, userId, userRole, sessionReady, signOut } = useAuth()
 import { useRouter } from 'vue-router'
-import { ref, computed } from 'vue'
+import { ref, computed, watch } from 'vue'
 
 const router = useRouter()
 const emit = defineEmits(['go-home', 'go-login', 'go-logout', 'go-search', 'go-favorites', 'go-favourites', 'go-history', 'go-campaigndetail', 'go-signup'])
@@ -18,6 +18,11 @@ if (isLoggedIn.value) {
 else {
   console.log('Logged Out')
 }
+
+// Redirect unauthenticated users to login
+watch(sessionReady, (ready) => {
+  if (ready && !isLoggedIn.value) router.push('/login')
+}, { immediate: true })
 
 const donations = ref([
   { donationId: 'D001', fsaName: 'Clean Water Initiative',  category: 'Environment', amount: 150, donatedAt: '2026-04-01', progress: 74,  fsaStatus: 'active'    },

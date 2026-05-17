@@ -23,6 +23,11 @@ else {
   console.log('Logged Out')
 }
 
+// Redirect unauthenticated users to login
+watch(sessionReady, (ready) => {
+  if (ready && !isLoggedIn.value) router.push('/login')
+}, { immediate: true })
+
 const {
   favourites,
   isLoading,

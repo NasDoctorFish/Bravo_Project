@@ -2,7 +2,7 @@
 import { useAuth } from '../composables/useAuth'
 const { isLoggedIn, userId, userRole, sessionReady, signOut } = useAuth()
 import { useRouter } from 'vue-router'
-import { ref, computed } from 'vue'
+import { ref, computed, watch } from 'vue'
 // import categoryController
 import { create, type CategoryData } from '../controllers/categoryController'
 
@@ -20,6 +20,16 @@ if (isLoggedIn.value) {
 else {
   console.log('Logged Out')
 }
+
+// Redirect unauthenticated users; restrict to PM (Platform Manager) role only
+watch(sessionReady, (ready) => {
+  if (!ready) return
+  if (!isLoggedIn.value) {
+    router.push('/login')
+  } else if (userRole.value !== 'PM') {
+    router.push('/')
+  }
+}, { immediate: true })
 
 const activeTab = ref('Pending')
 const searchQuery = ref('')
