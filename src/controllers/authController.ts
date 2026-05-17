@@ -49,7 +49,7 @@ export async function create(
     .insert([
       {
         email: email.trim(),
-        password: password.trim()
+        password_hash: password.trim()
       }
     ])
     .select('userid')
@@ -117,12 +117,12 @@ export async function cleanupExpiredSessions() {
 export async function validateUser(id: number, pass: string): Promise<boolean> {
   const { data, error } = await supabase
     .from('useraccount')
-    .select('*, userprofile(role)')
+    .select('userid, password_hash, userprofile(role)')
     .eq('userid', id)
-    .eq('password', pass)
     .single()
 
   if (error || !data) return false
+  if (data.password_hash !== pass) return false
 
   userid = id
   password = pass
@@ -137,13 +137,16 @@ export async function login(
 ): Promise<{ userid: number; role: string }> {
   const { data, error } = await supabase
     .from('useraccount')
-    .select('userid, userprofile(role)')
+    .select('userid, password_hash, userprofile(role)')
     .eq('email', email.trim())
-    .eq('password', password.trim())
     .maybeSingle()
 
   if (error) throw error
   if (!data) throw new Error('Invalid email or password.')
+
+  if (data.password_hash !== password.trim()) {
+    throw new Error('Invalid email or password.')
+  }
 
   const profile = (data as any).userprofile
   const role = (Array.isArray(profile) ? profile[0]?.role : profile?.role) ?? ''
