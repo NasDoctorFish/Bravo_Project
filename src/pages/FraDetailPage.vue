@@ -5,13 +5,15 @@ import { useRoute } from 'vue-router'
 import { fraController } from '../controllers/fraController'
 import { useAuth } from '../composables/useAuth'
 const { isLoggedIn, userId: authUserId, userRole, sessionReady, signOut } = useAuth()
+const authUserIdValue = computed(() => authUserId?.value ?? authUserId)
+console.log('👤 authUserId:', authUserId.value)
 import { useRouter } from 'vue-router'
 
 //  BOUNDARY — FraDetailPage
-import { useFraDetailController } from '../entity/FraDetailPage_Entity'
+import { useFraDetailController } from '../controllers/FraDetailPage_Control'
 
 const props = defineProps<{
-  fraid: string,
+  fraId: string,
 }>()
 
 const router = useRouter()
@@ -31,7 +33,7 @@ else {
 
 // Auth & Route
 const route = useRoute()
-const fraId = Number(route.params.id)
+const routeFraId = Number(props.fraId)
 const userId = ref<number | null>(null)
 
 // Owner status toggle (FR-2-08)
@@ -58,6 +60,7 @@ const {
 
   getCampaignDetail,
   getDonations,
+  checkFavorite,
   submitDonation,
   toggleFavorite,
 } = useFraDetailController()
@@ -67,9 +70,13 @@ const copied    = ref(false)
 const tabs      = ['About', 'Updates', 'Donors']
 
 onMounted(async () => {
-  const id = String(route.params.id)
-  await getCampaignDetail(id)   // displayCampaignDetail()
-  await getDonations(id)        // displayDonations()
+  const id = String(props.fraId)
+  await getCampaignDetail(id)
+  await getDonations(id)
+  if (authUserId) {
+    console.log('🔍 calling checkFavorite with:', authUserId, id)
+    await checkFavorite(String(authUserIdValue.value), id)
+  }
 })
 
 // Computed
@@ -173,7 +180,7 @@ function handleEditFra() {
               class="favorite-btn"
               :class="{ saved: isFavorited }"
               type="button"
-              @click="toggleFavorite"
+              @click="toggleFavorite(authUserIdValue)"
             >
               <span class="favorite-icon">{{ isFavorited ? '♥' : '♡' }}</span>
               {{ isFavorited ? 'Saved' : 'Save' }}

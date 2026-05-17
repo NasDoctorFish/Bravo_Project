@@ -1,45 +1,8 @@
 //  CONTROL — FraDetailController
 
 import { ref, computed } from 'vue'
-import { FundRaisingActivity } from './FundRaisingActivity.js'
-import { Donation }            from './Donation.js'
-
-const CAMPAIGN_SEED = new FundRaisingActivity({
-  fraId:         '1',
-  userId:        'u1',
-  title:         'Clean Water for Rural Schools',
-  name:          'Clean Water for Rural Schools',
-  createdBy:     'Jane Doe',
-  categoryId:    'Education',
-  status:        'active',
-  description:   'Thousands of children in rural schools lack access to clean drinking water, '
-               + 'leading to preventable illnesses and school absences. This campaign aims to '
-               + 'install water filtration systems in 5 schools, benefiting over 2,000 students.',
-  targetAmount:  10000,
-  currentAmount: 7400,
-  endDate:       '2026-06-30',
-  image:         'https://placehold.co/1100x320/d8f3dc/2d6a4f?text=Campaign+Banner',
-  tiers:         [25, 50, 100, 250],
-  impact: [
-    '5 schools to receive clean water filtration systems',
-    'Over 2,000 students will benefit',
-    'Expected to reduce waterborne illnesses by 60%',
-    'Maintenance training provided to school staff',
-  ],
-  updates: [
-    { date: 'Apr 28, 2026', text: 'We have reached 70% of our goal! Thank you to all our amazing donors. First installation begins next month.' },
-    { date: 'Mar 15, 2026', text: 'Campaign launched! We are excited to start this journey with your support.' },
-  ],
-})
-
-const donationStore = [
-  new Donation({ donationId: 'd1', userId: 'uA', fraId: '1', donorName: 'Michael T.', amount: 250, donatedAt: new Date(Date.now() - 2   * 60_000) }),
-  new Donation({ donationId: 'd2', userId: 'uB', fraId: '1', donorName: 'Sara L.',    amount: 100, donatedAt: new Date(Date.now() - 60  * 60_000) }),
-  new Donation({ donationId: 'd3', userId: 'uC', fraId: '1', donorName: 'Anonymous',  amount: 50,  donatedAt: new Date(Date.now() - 180 * 60_000), isAnonymous: true }),
-  new Donation({ donationId: 'd4', userId: 'uD', fraId: '1', donorName: 'David K.',   amount: 500, donatedAt: new Date(Date.now() - 26  * 3_600_000) }),
-]
-
-const FAVORITES_KEY = 'fundrise-favorites'
+import { supabase } from '../lib/supabaseClient'
+import { useFavouritesController } from './FavouritesController'
 
 export function useFraDetailController() {
 
@@ -57,23 +20,45 @@ export function useFraDetailController() {
   const donateError   = ref(null)
 
   // Favorites state
-  const favoriteList    = ref(_loadFavorites())
+  const { saveFavourite, removeFavourite, checkDuplicate } = useFavouritesController()
+  const isFavorited     = ref(false)
   const favoriteMessage = ref('')
 
   async function getCampaignDetail(id) {
-    error.value    = null
+    error.value     = null
     isLoading.value = true
-    fraId.value    = id
+    fraId.value     = id
 
     try {
-      const found = id === CAMPAIGN_SEED.fraId
-        ? CAMPAIGN_SEED
-        : FundRaisingActivity.readById(id, [CAMPAIGN_SEED])
+      const { data, error: err } = await supabase
+        .from('fundraisingactivity')
+        .select('*')
+        .eq('fraid', Number(id))
+        .single()
 
-      if (!found) throw new Error(`Campaign "${id}" was not found.`)
+      if (err) throw err
 
-      campaign.value = found
+      const target  = data.targetamount  ?? 0
+      const current = data.currentamount ?? 0
 
+      campaign.value = {
+        ...data,
+        fraId:           data.fraid,
+        userId:          data.userid,
+        title:           data.title,
+        description:     data.description,
+        createdBy:       data.createdby,
+        categoryId:      data.categoryid,
+        status:          data.status,
+        targetAmount:    target,
+        currentAmount:   current,
+        startDate:       data.startdate,
+        endDate:         data.enddate,
+        progressPercent: target > 0
+          ? Math.min(Math.round((current / target) * 100), 100)
+          : 0,
+        tiers: [25, 50, 100, 250],
+      }
     } catch (e) {
       error.value    = e.message
       campaign.value = null
@@ -84,81 +69,127 @@ export function useFraDetailController() {
 
   async function getDonations(id) {
     try {
-      // Delegates to Entity static method
-      donations.value = Donation.readByFra(id, donationStore)
+      const { data, error: err } = await supabase
+        .from('donation')
+        .select('*')
+        .eq('fraid', Number(id))
+        .order('donatedat', { ascending: false })
+
+      if (err) throw err
+
+      donations.value = (data ?? []).map(d => ({
+        donationId:    d.donationid,
+        userId:        d.userid,
+        fraId:         d.fraid,
+        amount:        d.amount,
+        displayName:   d.isanonymous ? 'Anonymous' : (d.donorname ?? 'Donor'),
+        avatarInitial: d.isanonymous ? '?' : (d.donorname?.[0] ?? 'D'),
+        timeAgo:       getTimeAgo(d.donatedat),
+      }))
     } catch (e) {
       error.value = e.message
     }
+  }
+
+  // ADD this helper anywhere before the return
+  function getTimeAgo(timestamp) {
+    const diff = Math.floor((Date.now() - new Date(timestamp).getTime()) / 60000)
+    if (diff < 60)   return `${diff}m ago`
+    if (diff < 1440) return `${Math.floor(diff / 60)}h ago`
+    return `${Math.floor(diff / 1440)}d ago`
   }
 
   async function submitDonation(userId = 'guest') {
     donateError.value   = null
     donateSuccess.value = false
 
-    // Validate via Entity before doing anything
-    try {
-      Donation.validate({
-        fraId:  fraId.value,
-        userId,
-        amount: donateAmount.value,
-      })
-    } catch (e) {
-      donateError.value = e.message
+    if (!donateAmount.value || donateAmount.value < 1) {
+      donateError.value = 'Please enter a valid donation amount.'
       return
     }
 
     isDonating.value = true
     try {
-      await new Promise(r => setTimeout(r, 1200))
+      const { error: err } = await supabase
+        .from('donation')
+        .insert({
+          userid:  Number(userId),
+          fraid:   Number(fraId.value),
+          amount:  donateAmount.value,
+          message: donateMessage.value,
+        })
 
-      // Create Donation entity and store
-      const newDonation = Donation.create({
-        fraId:      fraId.value,
-        userId,
-        donorName:  'You',
-        amount:     donateAmount.value,
-        message:    donateMessage.value,
-        isAnonymous: false,
-      }, donationStore)
+      if (err) throw err
 
-      // Update campaign's running total
       if (campaign.value) {
-        campaign.value.currentAmount += newDonation.amount
+        campaign.value.currentAmount  += donateAmount.value
+        campaign.value.progressPercent = Math.min(
+          Math.round((campaign.value.currentAmount / campaign.value.targetAmount) * 100),
+          100
+        )
       }
 
-      // Refresh donation list shown in Donors tab
       await getDonations(fraId.value)
-
       donateSuccess.value = true
       donateMessage.value = ''
-
     } catch (e) {
       donateError.value = e.message
     } finally {
       isDonating.value = false
     }
   }
+  
+  async function checkFavorite(userId, fid) {
+  const uid = Number(userId)
+  const fraid = Number(fid)
+  console.log('🔍 checkFavorite uid:', uid, 'fraid:', fraid)
+  const { data } = await supabase
+    .from('favourites')
+    .select('favouriteid')
+    .eq('userid', uid)
+    .eq('fraid', fraid)
+    .maybeSingle()
+  isFavorited.value = !!data
+}
 
-  function toggleFavorite() {
-    if (!campaign.value) return
-    const id = campaign.value.fraId
-    const exists = favoriteList.value.some(f => f.fraId === id)
+  async function toggleFavorite(userId) {
+    if (!campaign.value || !userId) {
+      favoriteMessage.value = 'Please log in to save favourites.'
+      setTimeout(() => { favoriteMessage.value = '' }, 2200)
+      return
+    }
 
-    favoriteList.value = exists
-      ? favoriteList.value.filter(f => f.fraId !== id)
-      : [...favoriteList.value, campaign.value.toJSON()]
+    const uid = Number(userId)
+    const fid = Number(campaign.value.fraid ?? campaign.value.fraId)
 
-    _saveFavorites(favoriteList.value)
-    favoriteMessage.value = exists ? 'Removed from favourites' : 'Saved to favourites'
+    console.log('❤️ toggleFavorite uid:', uid, 'fid:', fid)
+
+    try {
+      if (isFavorited.value) {
+        const { error: err } = await supabase
+          .from('favourites')
+          .delete()
+          .eq('userid', uid)
+          .eq('fraid', fid)
+        if (err) throw err
+        isFavorited.value     = false
+        favoriteMessage.value = 'Removed from favourites'
+      } else {
+        const { error: err } = await supabase
+          .from('favourites')
+          .insert({ userid: uid, fraid: fid })
+        if (err) throw err
+        isFavorited.value     = true
+        favoriteMessage.value = 'Saved to favourites!'
+      }
+    } catch (e) {
+      console.error('🔴 toggleFavorite error:', e)
+      favoriteMessage.value = e.message
+    }
+
     setTimeout(() => { favoriteMessage.value = '' }, 2200)
   }
 
-  /** True when campaign is in the favorites list */
-  const isFavorited = computed(() =>
-    campaign.value
-      ? favoriteList.value.some(f => f.fraId === campaign.value.fraId)
-      : false
-  )
 
   /** Calculated days remaining until campaign end date */
   const daysLeft = computed(() => {
@@ -173,21 +204,6 @@ export function useFraDetailController() {
 
   /** Whether an error state exists */
   const hasError = computed(() => !!error.value)
-
-  function _loadFavorites() {
-    try {
-      return JSON.parse(localStorage.getItem(FAVORITES_KEY) || '[]')
-    } catch {
-      return []
-    }
-  }
-
-  function _saveFavorites(list) {
-    try {
-      localStorage.setItem(FAVORITES_KEY, JSON.stringify(list))
-    } catch {
-    }
-  }
 
   return {
     // State
@@ -213,6 +229,7 @@ export function useFraDetailController() {
     hasError,
 
     getCampaignDetail,
+    checkFavorite,
     getDonations,
 
     submitDonation,

@@ -7,10 +7,10 @@ import type { FundRaisingActivity } from '../models/FundRaisingActivity'
 // ── Types ──────────────────────────────────────────────────────────────────
 
 interface FavouriteRecord {
-  favouriteId: string
-  userId:      string
-  fraId:       string | number
-  savedAt:     string
+  favouriteid: string
+  userid:      string
+  fraid:       string | number
+  savedat?:    string
 }
 
 interface FavouriteItem {
@@ -30,7 +30,7 @@ export async function retrieveFavourites(userId: string): Promise<FavouriteRecor
   const { data, error } = await supabase
     .from('favourites')
     .select('*')
-    .eq('userId', userId)
+    .eq('userid', userId)
   if (error) throw error
   return (data ?? []) as FavouriteRecord[]
 }
@@ -47,9 +47,9 @@ export function useFavouritesController() {
   async function checkDuplicate(uid: string, fid: string | number): Promise<boolean> {
     const { data } = await supabase
       .from('favourites')
-      .select('favouriteId')
-      .eq('userId', uid)
-      .eq('fraId', fid)
+      .select('favouriteid')
+      .eq('userid', uid)
+      .eq('fraid', fid)
       .maybeSingle()
     return !!data
   }
@@ -65,7 +65,7 @@ export function useFavouritesController() {
       }
       const { error: err } = await supabase
         .from('favourites')
-        .insert({ userId: uid, fraId: fid })
+        .insert({ userid: Number(uid), fraid: Number(fid) })
       if (err) throw err
       await getFavourites(uid)
       confirmation.value = 'Campaign saved to your favourites!'
@@ -84,8 +84,8 @@ export function useFavouritesController() {
       const { error: err } = await supabase
         .from('favourites')
         .delete()
-        .eq('userId', uid)
-        .eq('fraId', fid)
+        .eq('userid', uid)
+        .eq('fraid', fid)
       if (err) throw err
       await getFavourites(uid)
       confirmation.value = 'Campaign removed from your favourites.'
@@ -116,28 +116,45 @@ export function useFavouritesController() {
       }
 
       // Fetch the corresponding campaigns in one query
-      const fraIds = favRows.map((f: any) => f.fraId)
+      const fraIds = favRows.map((f: any) => f.fraid)
       const { data: campaigns, error: camErr } = await supabase
         .from('fundraisingactivity')
         .select('*')
-        .in('fraId', fraIds)
-      if (camErr) throw camErr
+        .in('fraid', fraIds)
 
-      const campaignMap = new Map((campaigns ?? []).map((c: any) => [String(c.fraId), c]))
+      const campaignMap = new Map((campaigns ?? []).map((c: any) => [String(c.fraid), c]))
 
       favourites.value = favRows.map((f: any) => {
-        const cam = campaignMap.get(String(f.fraId)) as any ?? {}
-        const progressPercent = cam.targetAmount > 0
-          ? Math.min(Math.round((cam.currentAmount / cam.targetAmount) * 100), 100)
+        const cam = campaignMap.get(String(f.fraid)) as any ?? {}
+        const target  = cam.targetamount  ?? 0
+        const current = cam.currentamount ?? 0
+        const progressPercent = target > 0
+          ? Math.min(Math.round((current / target) * 100), 100)
           : 0
         return {
           favourite: {
-            favouriteId: f.favouriteId,
-            userId:      f.userId,
-            fraId:       f.fraId,
-            savedAt:     f.savedAt,
+            favouriteid: f.favouriteid,
+            userid:      f.userid,
+            fraid:       f.fraid,
+            savedat:     f.savedat,
           } as FavouriteRecord,
-          campaign: { ...cam as FundRaisingActivity, progressPercent },
+          campaign: {
+            ...cam,
+            // map to camelCase so template works
+            fraId:           cam.fraid,
+            userId:          cam.userid,
+            title:           cam.title,
+            description:     cam.description,
+            createdBy:       cam.createdby,
+            categoryId:      cam.categoryid,
+            status:          cam.status,
+            targetAmount:    target,
+            currentAmount:   current,
+            startDate:       cam.startdate,
+            endDate:         cam.enddate,
+            image:           cam.image ?? null,
+            progressPercent,
+          },
         }
       })
     } catch (e: any) {

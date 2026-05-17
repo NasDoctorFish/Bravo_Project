@@ -51,13 +51,13 @@ watch(authUserId, (uid) => {
 
 function viewDetails(campaign: unknown) {
   emit('go-campaigndetail', campaign)
-  const fraId = (campaign as { fraId?: string | number } | null)?.fraId
+  const fraId = (campaign as any)?.fraId ?? (campaign as any)?.fraid
   if (fraId) router.push(`/fra/${fraId}`)
 }
 
 function clickSaveFavourite(fid: string | number) {
   if (!authUserId.value) return
-  removeFavourite(authUserId.value, fid)
+  removeFavourite(String(authUserId.value), fid)
 }
 
 function progressWidth(value: number | undefined) {
@@ -130,7 +130,7 @@ function progressWidth(value: number | undefined) {
 
             <article
               v-for="item in favourites"
-              :key="item.favourite.favouriteId || item.favourite.fraId"
+              :key="item.favourite.favouriteid || item.favourite.fraid"
               class="campaign-card"
             >
               <div
