@@ -13,7 +13,7 @@ interface AuthSession {
 const STORAGE_KEY = 'fr_auth'
 
 // Module-level singleton so all components share the same reactive state
-const _userid    = ref<number | null>(null)
+const _userId    = ref<number | null>(null)
 const _userRole  = ref<string | null>(null)
 const _userName = ref<string | null>(null)
 const _sessionId = ref<number | null>(null)
@@ -27,13 +27,13 @@ async function restoreSession() {
     const stored = localStorage.getItem(STORAGE_KEY)
     if (stored) {
       const parsed = JSON.parse(stored)
-      if (parsed.userid && parsed.sessionId) {
-        const valid = await validateSession(String(parsed.userid), parsed.sessionId)
+      if (parsed.userId && parsed.sessionId) {
+        const valid = await validateSession(String(parsed.userId), parsed.sessionId)
         if (valid) {
           const { data: profileData, error: profileError } = await supabase
             .from('userprofile')
             .select('name, role')
-            .eq('userid', parsed.userid)
+            .eq('userid', parsed.userId)
             .single()
 
           if (profileError) {
@@ -42,7 +42,7 @@ async function restoreSession() {
             throw profileError
           }
 
-          _userid.value    = parsed.userid
+          _userId.value    = parsed.userId
           _userRole.value  = profileData.role
           _userName.value = profileData.name
           _sessionId.value = parsed.sessionId
@@ -59,10 +59,10 @@ async function restoreSession() {
 restoreSession()
 
 export function useAuth() {
-  const isLoggedIn   = computed(() => _userid.value !== null)
+  const isLoggedIn   = computed(() => _userId.value !== null)
   const sessionReady = computed(() => _ready.value)
   // Return as string for compatibility with Supabase query params
-  const userid    = computed(() => _userid.value !== null ? String(_userid.value) : null)
+  const userId    = computed(() => _userId.value !== null ? String(_userId.value) : null)
   const userRole  = computed(() => _userRole.value)
   const userName = computed(() => _userName.value)
   const userEmail = computed(() => null as string | null)
@@ -94,12 +94,12 @@ export function useAuth() {
 
     const sessionId: number = sessionData.sessionid
 
-    _userid.value    = result.userid
+    _userId.value    = result.userid
     _userRole.value  = result.role
     _userName.value = profileData.name
     _sessionId.value = sessionId
     localStorage.setItem(STORAGE_KEY, JSON.stringify({
-      userid:    result.userid,
+      userId:    result.userid,
       role:      result.role,
       sessionId,
     }))
@@ -109,7 +109,7 @@ export function useAuth() {
     if (_sessionId.value !== null) {
       await deleteSession(_sessionId.value)
     }
-    _userid.value    = null
+    _userId.value    = null
     _userRole.value  = null
     _userName.value = null
     _sessionId.value = null
@@ -117,7 +117,7 @@ export function useAuth() {
   }
 
   return {
-    userid,
+    userId,
     userEmail,
     userRole,
     userName,

@@ -1,6 +1,6 @@
 <script setup>
 import { useAuth } from '../composables/useAuth'
-const { isLoggedIn, userid, userRole, sessionReady, signOut } = useAuth()
+const { isLoggedIn, userId, userRole, sessionReady, signOut } = useAuth()
 import { useRouter } from 'vue-router'
 import { ref, computed, onMounted, watch } from 'vue'
 import { create } from '../controllers/authController'
@@ -12,7 +12,7 @@ const emit = defineEmits(['go-home', 'go-logout', 'go-search', 'go-login', 'go-s
 if (isLoggedIn.value) {
   console.log(
     'Logged in as...\n',
-    'userid: ', userid.value,
+    'userid: ', userId.value,
     '\nRole: ', userRole.value,
     '\nsessionReady: ', sessionReady.value
   )

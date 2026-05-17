@@ -2,10 +2,10 @@
 import { supabase } from '../lib/supabaseClient'
 
 export type Category = {
-  categoryid?: number
+  categoryId?: number
   categoryname: string
   categorydescription: string
-  createdat?: string
+  createdAt?: string
 }
 
 export type CategoryData = {

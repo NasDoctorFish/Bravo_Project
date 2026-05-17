@@ -8,13 +8,13 @@ import { useAuth } from '../composables/useAuth'
 const emit = defineEmits(['go-home', 'go-logout', 'go-search', 'go-campaigndetail'])
 const router = useRouter()
 
-const { userid: authuserid, isLoggedIn } = useAuth()
-const { userid, userRole, sessionReady, signOut } = useAuth()
+const { userId: authUserId, isLoggedIn } = useAuth()
+const { userId, userRole, sessionReady, signOut } = useAuth()
 
 if (isLoggedIn.value) {
   console.log(
     'Logged in as...\n',
-    'userid: ', userid.value,
+    'userid: ', userId.value,
     '\nRole: ', userRole.value,
     '\nsessionReady: ', sessionReady.value
   )
@@ -41,9 +41,9 @@ const {
   removeFavourite,
 } = useFavouritesController()
 
-const canShowFavourites = computed(() => isLoggedIn.value && !!authuserid.value)
+const canShowFavourites = computed(() => isLoggedIn.value && !!authUserId.value)
 
-watch(authuserid, (uid) => {
+watch(authUserId, (uid) => {
   if (uid) {
     getFavourites(uid)
   }
@@ -51,13 +51,13 @@ watch(authuserid, (uid) => {
 
 function viewDetails(campaign: unknown) {
   emit('go-campaigndetail', campaign)
-  const fraid = (campaign as { fraid?: string | number } | null)?.fraid
-  if (fraid) router.push(`/fra/${fraid}`)
+  const fraId = (campaign as { fraId?: string | number } | null)?.fraId
+  if (fraId) router.push(`/fra/${fraId}`)
 }
 
 function clickSaveFavourite(fid: string | number) {
-  if (!authuserid.value) return
-  removeFavourite(authuserid.value, fid)
+  if (!authUserId.value) return
+  removeFavourite(authUserId.value, fid)
 }
 
 function progressWidth(value: number | undefined) {
@@ -130,7 +130,7 @@ function progressWidth(value: number | undefined) {
 
             <article
               v-for="item in favourites"
-              :key="item.favourite.favouriteId || item.favourite.fraid"
+              :key="item.favourite.favouriteId || item.favourite.fraId"
               class="campaign-card"
             >
               <div
@@ -151,7 +151,7 @@ function progressWidth(value: number | undefined) {
                   <span :class="['status-badge', 'status-' + (item.campaign.status?.toLowerCase() || 'unknown')]">
                     {{ item.campaign.status || 'unknown' }}
                   </span>
-                  <span class="campaign-category">Category {{ item.campaign.categoryid }}</span>
+                  <span class="campaign-category">Category {{ item.campaign.categoryId }}</span>
                 </div>
 
                 <h4 class="campaign-title">
@@ -171,14 +171,14 @@ function progressWidth(value: number | undefined) {
                   </div>
                   <div class="progress-labels">
                     <span class="progress-raised">
-                      ${{ item.campaign.current_amount?.toLocaleString() ?? '0' }} raised
+                      ${{ item.campaign.currentAmount?.toLocaleString() ?? '0' }} raised
                     </span>
                     <span class="progress-pct">{{ item.campaign.progressPercent ?? 0 }}%</span>
                   </div>
                 </div>
 
                 <p class="campaign-goal">
-                  Goal: ${{ item.campaign.target_amount?.toLocaleString() ?? '0' }}
+                  Goal: ${{ item.campaign.targetAmount?.toLocaleString() ?? '0' }}
                 </p>
 
                 <div class="campaign-actions">
@@ -190,7 +190,7 @@ function progressWidth(value: number | undefined) {
                   </button>
                   <button
                     class="btn btn-remove"
-                    @click.stop="clickSaveFavourite(item.favourite.fraid)"
+                    @click.stop="clickSaveFavourite(item.favourite.fraId)"
                     title="Remove from favourites"
                   >
                     Remove

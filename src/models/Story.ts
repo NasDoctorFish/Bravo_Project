@@ -2,21 +2,21 @@ import { supabase } from '../lib/supabaseClient'
 
 
 export interface Story {
-  storyid: string
-  fraid: string
+  storyId: string
+  fraId: string
   title: string
   content: string
-  createdat: string
+  createdAt: string
   status: string
 }
 
 
 export class Story {
-  static async readByFra(fraid: string): Promise<Story[]> {
+  static async readByFra(fraId: string): Promise<Story[]> {
     const { data, error } = await supabase
       .from('Story')
       .select('*')
-      .eq('fraid', fraid)
+      .eq('fraId', fraId)
 
 
     if (error) {

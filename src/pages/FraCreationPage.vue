@@ -1,7 +1,7 @@
 // FraCreationPage.vue
 <script setup lang="ts">
 import { useAuth } from '../composables/useAuth'
-const { isLoggedIn, userid, userRole, sessionReady, signOut } = useAuth()
+const { isLoggedIn, userId, userRole, sessionReady, signOut } = useAuth()
 import { useRouter } from 'vue-router'
 import { ref, reactive, watch } from 'vue'
 import { fraController } from '../controllers/fraController'
@@ -14,7 +14,7 @@ const emit = defineEmits(['go-home', 'go-logout', 'go-search', 'campaign-created
 if (isLoggedIn.value) {
   console.log(
     'Logged in as...\n',
-    'userid: ', userid.value,
+    'userid: ', userId.value,
     '\nRole: ', userRole.value,
     '\nsessionReady: ', sessionReady.value
   )
@@ -45,7 +45,7 @@ const categories = [
 const form = reactive({
   title:         '',
   description:   '',
-  category:      '',
+  category:      null as number | null,
   beneficiary:   '',
   goal:          null as number | null,
   minDonation:   null as number | null,
@@ -91,8 +91,8 @@ function handleDrop(e: DragEvent) {
 //       {
 //         title:        form.title,
 //         description:  form.description,
-//         target_amount: form.goal!,
-//         categoryid:   form.category,
+//         targetAmount: form.goal!,
+//         categoryId:   form.category,
 //       }
 //     )
 
@@ -109,7 +109,7 @@ async function handleCreateFra(): Promise<void> {
   submitting.value = true
 
   try {
-    if (!sessionReady.value || !isLoggedIn.value || !userid.value) {
+    if (!sessionReady.value || !isLoggedIn.value || !userId.value) {
       router.push('/login')
       return
     }
@@ -117,12 +117,12 @@ async function handleCreateFra(): Promise<void> {
     const controller = new fraController()
 
     await controller.createFra(
-      userid.value,
+      String(userId.value),
       {
         title:        form.title,
         description:  form.description,
-        target_amount: form.goal!,
-        categoryid:   form.category,
+        targetAmount: form.goal!,
+        categoryId:   Number(form.category),
       }
     )
 
@@ -140,8 +140,8 @@ function handleSuccessClose() {
   emit('campaign-created', {
     title:        form.title,
     description:  form.description,
-    target_amount: form.goal,
-    categoryid:   form.category,
+    targetAmount: form.goal,
+    categoryId:   form.category,
   })
 }
 </script>
@@ -220,7 +220,7 @@ function handleSuccessClose() {
               <label>Category <span class="required">*</span></label>
               <select v-model="form.category" class="form-select">
                 <option value="" disabled>Select category…</option>
-                <option v-for="c in categories" :key="c" :value="c">{{ c }}</option>
+                <option v-for="(c, idx) in categories" :key="c" :value="idx + 1">{{ c }}</option>
               </select>
             </div>
             <div class="form-group">

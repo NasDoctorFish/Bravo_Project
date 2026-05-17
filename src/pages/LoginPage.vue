@@ -5,12 +5,12 @@ import { useRouter } from 'vue-router'
 
 const emit = defineEmits(['go-home', 'go-login', 'go-signup', 'login-success'])
 
-const { signIn, isLoggedIn, sessionReady, userid, userRole, signOut } = useAuth()
+const { signIn, isLoggedIn, sessionReady, userId, userRole, signOut } = useAuth()
 
 if (isLoggedIn.value) {
   console.log(
     'Logged in as...\n',
-    'userid: ', userid.value,
+    'userid: ', userId.value,
     '\nRole: ', userRole.value,
     '\nsessionReady: ', sessionReady.value
   )

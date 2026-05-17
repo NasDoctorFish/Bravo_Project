@@ -8,8 +8,8 @@ import type { FundRaisingActivity } from '../models/FundRaisingActivity'
 
 interface FavouriteRecord {
   favouriteId: string
-  userid:      string
-  fraid:       string | number
+  userId:      string
+  fraId:       string | number
   savedAt:     string
 }
 
@@ -26,11 +26,11 @@ export async function retrieveFundRaisingActivity(): Promise<FundRaisingActivity
   return data as FundRaisingActivity[]
 }
 
-export async function retrieveFavourites(userid: string): Promise<FavouriteRecord[]> {
+export async function retrieveFavourites(userId: string): Promise<FavouriteRecord[]> {
   const { data, error } = await supabase
     .from('favourites')
     .select('*')
-    .eq('userid', userid)
+    .eq('userId', userId)
   if (error) throw error
   return (data ?? []) as FavouriteRecord[]
 }
@@ -38,7 +38,7 @@ export async function retrieveFavourites(userid: string): Promise<FavouriteRecor
 // ── Composable ─────────────────────────────────────────────────────────────
 
 export function useFavouritesController() {
-  const userid       = ref('currentUser')
+  const userId       = ref('currentUser')
   const favourites   = ref<FavouriteItem[]>([])
   const error        = ref<string | null>(null)
   const isLoading    = ref(false)
@@ -48,8 +48,8 @@ export function useFavouritesController() {
     const { data } = await supabase
       .from('favourites')
       .select('favouriteId')
-      .eq('userid', uid)
-      .eq('fraid', fid)
+      .eq('userId', uid)
+      .eq('fraId', fid)
       .maybeSingle()
     return !!data
   }
@@ -65,7 +65,7 @@ export function useFavouritesController() {
       }
       const { error: err } = await supabase
         .from('favourites')
-        .insert({ userid: uid, fraid: fid })
+        .insert({ userId: uid, fraId: fid })
       if (err) throw err
       await getFavourites(uid)
       confirmation.value = 'Campaign saved to your favourites!'
@@ -84,8 +84,8 @@ export function useFavouritesController() {
       const { error: err } = await supabase
         .from('favourites')
         .delete()
-        .eq('userid', uid)
-        .eq('fraid', fid)
+        .eq('userId', uid)
+        .eq('fraId', fid)
       if (err) throw err
       await getFavourites(uid)
       confirmation.value = 'Campaign removed from your favourites.'
@@ -99,17 +99,14 @@ export function useFavouritesController() {
     error.value     = null
     isLoading.value = true
 
-    // Use authenticated user's ID if available
-    const { data: { user } } = await supabase.auth.getUser()
-    const actualUid = user?.id ?? uid
-    userid.value = actualUid
+    userId.value = uid
 
     try {
       // Fetch favourites for this user
       const { data: favRows, error: favErr } = await supabase
         .from('favourites')
         .select('*')
-        .eq('userid', actualUid)
+        .eq('userid', uid)
         .order('savedat', { ascending: false })
       if (favErr) throw favErr
 
@@ -119,26 +116,26 @@ export function useFavouritesController() {
       }
 
       // Fetch the corresponding campaigns in one query
-      const fraids = favRows.map((f: any) => f.fraid)
+      const fraIds = favRows.map((f: any) => f.fraId)
       const { data: campaigns, error: camErr } = await supabase
         .from('fundraisingactivity')
         .select('*')
-        .in('fraid', fraids)
+        .in('fraId', fraIds)
       if (camErr) throw camErr
 
-      const campaignMap = new Map((campaigns ?? []).map((c: any) => [String(c.fraid), c]))
+      const campaignMap = new Map((campaigns ?? []).map((c: any) => [String(c.fraId), c]))
 
       favourites.value = favRows.map((f: any) => {
-        const cam = campaignMap.get(String(f.fraid)) as any ?? {}
-        const progressPercent = cam.target_amount > 0
-          ? Math.min(Math.round((cam.current_amount / cam.target_amount) * 100), 100)
+        const cam = campaignMap.get(String(f.fraId)) as any ?? {}
+        const progressPercent = cam.targetAmount > 0
+          ? Math.min(Math.round((cam.currentAmount / cam.targetAmount) * 100), 100)
           : 0
         return {
           favourite: {
-            favouriteId: f.favouriteid,
-            userid:      f.userid,
-            fraid:       f.fraid,
-            savedAt:     f.savedat,
+            favouriteId: f.favouriteId,
+            userId:      f.userId,
+            fraId:       f.fraId,
+            savedAt:     f.savedAt,
           } as FavouriteRecord,
           campaign: { ...cam as FundRaisingActivity, progressPercent },
         }
@@ -160,7 +157,7 @@ export function useFavouritesController() {
   }
 
   return {
-    userid,
+    userId,
     favourites,
     error,
     isLoading,

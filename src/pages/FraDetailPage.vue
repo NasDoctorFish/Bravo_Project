@@ -4,15 +4,15 @@ import { ref, computed, onMounted } from 'vue'
 import { useRoute } from 'vue-router'
 import { fraController } from '../controllers/fraController'
 import { useAuth } from '../composables/useAuth'
-const { isLoggedIn, userid: authuserid, userRole, sessionReady, signOut } = useAuth()
+const { isLoggedIn, userId: authUserId, userRole, sessionReady, signOut } = useAuth()
 import { useRouter } from 'vue-router'
 
 //  BOUNDARY — FraDetailPage
 import { useFraDetailController } from '../entity/FraDetailPage_Entity'
 
-const props = defineProps({
-  fraid: { type: String, default: '1' },
-})
+const props = defineProps<{
+  fraid: { type: String, default: '' },
+}>()
 
 const router = useRouter()
 const emit = defineEmits(['go-home', 'go-logout', 'go-search', 'go-edit', 'go-login', 'go-signup'])
@@ -20,7 +20,7 @@ const emit = defineEmits(['go-home', 'go-logout', 'go-search', 'go-edit', 'go-lo
 if (isLoggedIn.value) {
   console.log(
     'Logged in as...\n',
-    'userid: ', authuserid.value,
+    'userid: ', authUserId.value,
     '\nRole: ', userRole.value,
     '\nsessionReady: ', sessionReady.value
   )
@@ -31,8 +31,8 @@ else {
 
 // Auth & Route
 const route = useRoute()
-const fraid = Number(route.params.id)
-const userid = ref<number | null>(null)
+const fraId = Number(route.params.id)
+const userId = ref<number | null>(null)
 
 // Owner status toggle (FR-2-08)
 const updatingStatus = ref(false)
@@ -67,13 +67,14 @@ const copied    = ref(false)
 const tabs      = ['About', 'Updates', 'Donors']
 
 onMounted(async () => {
-  await getCampaignDetail(props.fraid)   // displayCampaignDetail()
-  await getDonations(props.fraid)        // displayDonations()
+  const id = String(route.params.id)
+  await getCampaignDetail(id)   // displayCampaignDetail()
+  await getDonations(id)        // displayDonations()
 })
 
 // Computed
 const isOwner = computed(() =>
-  !!campaign.value && !!userid.value && campaign.value.userid === userid.value
+  !!campaign.value && !!userId.value && campaign.value.userId === userId.value
 )
 const isCompleted = computed(() =>
   campaign.value?.status?.toUpperCase() === 'COMPLETED'
@@ -108,7 +109,7 @@ async function handleMarkAsCompleted() {
 
   try {
     const controller = new fraController()
-    await controller.updateFraStatus(fraid, 'COMPLETED')
+    await controller.updateFraStatus(fraId, 'COMPLETED')
     campaign.value.status = 'COMPLETED'
   } catch (err: any) {
     statusError.value = err.message || 'Failed to update campaign status.'
@@ -119,7 +120,7 @@ async function handleMarkAsCompleted() {
 
 // FR-2-02: Go to edit
 function handleEditFra() {
-  emit('go-edit', fraid)
+  emit('go-edit', fraId)
 }
 </script>
 
@@ -179,8 +180,8 @@ function handleEditFra() {
             </button>
             <h1>{{ campaign.title }}</h1>
             <p class="hero-meta">
-              By <strong>{{ campaign.createdby }}</strong>
-              · {{ campaign.categoryid }}
+              By <strong>{{ campaign.createdBy }}</strong>
+              · {{ campaign.categoryId }}
               · Ends {{ campaign.endDate ?? 'TBD' }}
             </p>
             <p v-if="favoriteMessage" class="favorite-message">{{ favoriteMessage }}</p>
@@ -225,6 +226,8 @@ function handleEditFra() {
               <!-- About -->
               <div v-if="activeTab === 'About'" class="tab-content">
                 <h3>About This Campaign</h3>
+                <p class="tab-text">{{campaign.title}}</p>
+                <p class="tab-text">{{campaign.createdBy}}</p>
                 <p class="tab-text">{{ campaign.description }}</p>
               </div>
 
@@ -259,8 +262,8 @@ function handleEditFra() {
 
               <!-- progress stats -->
               <div class="progress-section">
-                <p class="raised-amount">${{ campaign.current_amount.toLocaleString() }}</p>
-                <p class="goal-text">raised of ${{ campaign.target_amount.toLocaleString() }} goal</p>
+                <p class="raised-amount">${{ campaign.currentAmount.toLocaleString() }}</p>
+                <p class="goal-text">raised of ${{ campaign.targetAmount.toLocaleString() }} goal</p>
                 <div class="progress-bar">
                   <div class="progress-fill" :style="{ width: campaign.progressPercent + '%' }"></div>
                 </div>

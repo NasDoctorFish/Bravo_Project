@@ -1,6 +1,7 @@
+// FraSearchPage.vue
 <script setup lang="ts">
 import { useAuth } from '../composables/useAuth'
-const { isLoggedIn, userid, userRole, sessionReady } = useAuth()
+const { isLoggedIn, userId, userRole, sessionReady } = useAuth()
 import { ref, onMounted } from 'vue'
 import type { FundRaisingActivity } from '../models/FundRaisingActivity'
 import { searchFraByFilter } from '../controllers/fraController'
@@ -8,7 +9,7 @@ import { searchFraByFilter } from '../controllers/fraController'
 if (isLoggedIn.value) {
   console.log(
     'Logged in as...\n',
-    'userid: ', userid.value,
+    'userid: ', userId.value,
     '\nRole: ', userRole.value,
     '\nsessionReady: ', sessionReady.value
   )
@@ -55,7 +56,7 @@ async function clearFilters() {
 
 const progressPercent = (c: FundRaisingActivity): number =>
   Math.min(
-    Math.round((c.current_amount / c.target_amount) * 100),
+    Math.round((c.currentAmount / c.targetAmount) * 100),
     100
   )
 
@@ -161,7 +162,7 @@ const progressPercent = (c: FundRaisingActivity): number =>
 
           <!-- Body -->
           <div class="campaign-body">
-            <span class="campaign-category">{{ c.category?.categoryname ?? c.categoryid }}</span>
+            <span class="campaign-category">{{ c.categoryId }}</span>
             <h4 class="campaign-title">{{ c.title }}</h4>
             <p class="campaign-desc">{{ c.description }}</p>
 
@@ -170,13 +171,13 @@ const progressPercent = (c: FundRaisingActivity): number =>
                 <div class="progress-fill" :style="{ width: progressPercent(c) + '%' }"></div>
               </div>
               <div class="progress-labels">
-                <span class="progress-raised">${{ c.current_amount.toLocaleString() }} raised</span>
-                <span class="progress-pct">{{ progressPercent(c) }}% of ${{ c.target_amount.toLocaleString() }}</span>
+                <span class="progress-raised">${{ (c.currentAmount ?? 0).toLocaleString() }} raised</span>
+                <span class="progress-pct">{{ progressPercent(c) }}% of ${{ (c.targetAmount ?? 0).toLocaleString() }}</span>
               </div>
             </div>
 
             <div class="campaign-footer">
-              <span class="campaign-organizer">by {{ c.createdby}}</span>
+              <span class="campaign-organizer">by {{ c.createdBy}}</span>
               <span class="view-link">View →</span>
             </div>
           </div>

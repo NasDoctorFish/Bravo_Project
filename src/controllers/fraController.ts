@@ -6,8 +6,11 @@ import { fraService } from '../services/fraService'
 
 import { supabase } from '../lib/supabaseClient'
 
-export async function searchFraByFilter(categoryid: string, query = '', status = ''): Promise<FundRaisingActivity[]> {
-  // Select all columns; we'll map snake_case DB fields to camelCase in JS
+export async function searchFraByFilter(
+  categoryid: string,
+  query = '',
+  status = ''
+): Promise<FundRaisingActivity[]> {
   let request = supabase
     .from('fundraisingactivity')
     .select('*, category(categoryname)')
@@ -18,93 +21,52 @@ export async function searchFraByFilter(categoryid: string, query = '', status =
   }
 
   if (status) {
-    // DB stores status in uppercase (e.g. ACTIVE) — normalize
-    request = request.eq('status', String(status).toUpperCase())
+    request = request.eq('status', status.toUpperCase())
   }
 
   if (query) {
     const sanitizedQuery = query.trim()
-    // use actual DB column names in `or` expressions
     request = request.or(
       `title.ilike.%${sanitizedQuery}%,description.ilike.%${sanitizedQuery}%,createdby.ilike.%${sanitizedQuery}%`
     )
   }
 
-  request = request.order('createdat', { ascending: false })
-
   const { data, error } = await request
+
+  console.log('searchFraByFilter ->', { categoryid, query, status, data, error })  // ← add this
+
   if (error) {
-    console.error('Supabase search failed:', error.message)
+    console.error('searchFraByFilter error:', error.message)
     return []
   }
-  const rows = (data || []) as any[]
-  console.debug('[fraController] searchFraByFilter -> rows:', rows.length)
-  const mapped = rows.map(r => ({
-    fraid: r.fraid,
-    userid: r.userid,
-    title: r.title,
-    description: r.description,
-    target_amount: r.target_amount,
-    current_amount: r.current_amount,
-    status: r.status,
-    createdby: r.createdby,
-    categoryid: r.categoryid,
-    createdat: r.createdat,
-    name: r.name,
-    image: r.image,
+
+  return (data ?? []).map((row: any) => ({
+    ...row,
+    progressPercent: row.targetAmount > 0
+      ? Math.min(Math.round((row.currentAmount / row.targetAmount) * 100), 100)
+      : 0,
   }))
-  return mapped as FundRaisingActivity[]
 }
 
-export async function searchFra(query: string): Promise<FundRaisingActivity[]> {
-  const sanitizedQuery = query.trim()
-  if (!sanitizedQuery) return []
-  const { data, error } = await supabase
-    .from('fundraisingactivity')
-    .select('*')
-    .or(
-      `title.ilike.%${sanitizedQuery}%,description.ilike.%${sanitizedQuery}%,createdby.ilike.%${sanitizedQuery}%`
-    )
-    .order('createdat', { ascending: false })
-
-  if (error) {
-    console.error('Supabase search failed:', error.message)
-    return []
-  }
-  const rows = (data || []) as any[]
-  console.debug('[fraController] searchFra -> rows:', rows.length)
-  const mapped = rows.map(r => ({
-    fraid: r.fraid,
-    userid: r.userid,
-    title: r.title,
-    description: r.description,
-    target_amount: r.target_amount,
-    current_amount: r.current_amount,
-    status: r.status,
-    createdby: r.createdby,
-    categoryid: r.categoryid,
-    createdat: r.createdat,
-    name: r.name,
-    image: r.image,
-  }))
-  return mapped as FundRaisingActivity[]
+export function searchFra(query: string): FundRaisingActivity[] {
+  return fraService.search(query)
 }
 
 
 export class fraController {
-  public createdby!: string
+  public createdBy!: string
 
   // Validate details for FR-2-01 and FR-2-02
   private validateDetails(
     title: string, 
     description: string, 
-    target_amount: number, 
-    categoryid: number
+    targetAmount: number, 
+    categoryId: number
   ): boolean {
     if (!title || title.trim().length === 0) return false;
     if (!description || description.trim().length === 0) return false;
-    if (isNaN(target_amount) || target_amount <= 0) return false;
-    if (!categoryid) return false;
+    if (isNaN(targetAmount) || targetAmount <= 0) return false;
+    if (!categoryId) return false;
     return true;
   }
 
@@ -116,64 +78,65 @@ export class fraController {
 
   // FR-2-01: Create a new fundraising campaign
   async createFra(
-    userid: string,
-    details: { title: string; description: string; target_amount: number; categoryid: string }
+    userId: string,
+    details: { title: string; description: string; targetAmount: number; categoryId: number }
   ): Promise<FundRaisingActivityClass> {
-    console.log('details:', details)
+    console.log('createFra called, userId:', userId)
+
     const { data, error } = await supabase
       .from('fundraisingactivity')
       .insert({
-        userid: userid,
-        createdby: userid,
-        title: details.title,
-        description: details.description,
-        target_amount: details.target_amount,
-        categoryid: details.categoryid,
-        status: 'Active',
-        current_amount: 0.0
+        userid:        Number(userId),          // ← convert to integer
+        createdby:     String(userId),
+        title:         details.title,
+        description:   details.description,
+        targetamount:  details.targetAmount,
+        categoryid:    Number(details.categoryId),
+        status:        'Active',
+        currentamount: 0.0
       })
       .select()
-      .single();
+      .single()
 
-    if (error) throw error;
-    return new FundRaisingActivityClass(data)
+    if (error) throw error
+    return FundRaisingActivityClass.fromDB(data)
   }
 
   // FR-2-02: Fetch a single FRA by ID
-  async getFraById(fraid: number): Promise<FundRaisingActivityClass> {
-    if (!fraid) {
-      throw new Error('fraid is required')
+  async getFraById(fraId: number): Promise<FundRaisingActivityClass> {
+    if (!fraId) {
+      throw new Error('fraId is required')
     }
 
-    const activity = await FundRaisingActivityClass.readByfraid(fraid);
+    const activity = await FundRaisingActivityClass.readByFraId(fraId);
 
     if (!activity) {
-      throw new Error(`Target fundraising activity with ID "${fraid}" could not be found.`);
+      throw new Error(`Target fundraising activity with ID "${fraId}" could not be found.`);
     }
     return new FundRaisingActivityClass(activity)
   }
 
-  // FR-2-02: Update title, description, target_amount, categoryid of an existing campaign
+  // FR-2-02: Update title, description, targetAmount, categoryId of an existing campaign
   async updateFra(
-    fraid:        number,
+    fraId:        number,
     title:        string,
     description:  string,
-    target_amount: number,
-    categoryid:   number
+    targetAmount: number,
+    categoryId:   number
   ): Promise<FundRaisingActivityClass> {
-    if (!fraid) {
-      throw new Error('fraid is required')
+    if (!fraId) {
+      throw new Error('fraId is required')
     }
 
-    if (!this.validateDetails(title, description, target_amount, categoryid)) {
+    if (!this.validateDetails(title, description, targetAmount, categoryId)) {
       throw new Error('Invalid fundraising activity details. Please check all fields.')
     }
 
-    const existingFra = await this.getFraById(fraid);
+    const existingFra = await this.getFraById(fraId);
     existingFra.title = title;
     existingFra.description = description;
-    existingFra.target_amount = target_amount;
-    existingFra.categoryid = categoryid;
+    existingFra.targetAmount = targetAmount;
+    existingFra.categoryId = categoryId;
 
     const updatedFra = await FundRaisingActivityClass.update(existingFra as unknown as FundRaisingActivity)
 
@@ -182,50 +145,48 @@ export class fraController {
 
   // FR-2-08: Update campaign status (mark as completed)
   async updateFraStatus(
-    fraid:  number,
+    fraId:  number,
     status: string
   ): Promise<FundRaisingActivityClass> {
-    if (!fraid) {
-      throw new Error('fraid is required')
+    if (!fraId) {
+      throw new Error('fraId is required')
     }
 
     if (!this.validateStatus(status)) {
       throw new Error(`Invalid status "${status}" is not a recognized campaign state.`);
     }
-    const targetFra = await this.getFraById(fraid);
+    const targetFra = await this.getFraById(fraId);
     const upperStatus = status.toUpperCase();
     await targetFra.updateStatus(upperStatus);
     if (upperStatus === 'COMPLETED') {
-      await this.notifyDonors(fraid);
+      await this.notifyDonors(fraId);
     }
     return targetFra;
   }
 
   // FR-2-08: Notify all donors of a campaign
-  private async notifyDonors(fraid: number): Promise<void> {
+  private async notifyDonors(fraId: number): Promise<void> {
     try {
       const { data: donations, error } = await supabase
         .from('donation')
-        .select('donoremail, donorname')
-        .eq('fraid', fraid);
+        .select('userid')
+        .eq('fraid', fraId);
 
       if (error) {
         throw new Error(`Failed to retrieve donor list for notification: ${error.message}`);
       }
 
       if (!donations || donations.length === 0) {
-        console.log(`No active donors found to notify for campaign ID: ${fraid}`);
+        console.log(`No active donors found to notify for campaign ID: ${fraId}`);
         return;
       }
 
-      const uniqueDonors = Array.from(
-        new Map(donations.map(d => [d.donoremail, d])).values()
-      );
+      const uniqueUserIds = [...new Set(donations.map(d => d.userid))];
 
-      console.log(`Dispatching completion announcements to ${uniqueDonors.length} unique donors...`);
-      
-      for (const donor of uniqueDonors) {
-        console.log(`[Email Sent] To: ${donor.donorname} (${donor.donoremail}) - Campaign ${fraid} has been successfully completed!`);
+      console.log(`Dispatching completion announcements to ${uniqueUserIds.length} unique donors...`);
+
+      for (const uid of uniqueUserIds) {
+        console.log(`[Notification] User ${uid} - Campaign ${fraId} has been successfully completed!`);
       }
 
     } catch (err: any) {
@@ -237,8 +198,8 @@ export class fraController {
 
 export const fraHistoryController = {
   // FR-5-01: Filter by category
-  searchFraByFilter(categoryid: string, fraList: any[]) {
-    return fraService.filterBycategoryid(categoryid, fraList)
+  searchFraByFilter(categoryId: string, fraList: any[]) {
+    return fraService.filterByCategoryId(categoryId, fraList)
   },
 
   // FR-5-02: Filter by date range
@@ -247,12 +208,12 @@ export const fraHistoryController = {
   },
 
   // FR-5-01 + FR-5-02: Combined filter
-  searchFraByAllFilters(categoryid: string, startDate: string, endDate: string, fraList: any[]) {
-    return fraService.filterByAllFilters(categoryid, startDate, endDate, fraList)
+  searchFraByAllFilters(categoryId: string, startDate: string, endDate: string, fraList: any[]) {
+    return fraService.filterByAllFilters(categoryId, startDate, endDate, fraList)
   },
 
   // FR-5-05: Get FRA detail by ID
-  getFraById(fraid: string, fraList: any[]) {
-    return fraService.getFraById(fraid, fraList)
+  getFraById(fraId: string, fraList: any[]) {
+    return fraService.getFraById(fraId, fraList)
   }
 }

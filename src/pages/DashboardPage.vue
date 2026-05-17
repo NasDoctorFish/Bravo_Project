@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { useAuth } from '../composables/useAuth'
-const { isLoggedIn, userid, userRole, sessionReady, signOut } = useAuth()
+const { isLoggedIn, userId, userRole, sessionReady, signOut } = useAuth()
 
 // req 5
 import { useRouter } from 'vue-router'
@@ -9,7 +9,7 @@ const router = useRouter()
 if (isLoggedIn.value) {
   console.log(
     'Logged in as...\n',
-    'userid: ', userid.value,
+    'userid: ', userId.value,
     '\nRole: ', userRole.value,
     '\nsessionReady: ', sessionReady.value
   )
@@ -51,7 +51,7 @@ function formatTime(dateString: string): string {
 }
 
 // Helper to get the first FundRaisingActivity ID
-async function getFirstfraid(): Promise<string | null> {
+async function getFirstFraId(): Promise<string | null> {
   const { data, error } = await supabase
     .from('FundRaisingActivity')
     .select('id')
@@ -63,11 +63,11 @@ async function getFirstfraid(): Promise<string | null> {
 
 // Update dashboard
 async function updateDashboard(): Promise<void> {
-  const fraid = await getFirstfraid()
-  if (!fraid) return
+  const fraId = await getFirstFraId()
+  if (!fraId) return
 
   // Optional: log VIEW
-  const storyData = await getStoryData(fraid, "VIEW")
+  const storyData = await getStoryData(fraId, "VIEW")
   story.value = storyData
 
   // Total views
@@ -86,13 +86,13 @@ async function updateDashboard(): Promise<void> {
     new Date(c.created_at) <= new Date(endDate.value)
   )
 
-  totalRaised.value = filtered.reduce((sum, fra) => sum + fra.current_amount, 0)
+  totalRaised.value = filtered.reduce((sum, fra) => sum + fra.currentAmount, 0)
   activeCampaigns.value = filtered.filter(fra => fra.status === 'active').length
-  goalsReached.value = filtered.filter(fra => fra.current_amount >= fra.target_amount).length
+  goalsReached.value = filtered.filter(fra => fra.currentAmount >= fra.targetAmount).length
   campaigns.value = filtered.map(fra => ({
     name: fra.title,
-    goal: fra.target_amount,
-    raised: fra.current_amount,
+    goal: fra.targetAmount,
+    raised: fra.currentAmount,
     status: fra.status
   }))
 }
