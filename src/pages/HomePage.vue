@@ -1,10 +1,18 @@
-<script setup>
+<script setup lang="ts">
 import { useAuth } from '../composables/useAuth'
 const { isLoggedIn, userId, userRole, sessionReady, signOut } = useAuth()
+import { loadCampaigns } from '../controllers/fraController'
 import { useRouter } from 'vue-router'
+import { ref, onMounted } from 'vue'
 
 const router = useRouter()
-const emit = defineEmits(['go-home', 'go-login', 'go-signup', 'go-search'])
+const emit = defineEmits(['go-home', 'go-logout', 'go-search', 'go-signup'])
+
+const campaigns = ref<any[]>([])
+
+onMounted(async () => {
+  campaigns.value = await loadCampaigns()
+})
 
 
 // check login status
@@ -118,7 +126,7 @@ else {
         </article>
       </div>
     </section>
-<!-- 
+    <!-- 
     <section class="platform-summary">
       <div class="section-heading">
         <h2>Platform Summary</h2>
@@ -152,97 +160,53 @@ else {
       </p>
 
       <div class="campaigns-grid">
-        <article class="campaign-card">
-          <div class="campaign-image">Campaign Image</div>
-
-          <div class="campaign-category">
-            <span class="category-badge">Medical</span>
-            <span class="by-text">by Sarah Johnson</span>
+        <article v-for="item in campaigns.slice(0,3)" :key="item.fraId" class="campaign-card">
+          <div class="campaign-image">
+            {{ item.imageText }}
           </div>
 
-          <h3>Help Emma Fight Cancer</h3>
+          <div class="campaign-category">
+            <span class="category-badge">
+              {{ item.category }}
+            </span>
+
+            <span class="by-text">
+              by {{ item.creatorName }}
+            </span>
+          </div>
+
+          <h3>{{ item.title }}</h3>
+
           <p>
-            Supporting Emma's medical treatment and recovery journey.
-            Your contribution makes a real difference.
+            {{ item.description }}
           </p>
 
           <div class="campaign-progress">
             <div class="progress-amount">
-              $45,230 <span class="progress-goal">raised of $60,000</span>
+              ${{ item.raisedAmount }}
+              <span class="progress-goal">
+                raised of ${{ item.targetAmount }}
+              </span>
             </div>
+
             <div class="progress-bar">
-              <div class="progress-fill" style="width: 75%;"></div>
+              <div class="progress-fill" :style="{ width: item.progressPercent + '%' }"></div>
             </div>
           </div>
 
           <div class="campaign-meta">
-            <span class="donors">👥 1,234 donors</span>
-            <span class="time-left">⏱️ 12 days left</span>
+            <span class="donors">
+              👥 {{ item.donorCount }} donors
+            </span>
+
+            <span class="time-left">
+              ⏱️ {{ item.daysLeft }} days left
+            </span>
           </div>
 
-          <RouterLink to="/fra/1" class="btn btn-dark">Donate Now</RouterLink>
-        </article>
-
-        <article class="campaign-card">
-          <div class="campaign-image">Campaign Image</div>
-
-          <div class="campaign-category">
-            <span class="category-badge">Education</span>
-            <span class="by-text">by Community Trust</span>
-          </div>
-
-          <h3>School Library Renovation</h3>
-          <p>
-            Building a modern library for 500 students in rural areas
-            to access quality education.
-          </p>
-
-          <div class="campaign-progress">
-            <div class="progress-amount">
-              $28,500 <span class="progress-goal">raised of $35,000</span>
-            </div>
-            <div class="progress-bar">
-              <div class="progress-fill" style="width: 81%;"></div>
-            </div>
-          </div>
-
-          <div class="campaign-meta">
-            <span class="donors">👥 892 donors</span>
-            <span class="time-left">⏱️ 6 days left</span>
-          </div>
-
-          <RouterLink to="/fra/2" class="btn btn-dark">Donate Now</RouterLink>
-        </article>
-
-        <article class="campaign-card">
-          <div class="campaign-image">Campaign Image</div>
-
-          <div class="campaign-category">
-            <span class="category-badge">Environment</span>
-            <span class="by-text">by Green Earth</span>
-          </div>
-
-          <h3>Plant 10,000 Trees Initiative</h3>
-          <p>
-            Join our mission to combat climate change by planting trees
-            across three communities.
-          </p>
-
-          <div class="campaign-progress">
-            <div class="progress-amount">
-              $18,750 <span class="progress-goal">raised of $25,000</span>
-            </div>
-            <div class="progress-bar">
-              <div class="progress-fill" style="width: 75%;"></div>
-            </div>
-          </div>
-
-          <div class="campaign-meta">
-            <span class="donors">👥 2,156 donors</span>
-            <span class="time-left">⏱️ 20 days left</span>
-          </div>
-
-          <RouterLink to="/fra/3" class="btn btn-dark">Donate Now</RouterLink>
+          <RouterLink :to="`/fra/${item.fraId}`" class="btn btn-dark">
+            Donate Now
+          </RouterLink>
         </article>
       </div>
 
@@ -251,7 +215,7 @@ else {
         </RouterLink>
       </div>
     </section>
-<!-- 
+    <!-- 
     <section class="cta-section">
       <h2>Ready to Get Started?</h2>
       <p>Join thousands of fundraisers and donors making an impact</p>

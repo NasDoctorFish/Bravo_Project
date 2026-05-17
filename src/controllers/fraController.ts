@@ -178,3 +178,71 @@ export const fraHistoryController = {
     return fraService.getFraById(fraId, fraList)
   }
 }
+
+
+
+export async function loadCampaigns(): Promise<any[]> {
+  const { data, error } = await supabase
+    .from('fundraisingactivity')
+    .select(`
+      fraid,
+      userid,
+      title,
+      description,
+      targetamount,
+      currentamount,
+      status,
+      createdby,
+      categoryid,
+      createdat,
+      startdate,
+      enddate
+    `)
+    .ilike('status', 'active')
+
+  if (error) {
+    console.error('LOAD CAMPAIGNS ERROR:', error)
+    return []
+  }
+
+  // Resolve category names
+  const { data: categoryData } = await supabase.from('category').select('categoryid, categoryname')
+  const categoryMap = new Map((categoryData ?? []).map((c: any) => [c.categoryid, c.categoryname]))
+
+  // Count donations per FRA
+  const { data: donationData } = await supabase.from('donation').select('fraid')
+  const donorCountMap = new Map<number, number>()
+  for (const d of donationData ?? []) {
+    donorCountMap.set(d.fraid, (donorCountMap.get(d.fraid) ?? 0) + 1)
+  }
+
+  return (data ?? []).map((item: any) => {
+    const targetAmount = item.targetamount ?? 0
+    const raisedAmount = item.currentamount ?? 0
+    const progressPercent = targetAmount > 0
+      ? Math.min(Math.round(raisedAmount / targetAmount * 100), 100)
+      : 0
+    const daysLeft = item.enddate
+      ? Math.max(0, Math.ceil((new Date(item.enddate).getTime() - Date.now()) / 86_400_000))
+      : '—'
+
+    return {
+      fraId: item.fraid,
+      userId: item.userid,
+      title: item.title ?? '',
+      description: item.description ?? '',
+      targetAmount,
+      raisedAmount,
+      progressPercent,
+      daysLeft,
+      status: item.status ?? '',
+      createdBy: item.createdby ?? '',
+      creatorName: item.createdby ?? 'Unknown',
+      categoryId: item.categoryid,
+      category: categoryMap.get(item.categoryid) ?? 'Other',
+      imageText: '🏆',
+      donorCount: donorCountMap.get(item.fraid) ?? 0,
+      createdAt: item.createdat ?? '',
+    }
+  })
+}
