@@ -1,12 +1,10 @@
+// FraSearchPage.vue
 <script setup lang="ts">
 import { useAuth } from '../composables/useAuth'
-const { isLoggedIn, userId, userRole, sessionReady, signOut } = useAuth()
-import { useRouter } from 'vue-router'
-import { ref} from 'vue'
+const { isLoggedIn, userId, userRole, sessionReady } = useAuth()
+import { ref, onMounted } from 'vue'
 import type { FundRaisingActivity } from '../models/FundRaisingActivity'
 import { searchFraByFilter } from '../controllers/fraController'
-
-const router = useRouter()
 
 if (isLoggedIn.value) {
   console.log(
@@ -22,13 +20,22 @@ else {
 
 const query = ref<string>('')
 
-const selectedCategory = ref<number>(1)
+const selectedCategory = ref<string>('')
 
 const results = ref<FundRaisingActivity[]>([])
 
-function handleSearch(): void {
-  results.value = searchFraByFilter(selectedCategory.value)
+async function handleSearch(): Promise<void> {
+  results.value = await searchFraByFilter(
+    selectedCategory.value,
+    query.value,
+    filters.value.status
+  )
+  console.debug('[FraSearchPage] handleSearch -> results:', results.value.length)
 }
+
+onMounted(() => {
+  handleSearch()
+})
 
 const emit = defineEmits(['go-home', 'go-login', 'go-logout', 'go-signup', 'go-create', 'go-campaigndetail'])
 
@@ -40,18 +47,14 @@ const filters = ref({
 
 const categories = ['Education', 'Healthcare', 'Environment', 'Disaster Relief', 'Community', 'Arts & Culture']
 
-results.value = searchFraByFilter(selectedCategory.value)
-
-function clearFilters() {
+async function clearFilters() {
   filters.value = { category: '', status: '', sort: 'recent' }
+  selectedCategory.value = ''
   query.value = ''
+  await handleSearch()
 }
 
-const progressPercent = (c: FundRaisingActivity): number =>
-  Math.min(
-    Math.round((c.currentAmount / c.targetAmount) * 100),
-    100
-  )
+const progressPercent = (c: FundRaisingActivity): number => c.progressPercent ?? 0
 
 </script>
 
@@ -92,24 +95,25 @@ const progressPercent = (c: FundRaisingActivity): number =>
           type="text"
           class="search-input"
           placeholder="Search by title, category, or organizer…"
+          @keyup.enter="handleSearch"
         />
         <button v-if="query" class="clear-btn" @click="query = ''">✕</button>
+        <button class="btn btn-primary" @click="handleSearch">Search</button>
       </div>
 
-      <!-- Filters -->
       <section class="dashboard-section filters-section">
         <div class="filters-row">
           <div class="form-group">
             <label>Category</label>
-            <select v-model="selectedCategory" @change="handleSearch">
+            <select v-model="selectedCategory" @change="handleSearch" class="form-select">
               <option value="">All Categories</option>
-              <option v-for="c in categories" :key="c" :value="c">{{ c }}</option>
+              <option v-for="(c, idx) in categories" :key="c" :value="String(idx + 1)">{{ c }}</option>
             </select>
           </div>
 
           <div class="form-group">
             <label>Status</label>
-            <select v-model="filters.status" class="form-select">
+            <select v-model="filters.status" @change="handleSearch" class="form-select">
               <option value="">Any Status</option>
               <option value="active">Active</option>
               <option value="completed">Completed</option>
@@ -142,9 +146,9 @@ const progressPercent = (c: FundRaisingActivity): number =>
       <div v-if="results.length > 0" class="campaigns-grid">
         <div
           v-for="c in results"
-          :key="c.fraId"
+          :key="c.fraid"
           class="campaign-card"
-          @click="emit('go-campaigndetail', c); $router.push(`/fra/${c.fraId}`)"
+          @click="emit('go-campaigndetail', c); $router.push(`/fra/${c.fraid}`)"
         >
           <!-- Image -->
           <div class="campaign-image-wrap">
@@ -154,7 +158,7 @@ const progressPercent = (c: FundRaisingActivity): number =>
 
           <!-- Body -->
           <div class="campaign-body">
-            <span class="campaign-category">{{ c.categoryId}}</span>
+            <span class="campaign-category">{{ c.categoryId }}</span>
             <h4 class="campaign-title">{{ c.title }}</h4>
             <p class="campaign-desc">{{ c.description }}</p>
 
@@ -163,8 +167,8 @@ const progressPercent = (c: FundRaisingActivity): number =>
                 <div class="progress-fill" :style="{ width: progressPercent(c) + '%' }"></div>
               </div>
               <div class="progress-labels">
-                <span class="progress-raised">${{ c.currentAmount.toLocaleString() }} raised</span>
-                <span class="progress-pct">{{ progressPercent(c) }}% of ${{ c.targetAmount.toLocaleString() }}</span>
+                <span class="progress-raised">${{ (c.currentAmount ?? 0).toLocaleString() }} raised</span>
+                <span class="progress-pct">{{ progressPercent(c) }}% of ${{ (c.targetAmount ?? 0).toLocaleString() }}</span>
               </div>
             </div>
 

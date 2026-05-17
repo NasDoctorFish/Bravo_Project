@@ -45,7 +45,7 @@ const categories = [
 const form = reactive({
   title:         '',
   description:   '',
-  category:      '',
+  category:      null as number | null,
   beneficiary:   '',
   goal:          null as number | null,
   minDonation:   null as number | null,
@@ -117,12 +117,12 @@ async function handleCreateFra(): Promise<void> {
     const controller = new fraController()
 
     await controller.createFra(
-      userId.value,
+      String(userId.value),
       {
         title:        form.title,
         description:  form.description,
         targetAmount: form.goal!,
-        categoryId:   form.category,
+        categoryId:   Number(form.category),
       }
     )
 
@@ -215,7 +215,7 @@ function handleSuccessClose() {
               <label>Category <span class="required">*</span></label>
               <select v-model="form.category" class="form-select">
                 <option value="" disabled>Select category…</option>
-                <option v-for="c in categories" :key="c" :value="c">{{ c }}</option>
+                <option v-for="(c, idx) in categories" :key="c" :value="idx + 1">{{ c }}</option>
               </select>
             </div>
             <div class="form-group">

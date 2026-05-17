@@ -109,12 +109,13 @@ export async function cleanupExpiredSessions() {
 export async function validateUser(id: number, pass: string): Promise<boolean> {
   const { data, error } = await supabase
     .from('useraccount')
-    .select('*, userprofile(role)')
+    .select('userid, password_hash, userprofile(role)')
     .eq('userid', id)
     .eq('password_hash', pass)
     .single()
 
   if (error || !data) return false
+  if (data.password_hash !== pass) return false
 
   return true
 }

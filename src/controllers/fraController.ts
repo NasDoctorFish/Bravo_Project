@@ -6,8 +6,57 @@ import { fraService } from '../services/fraService'
 
 import { supabase } from '../lib/supabaseClient'
 
-export function searchFraByFilter(categoryId: number): FundRaisingActivity[] {
-  return fraService.filterByCategoryId(categoryId)
+export async function searchFraByFilter(
+  categoryid: string,
+  query = '',
+  status = ''
+): Promise<FundRaisingActivity[]> {
+  let request = supabase
+    .from('fundraisingactivity')
+    .select('*, category(categoryname)')
+
+  const categoryidNumber = Number(categoryid)
+  if (categoryid && !Number.isNaN(categoryidNumber)) {
+    request = request.eq('categoryid', categoryidNumber)
+  }
+
+  if (status) {
+    request = request.eq('status', status.toUpperCase())
+  }
+
+  if (query) {
+    const sanitizedQuery = query.trim()
+    request = request.or(
+      `title.ilike.%${sanitizedQuery}%,description.ilike.%${sanitizedQuery}%,createdby.ilike.%${sanitizedQuery}%`
+    )
+  }
+
+  const { data, error } = await request
+
+  console.log('searchFraByFilter ->', { categoryid, query, status, data, error })
+
+  if (error) {
+    console.error('searchFraByFilter error:', error.message)
+    return []
+  }
+
+  return (data ?? []).map((row: any) => {
+    const target  = Number(row.targetamount  ?? 0)
+    const current = Number(row.currentamount ?? 0)
+    return {
+      ...row,
+      fraid:           row.fraid,
+      currentAmount:   current,
+      targetAmount:    target,
+      createdBy:       row.createdby  ?? '',
+      categoryId:      row.categoryid ?? 0,
+      createdAt:       row.createdat,
+      category:        row.category,
+      progressPercent: target > 0
+        ? Math.min(Math.round((current / target) * 100), 100)
+        : 0,
+    }
+  })
 }
 
 export function searchFra(query: string): FundRaisingActivity[] {
@@ -41,9 +90,10 @@ export class fraController {
   // FR-2-01: Create a new fundraising campaign
   async createFra(
     userId: string,
-    details: { title: string; description: string; targetAmount: number; categoryId: string }
+    details: { title: string; description: string; targetAmount: number; categoryId: number }
   ): Promise<FundRaisingActivityClass> {
-    console.log('details:', details)
+    console.log('createFra called, userId:', userId)
+
     const { data, error } = await supabase
       .from('fundraisingactivity')
       .insert({
@@ -57,7 +107,7 @@ export class fraController {
         currentamount: 0.0
       })
       .select()
-      .single();
+      .single()
 
     if (error) throw error;
     return FundRaisingActivityClass.fromDB(data)
@@ -132,6 +182,8 @@ export class fraController {
         .from('donation')
         .select('userid')
         .eq('fraid', fraId);
+        .select('userid')
+        .eq('fraid', fraId);
 
       if (error) {
         throw new Error(`Failed to retrieve donor list for notification: ${error.message}`);
@@ -144,6 +196,10 @@ export class fraController {
 
       const uniqueUserIds = [...new Set(donations.map(d => d.userid))];
 
+      console.log(`Dispatching completion announcements to ${uniqueUserIds.length} unique donors...`);
+
+      for (const uid of uniqueUserIds) {
+        console.log(`[Notification] User ${uid} - Campaign ${fraId} has been successfully completed!`);
       console.log(`Dispatching completion announcements to ${uniqueUserIds.length} unique donors...`);
 
       for (const uid of uniqueUserIds) {

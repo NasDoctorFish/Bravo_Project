@@ -83,7 +83,6 @@ export class Favourites {
       favouriteId: this.favouriteId,
       userId:      this.userId,
       fraId:       this.fraId,
-      savedAt:     this.savedAt.toISOString(),
     }
   }
 }

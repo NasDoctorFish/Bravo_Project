@@ -106,11 +106,13 @@ export class FundRaisingActivityClass {
       .from('fundraisingactivity')
       .select('*')
       .eq('userid', userId);
+      .eq('userid', userId);
 
     if (error) {
       console.error('Failed to fetch user activities:', error.message);
       throw error;
     }
+    return (data ?? []).map((row: any) => FundRaisingActivityClass.fromDB(row))
     return (data ?? []).map((row: any) => FundRaisingActivityClass.fromDB(row))
   }
 
@@ -120,6 +122,7 @@ export class FundRaisingActivityClass {
       .from('fundraisingactivity')
       .select('*')
       .eq('fraid', fraId)
+      .eq('fraid', fraId)
       .maybeSingle();
 
     if (error) {
@@ -127,14 +130,28 @@ export class FundRaisingActivityClass {
       throw error;
     }
     return data ? FundRaisingActivityClass.fromDB(data) : null
+    return data ? FundRaisingActivityClass.fromDB(data) : null
   }
 
   // FR-2-02: Update an existing FRA
   static async update(toUpdate: FundRaisingActivity): Promise<FundRaisingActivity> {
     const { fraId, userId, ...rest } = toUpdate;
+    const { fraId, userId, ...rest } = toUpdate;
 
     const { data, error } = await supabase
       .from('fundraisingactivity')
+      .update({
+        title:         rest.title,
+        description:   rest.description,
+        targetamount:  rest.targetAmount,
+        currentamount: rest.currentAmount,
+        status:        rest.status,
+        createdby:     rest.createdBy,
+        categoryid:    rest.categoryId,
+        name:          rest.name,
+      })
+      .eq('fraid', fraId)
+      .eq('userid', userId)
       .update({
         title:         rest.title,
         description:   rest.description,
@@ -155,6 +172,7 @@ export class FundRaisingActivityClass {
       throw error;
     }
     return FundRaisingActivityClass.fromDB(data) as unknown as FundRaisingActivity
+    return FundRaisingActivityClass.fromDB(data) as unknown as FundRaisingActivity
   }
   
   // Delete a FRA
@@ -167,11 +185,16 @@ export class FundRaisingActivityClass {
         .eq('fraid', fraId)
         .eq('userid', userId);
 
+        .eq('fraid', fraId)
+        .eq('userid', userId);
+
       if (error) throw error;
       return true;
     } else {
       const { error } = await query
         .update({ status: 'Archived' })
+        .eq('fraid', fraId)
+        .eq('userid', userId);
         .eq('fraid', fraId)
         .eq('userid', userId);
 
@@ -187,6 +210,8 @@ export class FundRaisingActivityClass {
     const { error } = await supabase
       .from('fundraisingactivity')
       .update({ status: status })
+      .eq('fraid', this.fraId)
+      .eq('userid', this.userId);
       .eq('fraid', this.fraId)
       .eq('userid', this.userId);
 

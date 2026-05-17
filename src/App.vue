@@ -133,7 +133,7 @@ function goFavourites() {
     @go-login="goLogin"
     @go-signup="goSignup"
     @go-search="goSearch"
-    @go-creation="goCreate"
+    @go-create="goCreate"
     @go-campaigndetail="goDetail"
   />
   
@@ -143,7 +143,7 @@ function goFavourites() {
     @go-login="goLogin"
     @go-signup="goSignup"
     @go-search="goSearch"
-    @go-creation="goCreate"
+    @go-create="goCreate"
     @go-campaigndetail="goDetail"
   />
 
@@ -153,7 +153,7 @@ function goFavourites() {
     @go-login="goLogin"
     @go-signup="goSignup"
     @go-search="goSearch"
-    @go-creation="goCreate"
+    @go-create="goCreate"
     @go-campaigndetail="goDetail"
   />
 
@@ -163,7 +163,7 @@ function goFavourites() {
     @go-login="goLogin"
     @go-signup="goSignup"
     @go-search="goSearch"
-    @go-creation="goCreate"
+    @go-create="goCreate"
     @go-favourites="goFavourites"
     @go-campaigndetail="goDetail"
   />
@@ -174,7 +174,7 @@ function goFavourites() {
     @go-login="goLogin"
     @go-signup="goSignup"
     @go-search="goSearch"
-    @go-creation="goCreate"
+    @go-create="goCreate"
     @go-campaigndetail="goDetail"
   />
 
@@ -184,7 +184,7 @@ function goFavourites() {
     @go-login="goLogin"
     @go-signup="goSignup"
     @go-search="goSearch"
-    @go-creation="goCreate"
+    @go-create="goCreate"
     @go-campaigndetail="goDetail"
   /> -->
 
