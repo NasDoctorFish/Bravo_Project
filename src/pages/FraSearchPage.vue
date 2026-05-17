@@ -54,11 +54,7 @@ async function clearFilters() {
   await handleSearch()
 }
 
-const progressPercent = (c: FundRaisingActivity): number =>
-  Math.min(
-    Math.round((c.currentAmount / c.targetAmount) * 100),
-    100
-  )
+const progressPercent = (c: FundRaisingActivity): number => c.progressPercent ?? 0
 
 </script>
 

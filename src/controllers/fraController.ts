@@ -33,19 +33,30 @@ export async function searchFraByFilter(
 
   const { data, error } = await request
 
-  console.log('searchFraByFilter ->', { categoryid, query, status, data, error })  // ← add this
+  console.log('searchFraByFilter ->', { categoryid, query, status, data, error })
 
   if (error) {
     console.error('searchFraByFilter error:', error.message)
     return []
   }
 
-  return (data ?? []).map((row: any) => ({
-    ...row,
-    progressPercent: row.targetAmount > 0
-      ? Math.min(Math.round((row.currentAmount / row.targetAmount) * 100), 100)
-      : 0,
-  }))
+  return (data ?? []).map((row: any) => {
+    const target  = Number(row.targetamount  ?? 0)
+    const current = Number(row.currentamount ?? 0)
+    return {
+      ...row,
+      fraid:           row.fraid,
+      currentAmount:   current,
+      targetAmount:    target,
+      createdBy:       row.createdby  ?? '',
+      categoryId:      row.categoryid ?? 0,
+      createdAt:       row.createdat,
+      category:        row.category,
+      progressPercent: target > 0
+        ? Math.min(Math.round((current / target) * 100), 100)
+        : 0,
+    }
+  })
 }
 
 export function searchFra(query: string): FundRaisingActivity[] {

@@ -11,7 +11,7 @@ import { useRouter } from 'vue-router'
 import { useFraDetailController } from '../entity/FraDetailPage_Entity'
 
 const props = defineProps<{
-  fraid: { type: String, default: '' },
+  fraid: string,
 }>()
 
 const router = useRouter()
