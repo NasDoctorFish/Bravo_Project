@@ -2,6 +2,39 @@
 
 import { ref, computed } from 'vue'
 import { supabase } from '../lib/supabaseClient'
+import { useAuth } from '../composables/useAuth'
+
+// ── DB → App mappers (DB columns are all lowercase) ────────────────────────
+
+function mapCampaignRow(row: any): any {
+  return {
+    fraId:          row.fraid,
+    userId:         row.userid,
+    title:          row.title          ?? '',
+    description:    row.description    ?? '',
+    targetAmount:   row.targetamount   ?? 0,
+    currentAmount:  row.currentamount  ?? 0,
+    status:         row.status         ?? '',
+    createdBy:      row.createdby      ?? '',
+    categoryId:     row.categoryid     ?? '',
+    createdAt:      row.createdat,
+    name:           row.name,
+    image:          row.image,
+    endDate:        row.enddate,
+    tiers:          row.tiers,
+    progressPercent: 0,
+  }
+}
+
+function mapDonationRow(row: any): DonationData {
+  return {
+    donationId:  row.donationid,
+    userId:      row.userid      ?? '',
+    fraId:       row.fraid,
+    amount:      row.amount,
+    donatedAt:   row.donatedat,
+  }
+}
 
 // ── Types ──────────────────────────────────────────────────────────────────
 
@@ -105,6 +138,8 @@ export class Donation {
 // ── CONTROLLER COMPOSABLE ──────────────────────────────────────────────────
 
 export function useFraDetailController() {
+  const { userId: authUserId, isLoggedIn } = useAuth()
+
   const fraId      = ref('')
   const campaign   = ref<CampaignRow | null>(null)
   const donations  = ref<Donation[]>([])
@@ -129,27 +164,27 @@ export function useFraDetailController() {
       const { data, error: err } = await supabase
         .from('fundraisingactivity')
         .select('*')
-        .eq('fraId', id)
+        .eq('fraid', id)
         .maybeSingle()
 
       if (err) throw err
       if (!data) throw new Error(`Campaign "${id}" was not found.`)
 
+      const mapped = mapCampaignRow(data)
       campaign.value = {
-        ...data,
-        progressPercent: data.targetAmount > 0
-          ? Math.min(Math.round((data.currentAmount / data.targetAmount) * 100), 100)
+        ...mapped,
+        progressPercent: mapped.targetAmount > 0
+          ? Math.min(Math.round((mapped.currentAmount / mapped.targetAmount) * 100), 100)
           : 0,
       }
 
       // Check if current user has favourited this campaign
-      const { data: { user } } = await supabase.auth.getUser()
-      if (user) {
+      if (isLoggedIn.value && authUserId.value) {
         const { data: fav } = await supabase
           .from('favourites')
-          .select('favouriteId')
-          .eq('userId', user.id)
-          .eq('fraId', id)
+          .select('favouriteid')
+          .eq('userid', authUserId.value)
+          .eq('fraid', id)
           .maybeSingle()
         _isFavorited.value = !!fav
       }
@@ -166,11 +201,11 @@ export function useFraDetailController() {
       const { data, error: err } = await supabase
         .from('donation')
         .select('*')
-        .eq('fraId', id)
-        .order('donatedAt', { ascending: false })
+        .eq('fraid', id)
+        .order('donatedat', { ascending: false })
 
       if (err) throw err
-      donations.value = (data ?? []).map((d: DonationData) => new Donation(d))
+      donations.value = (data ?? []).map((d: any) => new Donation(mapDonationRow(d)))
     } catch (e: any) {
       error.value = e.message
     }
@@ -189,19 +224,15 @@ export function useFraDetailController() {
 
     isDonating.value = true
     try {
-      const { data: { user } } = await supabase.auth.getUser()
-      const actualUserId = user?.id ?? userId
+      const actualUserId = authUserId.value ?? userId
 
       const { error: err } = await supabase
         .from('donation')
         .insert({
-          userId:      actualUserId,
-          fraId:       fraId.value,
-          amount:      donateAmount.value,
-          donorName:   'You',
-          message:     donateMessage.value,
-          isAnonymous: false,
-          donatedAt:   new Date().toISOString(),
+          userid:    actualUserId,
+          fraid:     fraId.value,
+          amount:    donateAmount.value,
+          donatedat: new Date().toISOString(),
         })
 
       if (err) throw err
@@ -227,19 +258,18 @@ export function useFraDetailController() {
     if (!campaign.value) return
 
     const id = String(campaign.value.fraId)
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) {
+    if (!isLoggedIn.value || !authUserId.value) {
       favoriteMessage.value = 'Please log in to save favourites'
       setTimeout(() => { favoriteMessage.value = '' }, 2200)
       return
     }
 
     if (_isFavorited.value) {
-      await supabase.from('favourites').delete().eq('userId', user.id).eq('fraId', id)
+      await supabase.from('favourites').delete().eq('userid', authUserId.value).eq('fraid', id)
       _isFavorited.value    = false
       favoriteMessage.value = 'Removed from favourites'
     } else {
-      await supabase.from('favourites').insert({ userId: user.id, fraId: id })
+      await supabase.from('favourites').insert({ userid: authUserId.value, fraid: id })
       _isFavorited.value    = true
       favoriteMessage.value = 'Saved to favourites'
     }

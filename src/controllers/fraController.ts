@@ -47,20 +47,20 @@ export class fraController {
     const { data, error } = await supabase
       .from('fundraisingactivity')
       .insert({
-        userId: userId,
-        createdBy: userId,
-        title: details.title,
-        description: details.description,
-        targetAmount: details.targetAmount,
-        categoryId: details.categoryId,
-        status: 'Active',
-        currentAmount: 0.0
+        userid:        userId,
+        createdby:     userId,
+        title:         details.title,
+        description:   details.description,
+        targetamount:  details.targetAmount,
+        categoryid:    details.categoryId,
+        status:        'Active',
+        currentamount: 0.0
       })
       .select()
       .single();
 
     if (error) throw error;
-    return new FundRaisingActivityClass(data)
+    return FundRaisingActivityClass.fromDB(data)
   }
 
   // FR-2-02: Fetch a single FRA by ID
@@ -130,8 +130,8 @@ export class fraController {
     try {
       const { data: donations, error } = await supabase
         .from('donation')
-        .select('donorEmail, donorName')
-        .eq('fraId', fraId);
+        .select('userid')
+        .eq('fraid', fraId);
 
       if (error) {
         throw new Error(`Failed to retrieve donor list for notification: ${error.message}`);
@@ -142,14 +142,12 @@ export class fraController {
         return;
       }
 
-      const uniqueDonors = Array.from(
-        new Map(donations.map(d => [d.donorEmail, d])).values()
-      );
+      const uniqueUserIds = [...new Set(donations.map(d => d.userid))];
 
-      console.log(`Dispatching completion announcements to ${uniqueDonors.length} unique donors...`);
-      
-      for (const donor of uniqueDonors) {
-        console.log(`[Email Sent] To: ${donor.donorName} (${donor.donorEmail}) - Campaign ${fraId} has been successfully completed!`);
+      console.log(`Dispatching completion announcements to ${uniqueUserIds.length} unique donors...`);
+
+      for (const uid of uniqueUserIds) {
+        console.log(`[Notification] User ${uid} - Campaign ${fraId} has been successfully completed!`);
       }
 
     } catch (err: any) {

@@ -10,9 +10,9 @@ import { useRouter } from 'vue-router'
 //  BOUNDARY — FraDetailPage
 import { useFraDetailController } from '../entity/FraDetailPage_Entity'
 
-const props = defineProps({
-  fraId: { type: String, default: '1' },
-})
+const props = defineProps<{
+  fraid: string
+}>()
 
 const router = useRouter()
 const emit = defineEmits(['go-home', 'go-logout', 'go-search', 'go-edit', 'go-login', 'go-signup'])
@@ -67,8 +67,9 @@ const copied    = ref(false)
 const tabs      = ['About', 'Updates', 'Donors']
 
 onMounted(async () => {
-  await getCampaignDetail(props.fraId)   // displayCampaignDetail()
-  await getDonations(props.fraId)        // displayDonations()
+  const id = String(route.params.id)
+  await getCampaignDetail(id)   // displayCampaignDetail()
+  await getDonations(id)        // displayDonations()
 })
 
 // Computed
@@ -225,6 +226,8 @@ function handleEditFra() {
               <!-- About -->
               <div v-if="activeTab === 'About'" class="tab-content">
                 <h3>About This Campaign</h3>
+                <p class="tab-text">{{campaign.title}}</p>
+                <p class="tab-text">{{campaign.createdBy}}</p>
                 <p class="tab-text">{{ campaign.description }}</p>
               </div>
 
