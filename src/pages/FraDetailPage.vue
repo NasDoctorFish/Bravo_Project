@@ -1,7 +1,6 @@
 // FraDetailPage.vue
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
-import { useRoute } from 'vue-router'
 import { fraController } from '../controllers/fraController'
 import { useAuth } from '../composables/useAuth'
 const { isLoggedIn, userId: authUserId, userRole, sessionReady, signOut } = useAuth()
@@ -31,8 +30,6 @@ else {
   console.log('Logged Out')
 }
 
-// Auth & Route
-const route = useRoute()
 const routeFraId = Number(props.fraid)
 const userId = ref<number | null>(null)
 
@@ -70,14 +67,11 @@ const copied    = ref(false)
 const tabs      = ['About', 'Updates', 'Donors']
 
 onMounted(async () => {
-  const id = String(route.params.id)
-  await getCampaignDetail(id)   // displayCampaignDetail()
-  await getDonations(id)        // displayDonations()
-  const id = String(props.fraId)
+  const id = String(props.fraid)
   await getCampaignDetail(id)
   await getDonations(id)
-  if (authUserId) {
-    console.log('🔍 calling checkFavorite with:', authUserId, id)
+  if (authUserId.value) {
+    console.log('🔍 calling checkFavorite with:', authUserId.value, id)
     await checkFavorite(String(authUserIdValue.value), id)
   }
 })

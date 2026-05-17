@@ -181,10 +181,8 @@ export class fraController {
       const { data: donations, error } = await supabase
         .from('donation')
         .select('userid')
-        .eq('fraid', fraId);
-        .select('userid')
-        .eq('fraid', fraId);
-
+        .eq('fraid', fraId)
+        
       if (error) {
         throw new Error(`Failed to retrieve donor list for notification: ${error.message}`);
       }
@@ -196,10 +194,6 @@ export class fraController {
 
       const uniqueUserIds = [...new Set(donations.map(d => d.userid))];
 
-      console.log(`Dispatching completion announcements to ${uniqueUserIds.length} unique donors...`);
-
-      for (const uid of uniqueUserIds) {
-        console.log(`[Notification] User ${uid} - Campaign ${fraId} has been successfully completed!`);
       console.log(`Dispatching completion announcements to ${uniqueUserIds.length} unique donors...`);
 
       for (const uid of uniqueUserIds) {

@@ -18,7 +18,6 @@ export type FundRaisingActivity = {
 import { supabase } from '../lib/supabaseClient';
 
 export class FundRaisingActivityClass {
-  // Entity fields
   fraId: number
   userId: number
   title:         string
@@ -27,7 +26,7 @@ export class FundRaisingActivityClass {
   currentAmount: number
   status:        string
   createdBy:     string
-  categoryId: number
+  categoryId:    number
   createdAt:     Date
   name:          string
 
@@ -99,20 +98,18 @@ export class FundRaisingActivityClass {
     }
     return data;
   }
-  
+
   // Read all FRAs for a user
   static async readByUserId(userId: string): Promise<FundRaisingActivityClass[]> {
     const { data, error } = await supabase
       .from('fundraisingactivity')
       .select('*')
       .eq('userid', userId);
-      .eq('userid', userId);
 
     if (error) {
       console.error('Failed to fetch user activities:', error.message);
       throw error;
     }
-    return (data ?? []).map((row: any) => FundRaisingActivityClass.fromDB(row))
     return (data ?? []).map((row: any) => FundRaisingActivityClass.fromDB(row))
   }
 
@@ -122,7 +119,6 @@ export class FundRaisingActivityClass {
       .from('fundraisingactivity')
       .select('*')
       .eq('fraid', fraId)
-      .eq('fraid', fraId)
       .maybeSingle();
 
     if (error) {
@@ -130,28 +126,14 @@ export class FundRaisingActivityClass {
       throw error;
     }
     return data ? FundRaisingActivityClass.fromDB(data) : null
-    return data ? FundRaisingActivityClass.fromDB(data) : null
   }
 
   // FR-2-02: Update an existing FRA
   static async update(toUpdate: FundRaisingActivity): Promise<FundRaisingActivity> {
     const { fraId, userId, ...rest } = toUpdate;
-    const { fraId, userId, ...rest } = toUpdate;
 
     const { data, error } = await supabase
       .from('fundraisingactivity')
-      .update({
-        title:         rest.title,
-        description:   rest.description,
-        targetamount:  rest.targetAmount,
-        currentamount: rest.currentAmount,
-        status:        rest.status,
-        createdby:     rest.createdBy,
-        categoryid:    rest.categoryId,
-        name:          rest.name,
-      })
-      .eq('fraid', fraId)
-      .eq('userid', userId)
       .update({
         title:         rest.title,
         description:   rest.description,
@@ -172,19 +154,15 @@ export class FundRaisingActivityClass {
       throw error;
     }
     return FundRaisingActivityClass.fromDB(data) as unknown as FundRaisingActivity
-    return FundRaisingActivityClass.fromDB(data) as unknown as FundRaisingActivity
   }
-  
+
   // Delete a FRA
   static async delete(userId: string, fraId: number, hard: boolean): Promise<boolean> {
     let query = supabase.from('fundraisingactivity');
-    
+
     if (hard) {
       const { error } = await query
         .delete()
-        .eq('fraid', fraId)
-        .eq('userid', userId);
-
         .eq('fraid', fraId)
         .eq('userid', userId);
 
@@ -195,8 +173,6 @@ export class FundRaisingActivityClass {
         .update({ status: 'Archived' })
         .eq('fraid', fraId)
         .eq('userid', userId);
-        .eq('fraid', fraId)
-        .eq('userid', userId);
 
       if (error) {
         console.error('Failed to delete record from Supabase:', error.message);
@@ -205,13 +181,12 @@ export class FundRaisingActivityClass {
       return true;
     }
   }
+
   // FR-2-08: Update only the status field
   async updateStatus(status: string): Promise<void> {
     const { error } = await supabase
       .from('fundraisingactivity')
       .update({ status: status })
-      .eq('fraid', this.fraId)
-      .eq('userid', this.userId);
       .eq('fraid', this.fraId)
       .eq('userid', this.userId);
 
@@ -221,5 +196,4 @@ export class FundRaisingActivityClass {
     }
     this.status = status
   }
-
 }
