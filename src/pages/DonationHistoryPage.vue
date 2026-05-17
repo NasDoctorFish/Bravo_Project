@@ -1,6 +1,6 @@
 <script setup>
 import { useAuth } from '../composables/useAuth'
-const { isLoggedIn, userId, userRole, sessionReady, signOut } = useAuth()
+const { isLoggedIn, userid, userRole, sessionReady, signOut } = useAuth()
 import { useRouter } from 'vue-router'
 import { ref, computed, watch } from 'vue'
 
@@ -10,7 +10,7 @@ const emit = defineEmits(['go-home', 'go-login', 'go-logout', 'go-search', 'go-f
 if (isLoggedIn.value) {
   console.log(
     'Logged in as...\n',
-    'userid: ', userId.value,
+    'userid: ', userid.value,
     '\nRole: ', userRole.value,
     '\nsessionReady: ', sessionReady.value
   )
@@ -25,13 +25,13 @@ watch(sessionReady, (ready) => {
 }, { immediate: true })
 
 const donations = ref([
-  { donationId: 'D001', fsaName: 'Clean Water Initiative',  category: 'Environment', amount: 150, donatedAt: '2026-04-01', progress: 74,  fsaStatus: 'active'    },
-  { donationId: 'D002', fsaName: 'School Supplies Drive',   category: 'Education',   amount: 200, donatedAt: '2026-03-15', progress: 100, fsaStatus: 'completed' },
-  { donationId: 'D003', fsaName: 'Medical Aid Fund',        category: 'Health',      amount: 500, donatedAt: '2026-02-20', progress: 46,  fsaStatus: 'active'    },
-  { donationId: 'D004', fsaName: 'Elderly Care Program',    category: 'Social',      amount: 100, donatedAt: '2026-01-10', progress: 15,  fsaStatus: 'pending'   },
-  { donationId: 'D005', fsaName: 'Food Bank Support',       category: 'Social',      amount: 75,  donatedAt: '2026-03-28', progress: 60,  fsaStatus: 'active'    },
-  { donationId: 'D006', fsaName: 'Tree Planting Project',   category: 'Environment', amount: 250, donatedAt: '2026-04-05', progress: 88,  fsaStatus: 'active'    },
-  { donationId: 'D007', fsaName: 'Scholarship Fund',        category: 'Education',   amount: 300, donatedAt: '2026-02-01', progress: 100, fsaStatus: 'completed' },
+  { donationId: 'D001', fsaName: 'Clean Water Initiative',  category: 'Environment', amount: 150, donatedat: '2026-04-01', progress: 74,  fsaStatus: 'active'    },
+  { donationId: 'D002', fsaName: 'School Supplies Drive',   category: 'Education',   amount: 200, donatedat: '2026-03-15', progress: 100, fsaStatus: 'completed' },
+  { donationId: 'D003', fsaName: 'Medical Aid Fund',        category: 'Health',      amount: 500, donatedat: '2026-02-20', progress: 46,  fsaStatus: 'active'    },
+  { donationId: 'D004', fsaName: 'Elderly Care Program',    category: 'Social',      amount: 100, donatedat: '2026-01-10', progress: 15,  fsaStatus: 'pending'   },
+  { donationId: 'D005', fsaName: 'Food Bank Support',       category: 'Social',      amount: 75,  donatedat: '2026-03-28', progress: 60,  fsaStatus: 'active'    },
+  { donationId: 'D006', fsaName: 'Tree Planting Project',   category: 'Environment', amount: 250, donatedat: '2026-04-05', progress: 88,  fsaStatus: 'active'    },
+  { donationId: 'D007', fsaName: 'Scholarship Fund',        category: 'Education',   amount: 300, donatedat: '2026-02-01', progress: 100, fsaStatus: 'completed' },
 ])
 
 const searchKeyword   = ref('')
@@ -53,13 +53,13 @@ const filteredDonations = computed(() => {
   if (selectedCategory.value)
     result = result.filter(d => d.category === selectedCategory.value)
   if (startDate.value)
-    result = result.filter(d => d.donatedAt >= startDate.value)
+    result = result.filter(d => d.donatedat >= startDate.value)
   if (endDate.value)
-    result = result.filter(d => d.donatedAt <= endDate.value)
+    result = result.filter(d => d.donatedat <= endDate.value)
 
   result.sort((a, b) => {
-    if (sortBy.value === 'date-desc')   return b.donatedAt.localeCompare(a.donatedAt)
-    if (sortBy.value === 'date-asc')    return a.donatedAt.localeCompare(b.donatedAt)
+    if (sortBy.value === 'date-desc')   return b.donatedat.localeCompare(a.donatedat)
+    if (sortBy.value === 'date-asc')    return a.donatedat.localeCompare(b.donatedat)
     if (sortBy.value === 'amount-desc') return b.amount - a.amount
     if (sortBy.value === 'amount-asc')  return a.amount - b.amount
     return 0
@@ -205,7 +205,7 @@ function formatDate(dateStr) {
                 <td class="td-name">{{ d.fsaName }}</td>
                 <td><span class="cat-tag">{{ d.category }}</span></td>
                 <td class="td-green">${{ d.amount.toLocaleString() }}</td>
-                <td>{{ formatDate(d.donatedAt) }}</td>
+                <td>{{ formatDate(d.donatedat) }}</td>
                 <td>
                   <div class="mini-progress-wrap">
                     <div class="mini-progress">
@@ -246,7 +246,7 @@ function formatDate(dateStr) {
             <div class="dl"><span class="dt">FSA Name</span><span class="dd">{{ selectedDonation.fsaName }}</span></div>
             <div class="dl"><span class="dt">Category</span><span class="dd">{{ selectedDonation.category }}</span></div>
             <div class="dl"><span class="dt">Amount Donated</span><span class="dd td-green">${{ selectedDonation.amount.toLocaleString() }}</span></div>
-            <div class="dl"><span class="dt">Date</span><span class="dd">{{ formatDate(selectedDonation.donatedAt) }}</span></div>
+            <div class="dl"><span class="dt">Date</span><span class="dd">{{ formatDate(selectedDonation.donatedat) }}</span></div>
             <div class="dl">
               <span class="dt">Status</span>
               <span class="dd"><span :class="['status-badge', 'status-' + selectedDonation.fsaStatus]">{{ selectedDonation.fsaStatus }}</span></span>

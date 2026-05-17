@@ -1,4 +1,4 @@
 export type Category = {
-  categoryId: number
+  categoryid: number
   categoryName: string
 }

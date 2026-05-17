@@ -5,45 +5,45 @@ import { FundRaisingActivity } from './FundRaisingActivity.js'
 
 const SEED_CAMPAIGNS = [
   {
-    fraId: '1', userId: 'u1', title: 'Clean Water for Rural Schools',
-    createdBy: 'Jane Doe', categoryId: 'Education', status: 'active',
+    fraid: '1', userid: 'u1', title: 'Clean Water for Rural Schools',
+    createdby: 'Jane Doe', categoryid: 'Education', status: 'active',
     description: 'Installing water filtration in 5 rural schools to benefit over 2,000 students.',
-    targetAmount: 10000, currentAmount: 7400,
+    target_amount: 10000, current_amount: 7400,
     image: 'https://placehold.co/400x200/d8f3dc/2d6a4f?text=Clean+Water',
   },
   {
-    fraId: '2', userId: 'u2', title: 'School Supplies Drive',
-    createdBy: 'Mark Tan', categoryId: 'Education', status: 'completed',
+    fraid: '2', userid: 'u2', title: 'School Supplies Drive',
+    createdby: 'Mark Tan', categoryid: 'Education', status: 'completed',
     description: 'Providing essential school supplies to underprivileged children.',
-    targetAmount: 5000, currentAmount: 5000,
+    target_amount: 5000, current_amount: 5000,
     image: 'https://placehold.co/400x200/ebf8ff/2b6cb0?text=Supplies',
   },
   {
-    fraId: '3', userId: 'u3', title: 'Medical Aid Fund',
-    createdBy: 'Dr. Sarah Lim', categoryId: 'Healthcare', status: 'active',
+    fraid: '3', userid: 'u3', title: 'Medical Aid Fund',
+    createdby: 'Dr. Sarah Lim', categoryid: 'Healthcare', status: 'active',
     description: 'Supporting low-income families with medical expenses they cannot afford.',
-    targetAmount: 20000, currentAmount: 9200,
+    target_amount: 20000, current_amount: 9200,
     image: 'https://placehold.co/400x200/fff5f5/c53030?text=Medical+Aid',
   },
   {
-    fraId: '4', userId: 'u4', title: 'Reforestation Project',
-    createdBy: 'GreenEarth SG', categoryId: 'Environment', status: 'active',
+    fraid: '4', userid: 'u4', title: 'Reforestation Project',
+    createdby: 'GreenEarth SG', categoryid: 'Environment', status: 'active',
     description: 'Planting 10,000 trees across deforested areas in Southeast Asia.',
-    targetAmount: 15000, currentAmount: 4800,
+    target_amount: 15000, current_amount: 4800,
     image: 'https://placehold.co/400x200/f0fff4/276749?text=Reforestation',
   },
   {
-    fraId: '5', userId: 'u5', title: 'Elderly Care Program',
-    createdBy: 'Community Hearts', categoryId: 'Community', status: 'pending',
+    fraid: '5', userid: 'u5', title: 'Elderly Care Program',
+    createdby: 'Community Hearts', categoryid: 'Community', status: 'pending',
     description: 'Providing daily meals and companionship visits to isolated elderly.',
-    targetAmount: 8000, currentAmount: 1200,
+    target_amount: 8000, current_amount: 1200,
     image: 'https://placehold.co/400x200/fffbeb/b7791f?text=Elderly+Care',
   },
   {
-    fraId: '6', userId: 'u6', title: 'Flood Relief Fund',
-    createdBy: 'RedHand SG', categoryId: 'Disaster Relief', status: 'active',
+    fraid: '6', userid: 'u6', title: 'Flood Relief Fund',
+    createdby: 'RedHand SG', categoryid: 'Disaster Relief', status: 'active',
     description: 'Emergency aid for families affected by recent flooding.',
-    targetAmount: 30000, currentAmount: 22000,
+    target_amount: 30000, current_amount: 22000,
     image: 'https://placehold.co/400x200/ebf8ff/2c5282?text=Flood+Relief',
   },
 ]
@@ -87,7 +87,7 @@ export function useFraSearchController() {
     // Category filter
     if (filters.value.category) {
       filtered = filtered.filter(
-        fra => fra.categoryId === filters.value.category
+        fra => fra.categoryid === filters.value.category
       )
     }
 
@@ -103,10 +103,10 @@ export function useFraSearchController() {
     } else if (filters.value.sort === 'ending') {
       // Without a real deadline field, sort by least remaining amount as proxy
       filtered.sort((a, b) =>
-        (a.targetAmount - a.currentAmount) - (b.targetAmount - b.currentAmount)
+        (a.target_amount - a.current_amount) - (b.target_amount - b.current_amount)
       )
     } else {
-      filtered.sort((a, b) => b.createdAt - a.createdAt)
+      filtered.sort((a, b) => b.createdat - a.createdat)
     }
 
     return filtered

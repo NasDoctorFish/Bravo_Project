@@ -2,12 +2,12 @@ import { Story } from '../models/Story.ts'
 import { ActivityViewLog } from '../models/ActivityViewLog.ts'
 import { supabase } from '../lib/supabaseClient'
 
-export async function getStoryData(storyId: string, eventType: string = 'VIEW'): Promise<Story | null> {
+export async function getStoryData(storyid: string, eventType: string = 'VIEW'): Promise<Story | null> {
   if (eventType === 'VIEW') {
-    await supabase.from('ActivityViewLog').insert([{ targetId: storyId, eventType, timestamp: new Date().toISOString() }])
+    await supabase.from('ActivityViewLog').insert([{ targetId: storyid, eventType, timestamp: new Date().toISOString() }])
   }
 
-  const res = await supabase.from('story').select('*').eq('storyid', storyId).single()
+  const res = await supabase.from('story').select('*').eq('storyid', storyid).single()
   return res.data as Story | null
 }
 
@@ -34,12 +34,12 @@ export function calculateImpact(avls: ActivityViewLog[]): Record<string, number>
 // BRANCH: dashboard_totalviews
 
 // // Fetch story and log VIEW event
-// export async function getStoryData(storyId: string, eventType: string = "VIEW") {
+// export async function getStoryData(storyid: string, eventType: string = "VIEW") {
 //   // 1️⃣ Fetch story details
 //   const { data: story, error: storyError } = await supabase
 //     .from('Story')
 //     .select('*')
-//     .eq('id', storyId)
+//     .eq('id', storyid)
 //     .single();
 
 //   if (storyError) {
@@ -52,7 +52,7 @@ export function calculateImpact(avls: ActivityViewLog[]): Record<string, number>
 //     .from('ActivityViewLog')
 //     .insert([
 //       {
-//         story_id: storyId,
+//         story_id: storyid,
 //         event_type: eventType,
 //         created_at: new Date().toISOString()
 //       }
@@ -66,11 +66,11 @@ export function calculateImpact(avls: ActivityViewLog[]): Record<string, number>
 // }
 
 // // Aggregate total views
-// export async function getTotalViews(storyId: string) {
+// export async function getTotalViews(storyid: string) {
 //   const { data, error } = await supabase
 //     .from('ActivityViewLog')
 //     .select('id', { count: 'exact' })
-//     .eq('story_id', storyId)
+//     .eq('story_id', storyid)
 //     .eq('event_type', 'VIEW');
 
 //   if (error) {

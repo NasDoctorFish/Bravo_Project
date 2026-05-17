@@ -15,8 +15,8 @@ const CAMPAIGN_SEED = new FundRaisingActivity({
   description:   'Thousands of children in rural schools lack access to clean drinking water, '
                + 'leading to preventable illnesses and school absences. This campaign aims to '
                + 'install water filtration systems in 5 schools, benefiting over 2,000 students.',
-  targetAmount:  10000,
-  currentAmount: 7400,
+  target_amount:  10000,
+  current_amount: 7400,
   endDate:       '2026-06-30',
   image:         'https://placehold.co/1100x320/d8f3dc/2d6a4f?text=Campaign+Banner',
   tiers:         [25, 50, 100, 250],
@@ -123,7 +123,7 @@ export function useFraDetailController() {
 
       // Update campaign's running total
       if (campaign.value) {
-        campaign.value.currentAmount += newDonation.amount
+        campaign.value.current_amount += newDonation.amount
       }
 
       // Refresh donation list shown in Donors tab

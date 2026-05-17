@@ -51,14 +51,14 @@ export const searchUser = async (
   return data || []
 }
 
-export async function updateUser(userId: number, name: string, role: string) {
+export async function updateUser(userid: number, name: string, role: string) {
   const { data, error } = await supabase
     .from('userprofile')
     .update({ 
       name: name, 
       role: role 
     })
-    .eq('userid', userId) 
+    .eq('userid', userid) 
     .select()
 
   if (error) {

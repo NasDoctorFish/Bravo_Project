@@ -5,19 +5,19 @@ export class FundRaisingActivity {
    * @param {Object} data
    */
   constructor(data = {}) {
-    this.fraId         = data.fraId         ?? data.id ?? String(Date.now() + Math.random())
-    this.userId        = data.userId        ?? ''   // PK2, FK — owner
+    this.fraid         = data.fraid         ?? data.id ?? String(Date.now() + Math.random())
+    this.userid        = data.userid        ?? ''   // PK2, FK — owner
 
     
     this.title         = data.title         ?? ''
     this.name          = data.name          ?? data.title ?? ''   // alias kept from diagram
     this.description   = data.description   ?? ''
-    this.targetAmount  = Number(data.targetAmount  ?? data.goal          ?? 0)
-    this.currentAmount = Number(data.currentAmount ?? data.raised        ?? 0)
+    this.target_amount  = Number(data.target_amount  ?? data.goal          ?? 0)
+    this.current_amount = Number(data.current_amount ?? data.raised        ?? 0)
     this.status        = data.status        ?? 'pending'  // 'active' | 'completed' | 'pending'
-    this.createdBy     = data.createdBy     ?? data.organizer ?? ''
-    this.categoryId    = data.categoryId    ?? data.category  ?? ''
-    this.createdAt     = data.createdAt     ? new Date(data.createdAt) : new Date()
+    this.createdby     = data.createdby     ?? data.organizer ?? ''
+    this.categoryid    = data.categoryid    ?? data.category  ?? ''
+    this.createdat     = data.createdat     ? new Date(data.createdat) : new Date()
 
     this.image         = data.image         ?? ''
   }
@@ -32,51 +32,51 @@ export class FundRaisingActivity {
     if (!data.description || !String(data.description).trim()) {
       throw new Error('Campaign description is required.')
     }
-    if (!data.targetAmount || Number(data.targetAmount) <= 0) {
+    if (!data.target_amount || Number(data.target_amount) <= 0) {
       throw new Error('Target amount must be greater than zero.')
     }
-    if (!data.userId) {
-      throw new Error('A valid user (userId) is required to own this campaign.')
+    if (!data.userid) {
+      throw new Error('A valid user (userid) is required to own this campaign.')
     }
-    if (!data.categoryId && !data.category) {
+    if (!data.categoryid && !data.category) {
       throw new Error('Category is required.')
     }
   }
 
   /**
-   * @param {string} userId
-   * @param {Object} fields - title, description, targetAmount, categoryId, etc.
+   * @param {string} userid
+   * @param {Object} fields - title, description, target_amount, categoryid, etc.
    * @returns {FundRaisingActivity}
    */
-  static create(userId, fields = {}) {
-    FundRaisingActivity.validate({ ...fields, userId })
+  static create(userid, fields = {}) {
+    FundRaisingActivity.validate({ ...fields, userid })
     return new FundRaisingActivity({
       ...fields,
-      userId,
+      userid,
       status:        'pending',
-      currentAmount: 0,
-      createdAt:     new Date(),
+      current_amount: 0,
+      createdat:     new Date(),
     })
   }
 
   /**
-   * @param {string} userId
+   * @param {string} userid
    * @param {FundRaisingActivity[]} store - in-memory data source
    * @returns {FundRaisingActivity[]}
    */
-  static readByUser(userId, store = []) {
-    if (!userId) throw new Error('userId is required.')
-    return store.filter(fra => fra.userId === userId)
+  static readByUser(userid, store = []) {
+    if (!userid) throw new Error('userid is required.')
+    return store.filter(fra => fra.userid === userid)
   }
 
   /**
-   * @param {string} fraId
+   * @param {string} fraid
    * @param {FundRaisingActivity[]} store
    * @returns {FundRaisingActivity|null}
    */
-  static readById(fraId, store = []) {
-    if (!fraId) throw new Error('fraId is required.')
-    return store.find(fra => fra.fraId === fraId) ?? null
+  static readById(fraid, store = []) {
+    if (!fraid) throw new Error('fraid is required.')
+    return store.find(fra => fra.fraid === fraid) ?? null
   }
 
   /**
@@ -94,15 +94,15 @@ export class FundRaisingActivity {
   }
 
   /**
-   * @param {string} userId
-   * @param {string} fraId
+   * @param {string} userid
+   * @param {string} fraid
    * @param {boolean} hard - true = remove from store, false = mark inactive
    * @param {FundRaisingActivity[]} store
    * @returns {boolean}
    */
-  static delete(userId, fraId, hard = false, store = []) {
+  static delete(userid, fraid, hard = false, store = []) {
     const index = store.findIndex(
-      fra => fra.fraId === fraId && fra.userId === userId
+      fra => fra.fraid === fraid && fra.userid === userid
     )
     if (index === -1) return false
 
@@ -125,20 +125,20 @@ export class FundRaisingActivity {
     return store.filter(fra =>
       fra.title.toLowerCase().includes(lower)       ||
       fra.description.toLowerCase().includes(lower) ||
-      fra.createdBy.toLowerCase().includes(lower)   ||
-      fra.categoryId.toLowerCase().includes(lower)
+      fra.createdby.toLowerCase().includes(lower)   ||
+      fra.categoryid.toLowerCase().includes(lower)
     )
   }
 
   /** Percentage of target reached (0–100) */
   get progressPercent() {
-    if (!this.targetAmount) return 0
-    return Math.min(Math.round((this.currentAmount / this.targetAmount) * 100), 100)
+    if (!this.target_amount) return 0
+    return Math.min(Math.round((this.current_amount / this.target_amount) * 100), 100)
   }
 
   /** True when the campaign has passed its target */
   get isFullyFunded() {
-    return this.currentAmount >= this.targetAmount
+    return this.current_amount >= this.target_amount
   }
 
   /** True when campaign is running and not yet fully funded */
@@ -148,17 +148,17 @@ export class FundRaisingActivity {
 
   toJSON() {
     return {
-      fraId:         this.fraId,
-      userId:        this.userId,
+      fraid:         this.fraid,
+      userid:        this.userid,
       title:         this.title,
       name:          this.name,
       description:   this.description,
-      targetAmount:  this.targetAmount,
-      currentAmount: this.currentAmount,
+      target_amount:  this.target_amount,
+      current_amount: this.current_amount,
       status:        this.status,
-      createdBy:     this.createdBy,
-      categoryId:    this.categoryId,
-      createdAt:     this.createdAt.toISOString(),
+      createdby:     this.createdby,
+      categoryid:    this.categoryid,
+      createdat:     this.createdat.toISOString(),
       image:         this.image,
     }
   }

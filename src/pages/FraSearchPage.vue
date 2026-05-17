@@ -1,7 +1,6 @@
-// FraSearchPage.vue
 <script setup lang="ts">
 import { useAuth } from '../composables/useAuth'
-const { isLoggedIn, userId, userRole, sessionReady } = useAuth()
+const { isLoggedIn, userid, userRole, sessionReady } = useAuth()
 import { ref, onMounted } from 'vue'
 import type { FundRaisingActivity } from '../models/FundRaisingActivity'
 import { searchFraByFilter } from '../controllers/fraController'
@@ -9,7 +8,7 @@ import { searchFraByFilter } from '../controllers/fraController'
 if (isLoggedIn.value) {
   console.log(
     'Logged in as...\n',
-    'userid: ', userId.value,
+    'userid: ', userid.value,
     '\nRole: ', userRole.value,
     '\nsessionReady: ', sessionReady.value
   )
@@ -56,7 +55,7 @@ async function clearFilters() {
 
 const progressPercent = (c: FundRaisingActivity): number =>
   Math.min(
-    Math.round((c.currentAmount / c.targetAmount) * 100),
+    Math.round((c.current_amount / c.target_amount) * 100),
     100
   )
 
@@ -117,7 +116,7 @@ const progressPercent = (c: FundRaisingActivity): number =>
 
           <div class="form-group">
             <label>Status</label>
-            <select v-model="filters.status" class="form-select">
+            <select v-model="filters.status" @change="handleSearch" class="form-select">
               <option value="">Any Status</option>
               <option value="active">Active</option>
               <option value="completed">Completed</option>
@@ -150,9 +149,9 @@ const progressPercent = (c: FundRaisingActivity): number =>
       <div v-if="results.length > 0" class="campaigns-grid">
         <div
           v-for="c in results"
-          :key="c.fraId"
+          :key="c.fraid"
           class="campaign-card"
-          @click="emit('go-campaigndetail', c); $router.push(`/fra/${c.fraId}`)"
+          @click="emit('go-campaigndetail', c); $router.push(`/fra/${c.fraid}`)"
         >
           <!-- Image -->
           <div class="campaign-image-wrap">
@@ -162,7 +161,7 @@ const progressPercent = (c: FundRaisingActivity): number =>
 
           <!-- Body -->
           <div class="campaign-body">
-            <span class="campaign-category">{{ c.categoryId}}</span>
+            <span class="campaign-category">{{ c.category?.categoryname ?? c.categoryid }}</span>
             <h4 class="campaign-title">{{ c.title }}</h4>
             <p class="campaign-desc">{{ c.description }}</p>
 
@@ -171,13 +170,13 @@ const progressPercent = (c: FundRaisingActivity): number =>
                 <div class="progress-fill" :style="{ width: progressPercent(c) + '%' }"></div>
               </div>
               <div class="progress-labels">
-                <span class="progress-raised">${{ c.currentAmount.toLocaleString() }} raised</span>
-                <span class="progress-pct">{{ progressPercent(c) }}% of ${{ c.targetAmount.toLocaleString() }}</span>
+                <span class="progress-raised">${{ c.current_amount.toLocaleString() }} raised</span>
+                <span class="progress-pct">{{ progressPercent(c) }}% of ${{ c.target_amount.toLocaleString() }}</span>
               </div>
             </div>
 
             <div class="campaign-footer">
-              <span class="campaign-organizer">by {{ c.createdBy}}</span>
+              <span class="campaign-organizer">by {{ c.createdby}}</span>
               <span class="view-link">View →</span>
             </div>
           </div>

@@ -147,8 +147,8 @@ CHECK (categoryid >= 1 AND categoryid <= 999)
 | `userid` | integer | Yes | null | FK to `useraccount(userid)` |
 | `title` | text | Yes | null | Fundraising title |
 | `description` | text | Yes | null | Fundraising description |
-| `targetamount` | numeric | Yes | null | Target donation amount |
-| `currentamount` | numeric | Yes | null | Current raised amount |
+| `target_amount` | numeric | Yes | null | Target donation amount |
+| `current_amount` | numeric | Yes | null | Current raised amount |
 | `status` | text | No | `DRAFT` | Campaign status |
 | `createdby` | text | Yes | null | Creator |
 | `categoryid` | integer | Yes | null | FK to `category(categoryid)` |
@@ -331,7 +331,7 @@ Constraints:
 PRIMARY KEY (activityid)
 FOREIGN KEY (userid) REFERENCES useraccount(userid)
 CHECK (activityid >= 1 AND activityid <= 999)
-CHECK (targetname IN ('fraId', 'donationId', 'userId', 'storyId'))
+CHECK (targetname IN ('fraid', 'donationId', 'userid', 'storyid'))
 CHECK (eventtype IN ('VIEW', 'CLICK', 'SAVE', 'DONATE'))
 ```
 

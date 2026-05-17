@@ -9,8 +9,8 @@ export class Favourites {
   constructor(data = {}) {
     // --- Identity (PK / FK) ---
     this.favouriteId = data.favouriteId ?? String(Date.now() + Math.random())
-    this.userId      = data.userId      ?? ''   // FK → UserAccount.userId
-    this.fraId       = data.fraId       ?? ''   // FK → FundRaisingActivity.fraId
+    this.userid      = data.userid      ?? ''   // FK → UserAccount.userid
+    this.fraid       = data.fraid       ?? ''   // FK → FundRaisingActivity.fraid
 
     this.savedAt     = data.savedAt ? new Date(data.savedAt) : new Date()
   }
@@ -19,28 +19,28 @@ export class Favourites {
    * @param {Object} data
    */
   static validate(data) {
-    if (!data.userId || !String(data.userId).trim()) {
-      throw new Error('A valid userId is required to save a favourite.')
+    if (!data.userid || !String(data.userid).trim()) {
+      throw new Error('A valid userid is required to save a favourite.')
     }
-    if (!data.fraId || !String(data.fraId).trim()) {
-      throw new Error('A valid fraId (campaign) is required to save a favourite.')
+    if (!data.fraid || !String(data.fraid).trim()) {
+      throw new Error('A valid fraid (campaign) is required to save a favourite.')
     }
   }
 
-  static create(userId, fraId, store = []) {
-    Favourites.validate({ userId, fraId })
+  static create(userid, fraid, store = []) {
+    Favourites.validate({ userid, fraid })
 
-    const record = new Favourites({ userId, fraId })
+    const record = new Favourites({ userid, fraid })
     store.push(record)
     Favourites._persist(store)
     return record.favouriteId
   }
 
-  static delete(userId, fraId, store = []) {
-    Favourites.validate({ userId, fraId })
+  static delete(userid, fraid, store = []) {
+    Favourites.validate({ userid, fraid })
 
     const before = store.length
-    const index  = store.findIndex(f => f.userId === userId && f.fraId === fraId)
+    const index  = store.findIndex(f => f.userid === userid && f.fraid === fraid)
     if (index === -1) return false
 
     store.splice(index, 1)
@@ -48,15 +48,15 @@ export class Favourites {
     return store.length < before
   }
 
-  static readByUser(userId, store = []) {
-    if (!userId) throw new Error('userId is required.')
+  static readByUser(userid, store = []) {
+    if (!userid) throw new Error('userid is required.')
     return store
-      .filter(f => f.userId === userId)
+      .filter(f => f.userid === userid)
       .sort((a, b) => b.savedAt - a.savedAt)
   }
 
-  static exists(userId, fraId, store = []) {
-    return store.some(f => f.userId === userId && f.fraId === fraId)
+  static exists(userid, fraid, store = []) {
+    return store.some(f => f.userid === userid && f.fraid === fraid)
   }
 
   static loadFromStorage() {
@@ -81,8 +81,8 @@ export class Favourites {
   toJSON() {
     return {
       favouriteId: this.favouriteId,
-      userId:      this.userId,
-      fraId:       this.fraId,
+      userid:      this.userid,
+      fraid:       this.fraid,
       savedAt:     this.savedAt.toISOString(),
     }
   }

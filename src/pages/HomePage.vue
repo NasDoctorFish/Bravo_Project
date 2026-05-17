@@ -1,6 +1,6 @@
 <script setup>
 import { useAuth } from '../composables/useAuth'
-const { isLoggedIn, userId, userRole, sessionReady, signOut } = useAuth()
+const { isLoggedIn, userid, userRole, sessionReady, signOut } = useAuth()
 import { useRouter } from 'vue-router'
 
 const router = useRouter()
@@ -11,7 +11,7 @@ const emit = defineEmits(['go-home', 'go-login', 'go-signup', 'go-search'])
 if (isLoggedIn.value) {
   console.log(
     'Logged in as...\n',
-    'userid: ', userId.value,
+    'userid: ', userid.value,
     '\nRole: ', userRole.value,
     '\nsessionReady: ', sessionReady.value
   )

@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { useAuth } from '../composables/useAuth'
-const { isLoggedIn, userId, userRole, sessionReady, signOut } = useAuth()
+const { isLoggedIn, userid, userRole, sessionReady, signOut } = useAuth()
 
 import { useRouter } from 'vue-router'
 
@@ -10,7 +10,7 @@ const emit = defineEmits(['go-home', 'go-login', 'go-signup', 'go-search'])
 if (isLoggedIn.value) {
   console.log(
     'Logged in as...\n',
-    'userid: ', userId.value,
+    'userid: ', userid.value,
     '\nRole: ', userRole.value,
     '\nsessionReady: ', sessionReady.value
   )
@@ -31,13 +31,13 @@ const selectedFra = ref<any>(null)
 
 // Dummy data — will be replaced with real API when backend is ready
 const fraList = ref([
-  { fraId: 'F001', title: 'Clean Water Initiative', category: 'Environment', description: 'Providing clean water to rural communities.', targetAmount: 10000, raisedAmount: 10500, completedAt: '2026-03-01', organiser: 'Jane Doe' },
-  { fraId: 'F002', title: 'School Supplies Drive', category: 'Education', description: 'Supplying school materials to underprivileged children.', targetAmount: 5000, raisedAmount: 5000, completedAt: '2026-02-15', organiser: 'John Smith' },
-  { fraId: 'F003', title: 'Medical Aid Fund', category: 'Health', description: 'Funding medical care for low-income families.', targetAmount: 20000, raisedAmount: 21000, completedAt: '2026-01-20', organiser: 'Sarah Lee' },
-  { fraId: 'F004', title: 'Elderly Care Program', category: 'Social', description: 'Supporting elderly citizens with daily needs.', targetAmount: 8000, raisedAmount: 8200, completedAt: '2026-03-10', organiser: 'Mike Chen' },
-  { fraId: 'F005', title: 'Food Bank Support', category: 'Social', description: 'Stocking food banks for families in need.', targetAmount: 3000, raisedAmount: 3500, completedAt: '2026-02-28', organiser: 'Lisa Wong' },
-  { fraId: 'F006', title: 'Tree Planting Project', category: 'Environment', description: 'Planting 10,000 trees across the region.', targetAmount: 15000, raisedAmount: 15000, completedAt: '2026-01-05', organiser: 'Jane Doe' },
-  { fraId: 'F007', title: 'Scholarship Fund', category: 'Education', description: 'Funding scholarships for deserving students.', targetAmount: 25000, raisedAmount: 26000, completedAt: '2026-03-20', organiser: 'Tom Brown' },
+  { fraid: 'F001', title: 'Clean Water Initiative', category: 'Environment', description: 'Providing clean water to rural communities.', target_amount: 10000, raisedAmount: 10500, completedAt: '2026-03-01', organiser: 'Jane Doe' },
+  { fraid: 'F002', title: 'School Supplies Drive', category: 'Education', description: 'Supplying school materials to underprivileged children.', target_amount: 5000, raisedAmount: 5000, completedAt: '2026-02-15', organiser: 'John Smith' },
+  { fraid: 'F003', title: 'Medical Aid Fund', category: 'Health', description: 'Funding medical care for low-income families.', target_amount: 20000, raisedAmount: 21000, completedAt: '2026-01-20', organiser: 'Sarah Lee' },
+  { fraid: 'F004', title: 'Elderly Care Program', category: 'Social', description: 'Supporting elderly citizens with daily needs.', target_amount: 8000, raisedAmount: 8200, completedAt: '2026-03-10', organiser: 'Mike Chen' },
+  { fraid: 'F005', title: 'Food Bank Support', category: 'Social', description: 'Stocking food banks for families in need.', target_amount: 3000, raisedAmount: 3500, completedAt: '2026-02-28', organiser: 'Lisa Wong' },
+  { fraid: 'F006', title: 'Tree Planting Project', category: 'Environment', description: 'Planting 10,000 trees across the region.', target_amount: 15000, raisedAmount: 15000, completedAt: '2026-01-05', organiser: 'Jane Doe' },
+  { fraid: 'F007', title: 'Scholarship Fund', category: 'Education', description: 'Funding scholarships for deserving students.', target_amount: 25000, raisedAmount: 26000, completedAt: '2026-03-20', organiser: 'Tom Brown' },
 ])
 
 const selectedCategory = ref('')
@@ -65,7 +65,7 @@ function resetFilters() {
 
 // FR-5-05: View detail via fraController -> fraService
 function selectFra(f: any) {
-  selectedFra.value = fraController.getFraById(f.fraId, fraList.value)
+  selectedFra.value = fraController.getFraById(f.fraid, fraList.value)
 }
 
 function formatDate(dateStr: string) {
@@ -168,17 +168,17 @@ function formatDate(dateStr: string) {
                 <td colspan="7" class="empty-row">No records found.</td>
               </tr>
               <!-- FR-5-05: View detail on click -->
-              <tr v-for="f in filteredFra" :key="f.fraId" class="clickable-row" @click="selectFra(f)">
+              <tr v-for="f in filteredFra" :key="f.fraid" class="clickable-row" @click="selectFra(f)">
                 <td class="td-name">{{ f.title }}</td>
                 <td><span class="cat-tag">{{ f.category }}</span></td>
-                <td>${{ f.targetAmount.toLocaleString() }}</td>
+                <td>${{ f.target_amount.toLocaleString() }}</td>
                 <td class="td-green">${{ f.raisedAmount.toLocaleString() }}</td>
                 <td>
                   <div class="mini-progress-wrap">
                     <div class="mini-progress">
-                      <div class="mini-fill" :style="{ width: Math.min(f.raisedAmount/f.targetAmount*100, 100) + '%' }"></div>
+                      <div class="mini-fill" :style="{ width: Math.min(f.raisedAmount/f.target_amount*100, 100) + '%' }"></div>
                     </div>
-                    <span class="mini-pct">{{ Math.round(f.raisedAmount/f.targetAmount*100) }}%</span>
+                    <span class="mini-pct">{{ Math.round(f.raisedAmount/f.target_amount*100) }}%</span>
                   </div>
                 </td>
                 <td>{{ formatDate(f.completedAt) }}</td>
@@ -210,7 +210,7 @@ function formatDate(dateStr: string) {
             <div class="dl"><span class="dt">FRA Name</span><span class="dd">{{ selectedFra.title }}</span></div>
             <div class="dl"><span class="dt">Category</span><span class="dd">{{ selectedFra.category }}</span></div>
             <div class="dl"><span class="dt">Description</span><span class="dd">{{ selectedFra.description }}</span></div>
-            <div class="dl"><span class="dt">Target Amount</span><span class="dd">${{ selectedFra.targetAmount.toLocaleString() }}</span></div>
+            <div class="dl"><span class="dt">Target Amount</span><span class="dd">${{ selectedFra.target_amount.toLocaleString() }}</span></div>
             <div class="dl"><span class="dt">Amount Raised</span><span class="dd td-green">${{ selectedFra.raisedAmount.toLocaleString() }}</span></div>
             <div class="dl"><span class="dt">Completed Date</span><span class="dd">{{ formatDate(selectedFra.completedAt) }}</span></div>
             <div class="dl"><span class="dt">Organiser</span><span class="dd">{{ selectedFra.organiser }}</span></div>
@@ -219,9 +219,9 @@ function formatDate(dateStr: string) {
             <p class="dt" style="margin-bottom: 8px;">Progress</p>
             <div class="mini-progress-wrap">
               <div class="mini-progress mini-progress-lg">
-                <div class="mini-fill" :style="{ width: Math.min(selectedFra.raisedAmount/selectedFra.targetAmount*100, 100) + '%' }"></div>
+                <div class="mini-fill" :style="{ width: Math.min(selectedFra.raisedAmount/selectedFra.target_amount*100, 100) + '%' }"></div>
               </div>
-              <span class="mini-pct">{{ Math.round(selectedFra.raisedAmount/selectedFra.targetAmount*100) }}%</span>
+              <span class="mini-pct">{{ Math.round(selectedFra.raisedAmount/selectedFra.target_amount*100) }}%</span>
             </div>
           </div>
         </div>

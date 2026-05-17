@@ -1,6 +1,6 @@
 <script setup>
 import { useAuth } from '../composables/useAuth'
-const { isLoggedIn, userId, userRole, sessionReady, signOut } = useAuth()
+const { isLoggedIn, userid, userRole, sessionReady, signOut } = useAuth()
 import { useRouter } from 'vue-router'
 import { ref, reactive, computed } from 'vue'
 import { create } from '../controllers/authController'
@@ -13,7 +13,7 @@ const emit = defineEmits(['go-home', 'go-login', 'go-signup', 'signup-success', 
 if (isLoggedIn.value) {
   console.log(
     'Logged in as...\n',
-    'userid: ', userId.value,
+    'userid: ', userid.value,
     '\nRole: ', userRole.value,
     '\nsessionReady: ', sessionReady.value
   )
@@ -95,14 +95,14 @@ async function handleSignup() {
   try {
     const fullName = `${form.firstName} ${form.lastName}`.trim()
 
-    const newUserId = await create(
+    const newuserid = await create(
       fullName,
       form.role,
       form.password,
       form.email
     )
 
-    console.log('Created user:', newUserId)
+    console.log('Created user:', newuserid)
 
     router.push('/login')
   } catch (err) {

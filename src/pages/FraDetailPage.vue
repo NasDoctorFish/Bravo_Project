@@ -4,14 +4,14 @@ import { ref, computed, onMounted } from 'vue'
 import { useRoute } from 'vue-router'
 import { fraController } from '../controllers/fraController'
 import { useAuth } from '../composables/useAuth'
-const { isLoggedIn, userId: authUserId, userRole, sessionReady, signOut } = useAuth()
+const { isLoggedIn, userid: authuserid, userRole, sessionReady, signOut } = useAuth()
 import { useRouter } from 'vue-router'
 
 //  BOUNDARY — FraDetailPage
 import { useFraDetailController } from '../entity/FraDetailPage_Entity'
 
 const props = defineProps({
-  fraId: { type: String, default: '1' },
+  fraid: { type: String, default: '1' },
 })
 
 const router = useRouter()
@@ -20,7 +20,7 @@ const emit = defineEmits(['go-home', 'go-logout', 'go-search', 'go-edit', 'go-lo
 if (isLoggedIn.value) {
   console.log(
     'Logged in as...\n',
-    'userid: ', authUserId.value,
+    'userid: ', authuserid.value,
     '\nRole: ', userRole.value,
     '\nsessionReady: ', sessionReady.value
   )
@@ -31,8 +31,8 @@ else {
 
 // Auth & Route
 const route = useRoute()
-const fraId = Number(route.params.id)
-const userId = ref<number | null>(null)
+const fraid = Number(route.params.id)
+const userid = ref<number | null>(null)
 
 // Owner status toggle (FR-2-08)
 const updatingStatus = ref(false)
@@ -67,13 +67,13 @@ const copied    = ref(false)
 const tabs      = ['About', 'Updates', 'Donors']
 
 onMounted(async () => {
-  await getCampaignDetail(props.fraId)   // displayCampaignDetail()
-  await getDonations(props.fraId)        // displayDonations()
+  await getCampaignDetail(props.fraid)   // displayCampaignDetail()
+  await getDonations(props.fraid)        // displayDonations()
 })
 
 // Computed
 const isOwner = computed(() =>
-  !!campaign.value && !!userId.value && campaign.value.userId === userId.value
+  !!campaign.value && !!userid.value && campaign.value.userid === userid.value
 )
 const isCompleted = computed(() =>
   campaign.value?.status?.toUpperCase() === 'COMPLETED'
@@ -108,7 +108,7 @@ async function handleMarkAsCompleted() {
 
   try {
     const controller = new fraController()
-    await controller.updateFraStatus(fraId, 'COMPLETED')
+    await controller.updateFraStatus(fraid, 'COMPLETED')
     campaign.value.status = 'COMPLETED'
   } catch (err: any) {
     statusError.value = err.message || 'Failed to update campaign status.'
@@ -119,7 +119,7 @@ async function handleMarkAsCompleted() {
 
 // FR-2-02: Go to edit
 function handleEditFra() {
-  emit('go-edit', fraId)
+  emit('go-edit', fraid)
 }
 </script>
 
@@ -179,8 +179,8 @@ function handleEditFra() {
             </button>
             <h1>{{ campaign.title }}</h1>
             <p class="hero-meta">
-              By <strong>{{ campaign.createdBy }}</strong>
-              · {{ campaign.categoryId }}
+              By <strong>{{ campaign.createdby }}</strong>
+              · {{ campaign.categoryid }}
               · Ends {{ campaign.endDate ?? 'TBD' }}
             </p>
             <p v-if="favoriteMessage" class="favorite-message">{{ favoriteMessage }}</p>
@@ -259,8 +259,8 @@ function handleEditFra() {
 
               <!-- progress stats -->
               <div class="progress-section">
-                <p class="raised-amount">${{ campaign.currentAmount.toLocaleString() }}</p>
-                <p class="goal-text">raised of ${{ campaign.targetAmount.toLocaleString() }} goal</p>
+                <p class="raised-amount">${{ campaign.current_amount.toLocaleString() }}</p>
+                <p class="goal-text">raised of ${{ campaign.target_amount.toLocaleString() }} goal</p>
                 <div class="progress-bar">
                   <div class="progress-fill" :style="{ width: campaign.progressPercent + '%' }"></div>
                 </div>

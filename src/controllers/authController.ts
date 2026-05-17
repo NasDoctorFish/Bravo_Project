@@ -155,13 +155,13 @@ export async function login(
 }
 
 // Check whether a session is valid for the given user
-export async function validateSession(userId: string, sessionId: number): Promise<boolean> {
+export async function validateSession(userid: string, sessionId: number): Promise<boolean> {
   await cleanupExpiredSessions()
-  if (!userId || !sessionId) return false
+  if (!userid || !sessionId) return false
   const { data } = await supabase
     .from('authsession')
     .select('sessionid')
-    .eq('userid', userId)
+    .eq('userid', userid)
     .eq('sessionid', sessionId)
     .maybeSingle()
   return !!data

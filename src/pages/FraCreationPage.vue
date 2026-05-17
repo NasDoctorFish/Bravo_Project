@@ -1,7 +1,7 @@
 // FraCreationPage.vue
 <script setup lang="ts">
 import { useAuth } from '../composables/useAuth'
-const { isLoggedIn, userId, userRole, sessionReady, signOut } = useAuth()
+const { isLoggedIn, userid, userRole, sessionReady, signOut } = useAuth()
 import { useRouter } from 'vue-router'
 import { ref, reactive, watch } from 'vue'
 import { fraController } from '../controllers/fraController'
@@ -14,7 +14,7 @@ const emit = defineEmits(['go-home', 'go-logout', 'go-search', 'campaign-created
 if (isLoggedIn.value) {
   console.log(
     'Logged in as...\n',
-    'userid: ', userId.value,
+    'userid: ', userid.value,
     '\nRole: ', userRole.value,
     '\nsessionReady: ', sessionReady.value
   )
@@ -91,8 +91,8 @@ function handleDrop(e: DragEvent) {
 //       {
 //         title:        form.title,
 //         description:  form.description,
-//         targetAmount: form.goal!,
-//         categoryId:   form.category,
+//         target_amount: form.goal!,
+//         categoryid:   form.category,
 //       }
 //     )
 
@@ -109,7 +109,7 @@ async function handleCreateFra(): Promise<void> {
   submitting.value = true
 
   try {
-    if (!sessionReady.value || !isLoggedIn.value || !userId.value) {
+    if (!sessionReady.value || !isLoggedIn.value || !userid.value) {
       router.push('/login')
       return
     }
@@ -117,12 +117,12 @@ async function handleCreateFra(): Promise<void> {
     const controller = new fraController()
 
     await controller.createFra(
-      userId.value,
+      userid.value,
       {
         title:        form.title,
         description:  form.description,
-        targetAmount: form.goal!,
-        categoryId:   form.category,
+        target_amount: form.goal!,
+        categoryid:   form.category,
       }
     )
 
@@ -140,8 +140,8 @@ function handleSuccessClose() {
   emit('campaign-created', {
     title:        form.title,
     description:  form.description,
-    targetAmount: form.goal,
-    categoryId:   form.category,
+    target_amount: form.goal,
+    categoryid:   form.category,
   })
 }
 </script>
