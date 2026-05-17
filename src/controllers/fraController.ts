@@ -1,17 +1,92 @@
+// fraController.ts
+// Create campaign (FR-2-01), Edit existing campaign details (FR-2-02), Mark campaign as completed (FR-2-08)
 import type { FundRaisingActivity } from '../models/FundRaisingActivity'
 import { FundRaisingActivityClass } from '../models/FundRaisingActivity' // Requirement 2
 import { fraService } from '../services/fraService'
-// fraController.ts
-// Create campaign (FR-2-01), Edit existing campaign details (FR-2-02), Mark campaign as completed (FR-2-08)
-
 import { supabase } from '../lib/supabaseClient'
 
-export function searchFraByFilter(categoryId: number): FundRaisingActivity[] {
-  return fraService.filterByCategoryId(categoryId)
+export async function searchFraByFilter(categoryId: string, query = '', status = ''): Promise<FundRaisingActivity[]> {
+  // Select all columns; we'll map snake_case DB fields to camelCase in JS
+  let request = supabase
+    .from('fundraisingactivity')
+    .select('*')
+
+  const categoryIdNumber = Number(categoryId)
+  if (categoryId && !Number.isNaN(categoryIdNumber)) {
+    request = request.eq('categoryId', categoryIdNumber)
+  }
+
+  if (status) {
+    // DB stores status in uppercase (e.g. ACTIVE) — normalize
+    request = request.eq('status', String(status).toUpperCase())
+  }
+
+  if (query) {
+    const sanitizedQuery = query.trim()
+    // use actual DB column names in `or` expressions
+    request = request.or(
+      `title.ilike.%${sanitizedQuery}%,description.ilike.%${sanitizedQuery}%,createdby.ilike.%${sanitizedQuery}%`
+    )
+  }
+
+  request = request.order('createdat', { ascending: false })
+
+  const { data, error } = await request
+  if (error) {
+    console.error('Supabase search failed:', error.message)
+    return []
+  }
+  const rows = (data || []) as any[]
+  console.debug('[fraController] searchFraByFilter -> rows:', rows.length)
+  const mapped = rows.map(r => ({
+    fraId: r.fraid,
+    userId: r.userid,
+    title: r.title,
+    description: r.description,
+    targetAmount: r.targetamount,
+    currentAmount: r.currentamount,
+    status: r.status,
+    createdBy: r.createdby,
+    categoryId: r.categoryid,
+    createdAt: r.createdat,
+    name: r.name,
+    image: r.image,
+  }))
+  return mapped as FundRaisingActivity[]
 }
 
-export function searchFra(query: string): FundRaisingActivity[] {
-  return fraService.search(query)
+export async function searchFra(query: string): Promise<FundRaisingActivity[]> {
+  const sanitizedQuery = query.trim()
+  if (!sanitizedQuery) return []
+  const { data, error } = await supabase
+    .from('fundraisingactivity')
+    .select('*')
+    .or(
+      `title.ilike.%${sanitizedQuery}%,description.ilike.%${sanitizedQuery}%,createdby.ilike.%${sanitizedQuery}%`
+    )
+    .order('createdat', { ascending: false })
+
+  if (error) {
+    console.error('Supabase search failed:', error.message)
+    return []
+  }
+  const rows = (data || []) as any[]
+  console.debug('[fraController] searchFra -> rows:', rows.length)
+  const mapped = rows.map(r => ({
+    fraId: r.fraid,
+    userId: r.userid,
+    title: r.title,
+    description: r.description,
+    targetAmount: r.targetamount,
+    currentAmount: r.currentamount,
+    status: r.status,
+    createdBy: r.createdby,
+    categoryId: r.categoryid,
+    createdAt: r.createdat,
+    name: r.name,
+    image: r.image,
+  }))
+  return mapped as FundRaisingActivity[]
 }
 
 

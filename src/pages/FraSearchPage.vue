@@ -1,12 +1,10 @@
+// FraSearchPage.vue
 <script setup lang="ts">
 import { useAuth } from '../composables/useAuth'
-const { isLoggedIn, userId, userRole, sessionReady, signOut } = useAuth()
-import { useRouter } from 'vue-router'
-import { ref} from 'vue'
+const { isLoggedIn, userId, userRole, sessionReady } = useAuth()
+import { ref, onMounted } from 'vue'
 import type { FundRaisingActivity } from '../models/FundRaisingActivity'
 import { searchFraByFilter } from '../controllers/fraController'
-
-const router = useRouter()
 
 if (isLoggedIn.value) {
   console.log(
@@ -22,13 +20,22 @@ else {
 
 const query = ref<string>('')
 
-const selectedCategory = ref<number>(1)
+const selectedCategory = ref<string>('')
 
 const results = ref<FundRaisingActivity[]>([])
 
-function handleSearch(): void {
-  results.value = searchFraByFilter(selectedCategory.value)
+async function handleSearch(): Promise<void> {
+  results.value = await searchFraByFilter(
+    selectedCategory.value,
+    query.value,
+    filters.value.status
+  )
+  console.debug('[FraSearchPage] handleSearch -> results:', results.value.length)
 }
+
+onMounted(() => {
+  handleSearch()
+})
 
 const emit = defineEmits(['go-home', 'go-login', 'go-logout', 'go-signup', 'go-create', 'go-campaigndetail'])
 
@@ -40,11 +47,11 @@ const filters = ref({
 
 const categories = ['Education', 'Healthcare', 'Environment', 'Disaster Relief', 'Community', 'Arts & Culture']
 
-results.value = searchFraByFilter(selectedCategory.value)
-
-function clearFilters() {
+async function clearFilters() {
   filters.value = { category: '', status: '', sort: 'recent' }
+  selectedCategory.value = ''
   query.value = ''
+  await handleSearch()
 }
 
 const progressPercent = (c: FundRaisingActivity): number =>
@@ -92,18 +99,19 @@ const progressPercent = (c: FundRaisingActivity): number =>
           type="text"
           class="search-input"
           placeholder="Search by title, category, or organizer…"
+          @keyup.enter="handleSearch"
         />
         <button v-if="query" class="clear-btn" @click="query = ''">✕</button>
+        <button class="btn btn-primary" @click="handleSearch">Search</button>
       </div>
 
-      <!-- Filters -->
       <section class="dashboard-section filters-section">
         <div class="filters-row">
           <div class="form-group">
             <label>Category</label>
-            <select v-model="selectedCategory" @change="handleSearch">
+            <select v-model="selectedCategory" @change="handleSearch" class="form-select">
               <option value="">All Categories</option>
-              <option v-for="c in categories" :key="c" :value="c">{{ c }}</option>
+              <option v-for="(c, idx) in categories" :key="c" :value="String(idx + 1)">{{ c }}</option>
             </select>
           </div>
 
