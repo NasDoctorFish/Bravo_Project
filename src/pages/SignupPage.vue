@@ -245,7 +245,7 @@ async function handleSignup() {
           <div class="form-group">
             <label class="checkbox-label">
               <input type="checkbox" v-model="form.agreed" required />
-              I agree to the <RouterLink to="/signup">Terms of Service</RouterLink> and <RouterLink to="/signup">Privacy Policy</RouterLink>
+              I agree to the <a href="#" class="terms-link">Terms of Service</a> and <a href="#" class="terms-link">Privacy Policy</a>
             </label>
           </div>
 

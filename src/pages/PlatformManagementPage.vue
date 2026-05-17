@@ -261,9 +261,9 @@ const filteredDonees = computed(() => {
       <nav class="nav-actions">
         <RouterLink to="/" class="nav-link" @click="emit('go-home')">Home</RouterLink>
         <span class="user-info">Platform Manager</span>
-        <RouterLink to="/" class="nav-link logout-link" @click="emit('go-logout')">
+        <button class="nav-link logout-link" @click="async () => { await signOut(); router.push('/') }">
           <span class="logout-icon">⇢</span> Logout
-        </RouterLink>
+        </button>
       </nav>
     </header>
 
@@ -437,6 +437,41 @@ const filteredDonees = computed(() => {
 
         </div>
       </section>
+    </div>
+
+    <!-- Campaign Detail Drawer -->
+    <div v-if="selectedCampaign" class="drawer-overlay" @click.self="selectedCampaign = null">
+      <div class="drawer">
+        <div class="drawer-header">
+          <h3>Campaign Details</h3>
+          <button class="drawer-close" @click="selectedCampaign = null">✕</button>
+        </div>
+        <div class="drawer-body">
+          <img v-if="selectedCampaign.image" :src="selectedCampaign.image" class="drawer-img" :alt="selectedCampaign.title" />
+          <div class="drawer-section">
+            <h4>{{ selectedCampaign.title }}</h4>
+            <p>by {{ selectedCampaign.organizer }}</p>
+          </div>
+          <div class="drawer-section">
+            <p><strong>Category:</strong> {{ selectedCampaign.category }}</p>
+            <p><strong>Goal:</strong> ${{ selectedCampaign.goal.toLocaleString() }}</p>
+            <p><strong>Status:</strong> {{ selectedCampaign.status }}</p>
+            <p><strong>Submitted:</strong> {{ selectedCampaign.submitted }}</p>
+          </div>
+          <div class="drawer-desc" v-if="selectedCampaign.description">
+            <h4>Description</h4>
+            <p>{{ selectedCampaign.description }}</p>
+          </div>
+          <div class="drawer-flags" v-if="selectedCampaign.flags && selectedCampaign.flags.length">
+            <h4>Flags</h4>
+            <p v-for="flag in selectedCampaign.flags" :key="flag" style="color:#ef4444">⚑ {{ flag }}</p>
+          </div>
+          <div class="drawer-actions">
+            <button class="btn btn-approve" @click="approve(selectedCampaign); selectedCampaign = null">Approve</button>
+            <button class="btn btn-reject" @click="reject(selectedCampaign); selectedCampaign = null">Reject</button>
+          </div>
+        </div>
+      </div>
     </div>
 
     <!-- Footer -->
