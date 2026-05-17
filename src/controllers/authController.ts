@@ -1,9 +1,6 @@
 // src/controllers/authController.ts
 import { supabase } from '../lib/supabaseClient'
-
-export let userid: number
-export let password: string = ''
-export let isAdmin: boolean = false
+import bcrypt from "bcryptjs"; //for password hash
 
 export async function create(
   name: string,
@@ -21,13 +18,6 @@ export async function create(
     throw new Error('Incorrect format data: All required fields must be filled.')
   }
 
-    console.log('Create input:', {
-    name,
-    role,
-    password,
-    email
-  })
-
   // Check duplicate email
   const { data: existingUser, error: checkError } = await supabase
     .from('useraccount')
@@ -42,6 +32,8 @@ export async function create(
   if (existingUser) {
     throw new Error('This email is already registered.')
   }
+  // hash password
+  const password_hash = await hashPassword(password.trim())
 
   // Insert email and password into useraccount
   const { data: accountData, error: accountError } = await supabase
@@ -49,7 +41,7 @@ export async function create(
     .insert([
       {
         email: email.trim(),
-        password: password.trim()
+        password_hash: password_hash
       }
     ])
     .select('userid')
@@ -119,39 +111,63 @@ export async function validateUser(id: number, pass: string): Promise<boolean> {
     .from('useraccount')
     .select('*, userprofile(role)')
     .eq('userid', id)
-    .eq('password', pass)
+    .eq('password_hash', pass)
     .single()
 
   if (error || !data) return false
 
-  userid = id
-  password = pass
-  isAdmin = data.userprofile?.role === 'UA' //User Admin
   return true
 }
+
+const saltRounds = 10;
+
+/**
+ * Generate password hash
+ */
+async function hashPassword(password: string): Promise<string> {
+  // Hash password before saving to database
+  return await bcrypt.hash(password, saltRounds);
+}
+
+  /**
+   * comparePassword
+   */
+export async function comparePassword(
+    plainPassword: string,
+    hashedPassword: string,
+  ): Promise<boolean> {
+    // Compare plain password with stored hash
+    return await bcrypt.compare(plainPassword, hashedPassword);
+  }
+
 
 // Look up user by email + password in useraccount table (no Supabase auth service)
 export async function login(
   email: string,
   password: string
 ): Promise<{ userid: number; role: string }> {
-  const { data, error } = await supabase
+  
+
+  const { data: user, error } = await supabase
     .from('useraccount')
-    .select('userid, userprofile(role)')
+    .select('*')
     .eq('email', email.trim())
-    .eq('password', password.trim())
     .maybeSingle()
 
-  if (error) throw error
-  if (!data) throw new Error('Invalid email or password.')
+  if (error || !user) {
+  throw new Error('Invalid email or password.')
+}
 
-  const profile = (data as any).userprofile
-  const role = (Array.isArray(profile) ? profile[0]?.role : profile?.role) ?? ''
+const isPasswordCorrect = await comparePassword(
+  password.trim(),
+  user.password_hash
+)
 
-  userid = data.userid
-  isAdmin = role === 'User Admin'
+if (!isPasswordCorrect) {
+  throw new Error('Invalid email or password.')
+}
 
-  return { userid: data.userid, role }
+return { userid: user.userid, role: user.role}
 }
 
 // Check whether a session is valid for the given user
