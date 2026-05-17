@@ -163,7 +163,7 @@ async function handleLogin() {
               <input type="checkbox" v-model="form.remember" />
               Remember me
             </label>
-            <RouterLink to="/signup" class="forgot-link">Forgot password?</RouterLink>
+            <RouterLink to="/login" class="forgot-link">Forgot password?</RouterLink>
           </div>
 
           <!-- Error Banner -->

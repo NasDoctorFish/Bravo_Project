@@ -78,19 +78,19 @@ function formatDate(dateStr: string) {
 
     <!-- Header -->
     <header class="header">
-      <a href="#" class="brand">
+      <RouterLink to="/" class="brand">
         <span class="logo">♥</span>
         <span>FundRise</span>
-      </a>
+      </RouterLink>
       <nav class="nav">
-        <a href="#" class="nav-link">⌕ Donate</a>
-        <a href="#" class="nav-link">Fundraising</a>
+        <RouterLink to="/fra/search" class="nav-link">⌕ Donate</RouterLink>
+        <RouterLink to="/fra/create" class="nav-link">Fundraising</RouterLink>
       </nav>
       <nav class="nav-actions">
-        <a href="#" class="nav-link">Home</a>
-        <a href="#" class="nav-link logout-link">
+        <RouterLink to="/" class="nav-link">Home</RouterLink>
+        <button class="nav-link logout-link" @click="async () => { await signOut(); router.push('/') }">
           <span class="logout-icon">⇢</span> Logout
-        </a>
+        </button>
       </nav>
     </header>
 
@@ -329,7 +329,7 @@ function formatDate(dateStr: string) {
 .nav-link { font-size: 0.88rem; color: #555; text-decoration: none; font-weight: 500; transition: color 0.15s; }
 .nav-link:hover { color: #111; }
 .nav-actions { display: flex; gap: 16px; align-items: center; }
-.logout-link { color: #ef4444; }
+.logout-link { color: #ef4444; background: none; border: none; cursor: pointer; padding: 0; }
 .logout-icon { margin-right: 4px; }
 
 .footer { text-align: center; padding: 24px; font-size: 0.82rem; color: #9ca3af; border-top: 1px solid #e5e7eb; background: #fff; }

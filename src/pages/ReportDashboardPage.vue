@@ -314,9 +314,9 @@ async function downloadReport(report: Report): Promise<void> {
       <nav class="nav-actions">
         <RouterLink to="/" class="nav-link" @click="emit('go-home')">Home</RouterLink>
         <span class="user-info">Platform Manager</span>
-        <RouterLink to="/" class="nav-link logout-link" @click="emit('go-logout')">
+        <button class="nav-link logout-link" @click="async () => { await signOut(); router.push('/') }">
           <span class="logout-icon">⇢</span> Logout
-        </RouterLink>
+        </button>
       </nav>
     </header>
 
