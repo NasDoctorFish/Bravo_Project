@@ -116,16 +116,9 @@ else {
           <p>Browse active campaigns and support causes by category or status.</p>
           <RouterLink to="/fra/search" class="btn btn-outline-dark" @click="emit('go-search')">Browse</RouterLink>
         </article>
-
-        <article class="wire-card">
-          <span class="wire-icon">□</span>
-          <h3>Track Activity</h3>
-          <p>Review donations, campaign progress, and platform summaries.</p>
-          <RouterLink to="/login" class="btn btn-outline-dark" @click="emit('go-login')">Login</RouterLink>
-        </article>
       </div>
     </section>
-
+<!-- 
     <section class="platform-summary">
       <div class="section-heading">
         <h2>Platform Summary</h2>
@@ -150,7 +143,7 @@ else {
           <span class="summary-label">Average Completion</span>
         </div>
       </div>
-    </section>
+    </section> -->
 
     <section class="campaigns">
       <h2>Featured Campaigns</h2>
@@ -258,14 +251,14 @@ else {
         </RouterLink>
       </div>
     </section>
-
+<!-- 
     <section class="cta-section">
       <h2>Ready to Get Started?</h2>
       <p>Join thousands of fundraisers and donors making an impact</p>
       <RouterLink to="/signup" class="btn btn-primary-lg" @click="emit('go-signup')">
         Create Your Account
       </RouterLink>
-    </section>
+    </section> -->
 
     <footer class="footer">
       <p>© 2026 FundRise. Supporting dreams, one donation at a time.</p>

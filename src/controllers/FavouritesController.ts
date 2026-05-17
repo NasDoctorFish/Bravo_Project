@@ -99,18 +99,15 @@ export function useFavouritesController() {
     error.value     = null
     isLoading.value = true
 
-    // Use authenticated user's ID if available
-    const { data: { user } } = await supabase.auth.getUser()
-    const actualUid = user?.id ?? uid
-    userId.value = actualUid
+    userId.value = uid
 
     try {
       // Fetch favourites for this user
       const { data: favRows, error: favErr } = await supabase
         .from('favourites')
         .select('*')
-        .eq('userId', actualUid)
-        .order('savedAt', { ascending: false })
+        .eq('userid', uid)
+        .order('savedat', { ascending: false })
       if (favErr) throw favErr
 
       if (!favRows || favRows.length === 0) {
