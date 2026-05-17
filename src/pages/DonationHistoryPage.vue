@@ -2,47 +2,92 @@
 import { useAuth } from '../composables/useAuth'
 const { isLoggedIn, userId, userRole, sessionReady, signOut } = useAuth()
 import { useRouter } from 'vue-router'
-import { ref, computed, watch } from 'vue'
+import { ref, computed, watch, onMounted } from 'vue'
+import { supabase } from '../lib/supabaseClient'
 
 const router = useRouter()
 const emit = defineEmits(['go-home', 'go-login', 'go-logout', 'go-search', 'go-favorites', 'go-favourites', 'go-history', 'go-campaigndetail', 'go-signup'])
 
 if (isLoggedIn.value) {
-  console.log(
-    'Logged in as...\n',
-    'userid: ', userId.value,
-    '\nRole: ', userRole.value,
-    '\nsessionReady: ', sessionReady.value
-  )
-}
-else {
+  console.log('Logged in as...\n', 'userid: ', userId.value, '\nRole: ', userRole.value)
+} else {
   console.log('Logged Out')
 }
 
-// Redirect unauthenticated users to login
 watch(sessionReady, (ready) => {
   if (ready && !isLoggedIn.value) router.push('/login')
 }, { immediate: true })
 
-const donations = ref([
-  { donationId: 'D001', fsaName: 'Clean Water Initiative',  category: 'Environment', amount: 150, donatedAt: '2026-04-01', progress: 74,  fsaStatus: 'active'    },
-  { donationId: 'D002', fsaName: 'School Supplies Drive',   category: 'Education',   amount: 200, donatedAt: '2026-03-15', progress: 100, fsaStatus: 'completed' },
-  { donationId: 'D003', fsaName: 'Medical Aid Fund',        category: 'Health',      amount: 500, donatedAt: '2026-02-20', progress: 46,  fsaStatus: 'active'    },
-  { donationId: 'D004', fsaName: 'Elderly Care Program',    category: 'Social',      amount: 100, donatedAt: '2026-01-10', progress: 15,  fsaStatus: 'pending'   },
-  { donationId: 'D005', fsaName: 'Food Bank Support',       category: 'Social',      amount: 75,  donatedAt: '2026-03-28', progress: 60,  fsaStatus: 'active'    },
-  { donationId: 'D006', fsaName: 'Tree Planting Project',   category: 'Environment', amount: 250, donatedAt: '2026-04-05', progress: 88,  fsaStatus: 'active'    },
-  { donationId: 'D007', fsaName: 'Scholarship Fund',        category: 'Education',   amount: 300, donatedAt: '2026-02-01', progress: 100, fsaStatus: 'completed' },
-])
-
-const searchKeyword   = ref('')
+// State
+const donations        = ref([])
+const isLoading        = ref(true)
+const fetchError       = ref('')
+const searchKeyword    = ref('')
 const selectedCategory = ref('')
-const startDate       = ref('')
-const endDate         = ref('')
-const sortBy          = ref('date-desc')
+const startDate        = ref('')
+const endDate          = ref('')
+const sortBy           = ref('date-desc')
 const selectedDonation = ref(null)
 
-const categories = computed(() => [...new Set(donations.value.map(d => d.category))])
-const totalAmount = computed(() => donations.value.reduce((sum, d) => sum + d.amount, 0))
+// Fetch from Supabase
+async function fetchDonations() {
+  if (!userId.value) return
+  isLoading.value  = true
+  fetchError.value = ''
+
+  try {
+    const { data, error } = await supabase
+      .from('donation')
+      .select(`
+        donationid,
+        userid,
+        fraid,
+        amount,
+        donatedat,
+        fundraisingactivity (
+          title,
+          status,
+          targetamount,
+          currentamount,
+          category ( categoryname )
+        )
+      `)
+      .eq('userid', userId.value)
+      .order('donatedat', { ascending: false })
+
+    if (error) throw error
+
+    donations.value = (data ?? []).map(row => {
+      const fra      = row.fundraisingactivity ?? {}
+      const target   = Number(fra.targetamount  ?? 0)
+      const current  = Number(fra.currentamount ?? 0)
+      return {
+        donationId:  row.donationid,
+        userId:      row.userid,
+        fraId:       row.fraid,
+        amount:      Number(row.amount ?? 0),
+        donatedAt:   row.donatedat,
+        fsaName:     fra.title         ?? 'Unknown Campaign',
+        fsaStatus:   (fra.status       ?? 'unknown').toLowerCase(),
+        category:    fra.category?.categoryname ?? 'Uncategorised',
+        progress:    target > 0
+          ? Math.min(Math.round((current / target) * 100), 100)
+          : 0,
+      }
+    })
+  } catch (e) {
+    fetchError.value = e.message
+    console.error('fetchDonations error:', e)
+  } finally {
+    isLoading.value = false
+  }
+}
+
+onMounted(fetchDonations)
+
+// Computed
+const categories     = computed(() => [...new Set(donations.value.map(d => d.category))])
+const totalAmount    = computed(() => donations.value.reduce((sum, d) => sum + d.amount, 0))
 const completedCount = computed(() => donations.value.filter(d => d.fsaStatus === 'completed').length)
 
 const filteredDonations = computed(() => {
@@ -58,8 +103,8 @@ const filteredDonations = computed(() => {
     result = result.filter(d => d.donatedAt <= endDate.value)
 
   result.sort((a, b) => {
-    if (sortBy.value === 'date-desc')   return b.donatedAt.localeCompare(a.donatedAt)
-    if (sortBy.value === 'date-asc')    return a.donatedAt.localeCompare(b.donatedAt)
+    if (sortBy.value === 'date-desc')   return new Date(b.donatedAt) - new Date(a.donatedAt)
+    if (sortBy.value === 'date-asc')    return new Date(a.donatedAt) - new Date(b.donatedAt)
     if (sortBy.value === 'amount-desc') return b.amount - a.amount
     if (sortBy.value === 'amount-asc')  return a.amount - b.amount
     return 0
@@ -68,6 +113,7 @@ const filteredDonations = computed(() => {
   return result
 })
 
+// Helpers
 function resetFilters() {
   searchKeyword.value    = ''
   selectedCategory.value = ''
@@ -76,7 +122,7 @@ function resetFilters() {
   sortBy.value           = 'date-desc'
 }
 
-function selectDonation(d) { selectedDonation.value = d }
+function selectDonation(d)  { selectedDonation.value = d }
 
 function formatDate(dateStr) {
   return new Date(dateStr).toLocaleDateString('en-AU', { day: 'numeric', month: 'short', year: 'numeric' })
