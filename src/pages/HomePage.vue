@@ -1,5 +1,25 @@
 <script setup>
+import { useAuth } from '../composables/useAuth'
+const { isLoggedIn, userId, userRole, sessionReady, signOut } = useAuth()
+import { useRouter } from 'vue-router'
+
+const router = useRouter()
 const emit = defineEmits(['go-home', 'go-login', 'go-signup', 'go-search'])
+
+
+// check login status
+if (isLoggedIn.value) {
+  console.log(
+    'Logged in as...\n',
+    'userid: ', userId.value,
+    '\nRole: ', userRole.value,
+    '\nsessionReady: ', sessionReady.value
+  )
+}
+else {
+  console.log('Logged Out')
+}
+
 </script>
 
 <template>
@@ -16,8 +36,19 @@ const emit = defineEmits(['go-home', 'go-login', 'go-signup', 'go-search'])
       </nav>
 
       <nav class="nav-actions">
-        <RouterLink to="/login" class="nav-link" @click="emit('go-login')">Login</RouterLink>
-        <RouterLink to="/signup" class="btn btn-primary" @click="emit('go-signup')">Sign Up</RouterLink>
+        <template v-if="!sessionReady">
+          <!-- Optional: keep empty while checking session -->
+        </template>
+        <template v-if="!isLoggedIn">
+          <RouterLink to="/login" class="nav-link">Login</RouterLink>
+          <RouterLink to="/signup" class="btn btn-primary">Sign Up</RouterLink>
+        </template>
+
+        <template v-else>
+          <button class="btn btn-primary" @click="signOut">
+            Logout
+          </button>
+        </template>
       </nav>
     </header>
 
@@ -223,7 +254,8 @@ const emit = defineEmits(['go-home', 'go-login', 'go-signup', 'go-search'])
       </div>
 
       <div class="campaigns-footer">
-        <RouterLink to="/fra/search" class="btn btn-outline-dark" @click="emit('go-search')">View All Campaigns</RouterLink>
+        <RouterLink to="/fra/search" class="btn btn-outline-dark" @click="emit('go-search')">View All Campaigns
+        </RouterLink>
       </div>
     </section>
 
@@ -255,6 +287,7 @@ const emit = defineEmits(['go-home', 'go-login', 'go-signup', 'go-search'])
   top: 0;
   z-index: 100;
 }
+
 .brand {
   display: flex;
   align-items: center;
@@ -264,11 +297,36 @@ const emit = defineEmits(['go-home', 'go-login', 'go-signup', 'go-search'])
   font-size: 1.1rem;
   color: #111;
 }
-.logo { color: #ef4444; font-size: 1.2rem; }
-.nav { display: flex; align-items: center; gap: 16px; }
-.nav-actions { display: flex; align-items: center; gap: 16px; margin-left: auto; }
-.nav-link { font-size: 0.88rem; color: #555; text-decoration: none; font-weight: 500; }
-.nav-link:hover { color: #111; }
+
+.logo {
+  color: #ef4444;
+  font-size: 1.2rem;
+}
+
+.nav {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.nav-actions {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-left: auto;
+}
+
+.nav-link {
+  font-size: 0.88rem;
+  color: #555;
+  text-decoration: none;
+  font-weight: 500;
+}
+
+.nav-link:hover {
+  color: #111;
+}
+
 .footer {
   text-align: center;
   padding: 24px;
@@ -483,6 +541,7 @@ const emit = defineEmits(['go-home', 'go-login', 'go-signup', 'go-search'])
 }
 
 @media (max-width: 720px) {
+
   .quick-actions,
   .platform-summary,
   .features,

@@ -9,6 +9,24 @@ const emit = defineEmits(['go-home', 'go-logout', 'go-search', 'go-campaigndetai
 const router = useRouter()
 
 const { userId: authUserId, isLoggedIn } = useAuth()
+const { userId, userRole, sessionReady, signOut } = useAuth()
+
+if (isLoggedIn.value) {
+  console.log(
+    'Logged in as...\n',
+    'userid: ', userId.value,
+    '\nRole: ', userRole.value,
+    '\nsessionReady: ', sessionReady.value
+  )
+}
+else {
+  console.log('Logged Out')
+}
+
+// Redirect unauthenticated users to login
+watch(sessionReady, (ready) => {
+  if (ready && !isLoggedIn.value) router.push('/login')
+}, { immediate: true })
 
 const {
   favourites,

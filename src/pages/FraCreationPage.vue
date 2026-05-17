@@ -1,13 +1,34 @@
 // FraCreationPage.vue
 <script setup lang="ts">
-import { ref, reactive } from 'vue'
+import { useAuth } from '../composables/useAuth'
+const { isLoggedIn, userId, userRole, sessionReady, signOut } = useAuth()
+import { useRouter } from 'vue-router'
+import { ref, reactive, watch } from 'vue'
 import { fraController } from '../controllers/fraController'
 import { supabase } from '../lib/supabaseClient'
 
 // FR-2-01 Boundary
-const emit = defineEmits(['go-home', 'go-logout', 'go-search', 'campaign-created'])
+const router = useRouter()
+const emit = defineEmits(['go-home', 'go-logout', 'go-search', 'campaign-created', 'go-login', 'go-signup'])
 
-//const { userId } = useAuth()
+if (isLoggedIn.value) {
+  console.log(
+    'Logged in as...\n',
+    'userid: ', userId.value,
+    '\nRole: ', userRole.value,
+    '\nsessionReady: ', sessionReady.value
+  )
+}
+else {
+  console.log('Logged Out')
+}
+
+// Redirect to login once session is confirmed but user is not authenticated
+watch(sessionReady, (ready) => {
+  if (ready && !isLoggedIn.value) {
+    router.push('/login')
+  }
+}, { immediate: true })
 
 const step       = ref(1)
 const submitting = ref(false)
@@ -55,18 +76,48 @@ function handleDrop(e: DragEvent) {
 }
 
 // FR-2-01: Create campaign
+// async function handleCreateFra(): Promise<void> {
+//   errorMsg.value   = ''
+//   submitting.value = true
+
+//   try {
+//     const { data: { user } } = await supabase.auth.getUser()
+//     if (!user) throw new Error('You must be logged in to create a campaign.')
+
+//     const controller = new fraController()
+
+//     await controller.createFra(
+//       user.id,
+//       {
+//         title:        form.title,
+//         description:  form.description,
+//         targetAmount: form.goal!,
+//         categoryId:   form.category,
+//       }
+//     )
+
+//     showSuccess.value = true
+
+//   } catch (err: any) {
+//     errorMsg.value = err.message || 'Failed to create campaign. Please try again.'
+//   } finally {
+//     submitting.value = false
+//   }
+// }
 async function handleCreateFra(): Promise<void> {
   errorMsg.value   = ''
   submitting.value = true
 
   try {
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) throw new Error('You must be logged in to create a campaign.')
+    if (!sessionReady.value || !isLoggedIn.value || !userId.value) {
+      router.push('/login')
+      return
+    }
 
     const controller = new fraController()
 
     await controller.createFra(
-      user.id,
+      userId.value,
       {
         title:        form.title,
         description:  form.description,

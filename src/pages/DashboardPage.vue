@@ -1,11 +1,30 @@
 <script setup lang="ts">
+import { useAuth } from '../composables/useAuth'
+const { isLoggedIn, userId, userRole, sessionReady, signOut } = useAuth()
 
 // req 5
 import { useRouter } from 'vue-router'
 const router = useRouter()
 
+if (isLoggedIn.value) {
+  console.log(
+    'Logged in as...\n',
+    'userid: ', userId.value,
+    '\nRole: ', userRole.value,
+    '\nsessionReady: ', sessionReady.value
+  )
+}
+else {
+  console.log('Logged Out')
+}
+
+// Redirect unauthenticated users to login
+watch(sessionReady, (ready) => {
+  if (ready && !isLoggedIn.value) router.push('/login')
+}, { immediate: true })
+
 import { RouterLink } from 'vue-router'
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, watch } from 'vue'
 import { supabase } from '../lib/supabaseClient.ts'
 import { getStoryData } from '../controllers/StoryController.ts'
 
@@ -79,7 +98,7 @@ async function updateDashboard(): Promise<void> {
 }
 
 onMounted(() => updateDashboard())
-const emit = defineEmits(['go-home', 'go-logout', 'go-search', 'go-create'])
+const emit = defineEmits(['go-home', 'go-logout', 'go-search', 'go-create', 'go-login', 'go-signup'])
 </script>
 
 <template>

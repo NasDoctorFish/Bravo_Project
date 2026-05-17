@@ -1,3 +1,78 @@
+<script setup lang="ts">
+import { useAuth } from '../composables/useAuth'
+const { isLoggedIn, userId, userRole, sessionReady, signOut } = useAuth()
+
+import { useRouter } from 'vue-router'
+
+const router = useRouter()
+const emit = defineEmits(['go-home', 'go-login', 'go-signup', 'go-search'])
+
+if (isLoggedIn.value) {
+  console.log(
+    'Logged in as...\n',
+    'userid: ', userId.value,
+    '\nRole: ', userRole.value,
+    '\nsessionReady: ', sessionReady.value
+  )
+}
+else {
+  console.log('Logged Out')
+}
+
+import { ref, computed, watch } from 'vue'
+import { fraController } from '../controllers/fraController'
+
+// Redirect unauthenticated users to login
+watch(sessionReady, (ready) => {
+  if (ready && !isLoggedIn.value) router.push('/login')
+}, { immediate: true })
+
+const selectedFra = ref<any>(null)
+
+// Dummy data — will be replaced with real API when backend is ready
+const fraList = ref([
+  { fraId: 'F001', title: 'Clean Water Initiative', category: 'Environment', description: 'Providing clean water to rural communities.', targetAmount: 10000, raisedAmount: 10500, completedAt: '2026-03-01', organiser: 'Jane Doe' },
+  { fraId: 'F002', title: 'School Supplies Drive', category: 'Education', description: 'Supplying school materials to underprivileged children.', targetAmount: 5000, raisedAmount: 5000, completedAt: '2026-02-15', organiser: 'John Smith' },
+  { fraId: 'F003', title: 'Medical Aid Fund', category: 'Health', description: 'Funding medical care for low-income families.', targetAmount: 20000, raisedAmount: 21000, completedAt: '2026-01-20', organiser: 'Sarah Lee' },
+  { fraId: 'F004', title: 'Elderly Care Program', category: 'Social', description: 'Supporting elderly citizens with daily needs.', targetAmount: 8000, raisedAmount: 8200, completedAt: '2026-03-10', organiser: 'Mike Chen' },
+  { fraId: 'F005', title: 'Food Bank Support', category: 'Social', description: 'Stocking food banks for families in need.', targetAmount: 3000, raisedAmount: 3500, completedAt: '2026-02-28', organiser: 'Lisa Wong' },
+  { fraId: 'F006', title: 'Tree Planting Project', category: 'Environment', description: 'Planting 10,000 trees across the region.', targetAmount: 15000, raisedAmount: 15000, completedAt: '2026-01-05', organiser: 'Jane Doe' },
+  { fraId: 'F007', title: 'Scholarship Fund', category: 'Education', description: 'Funding scholarships for deserving students.', targetAmount: 25000, raisedAmount: 26000, completedAt: '2026-03-20', organiser: 'Tom Brown' },
+])
+
+const selectedCategory = ref('')
+const startDate = ref('')
+const endDate = ref('')
+
+const categories = computed(() => [...new Set(fraList.value.map(f => f.category))])
+const totalRaised = computed(() => fraList.value.reduce((sum, f) => sum + f.raisedAmount, 0))
+
+// FR-5-01 + FR-5-02: Filter via fraController -> fraService
+const filteredFra = computed(() => {
+  return fraController.searchFraByAllFilters(
+    selectedCategory.value,
+    startDate.value,
+    endDate.value,
+    fraList.value
+  )
+})
+
+function resetFilters() {
+  selectedCategory.value = ''
+  startDate.value = ''
+  endDate.value = ''
+}
+
+// FR-5-05: View detail via fraController -> fraService
+function selectFra(f: any) {
+  selectedFra.value = fraController.getFraById(f.fraId, fraList.value)
+}
+
+function formatDate(dateStr: string) {
+  return new Date(dateStr).toLocaleDateString('en-AU', { day: 'numeric', month: 'short', year: 'numeric' })
+}
+</script>
+
 <template>
   <div class="history-page">
 
@@ -155,56 +230,6 @@
 
   </div>
 </template>
-
-<script setup lang="ts">
-import { ref, computed } from 'vue'
-import { fraController } from '../controllers/fraController'
-
-const selectedFra = ref<any>(null)
-
-// Dummy data — will be replaced with real API when backend is ready
-const fraList = ref([
-  { fraId: 'F001', title: 'Clean Water Initiative', category: 'Environment', description: 'Providing clean water to rural communities.', targetAmount: 10000, raisedAmount: 10500, completedAt: '2026-03-01', organiser: 'Jane Doe' },
-  { fraId: 'F002', title: 'School Supplies Drive', category: 'Education', description: 'Supplying school materials to underprivileged children.', targetAmount: 5000, raisedAmount: 5000, completedAt: '2026-02-15', organiser: 'John Smith' },
-  { fraId: 'F003', title: 'Medical Aid Fund', category: 'Health', description: 'Funding medical care for low-income families.', targetAmount: 20000, raisedAmount: 21000, completedAt: '2026-01-20', organiser: 'Sarah Lee' },
-  { fraId: 'F004', title: 'Elderly Care Program', category: 'Social', description: 'Supporting elderly citizens with daily needs.', targetAmount: 8000, raisedAmount: 8200, completedAt: '2026-03-10', organiser: 'Mike Chen' },
-  { fraId: 'F005', title: 'Food Bank Support', category: 'Social', description: 'Stocking food banks for families in need.', targetAmount: 3000, raisedAmount: 3500, completedAt: '2026-02-28', organiser: 'Lisa Wong' },
-  { fraId: 'F006', title: 'Tree Planting Project', category: 'Environment', description: 'Planting 10,000 trees across the region.', targetAmount: 15000, raisedAmount: 15000, completedAt: '2026-01-05', organiser: 'Jane Doe' },
-  { fraId: 'F007', title: 'Scholarship Fund', category: 'Education', description: 'Funding scholarships for deserving students.', targetAmount: 25000, raisedAmount: 26000, completedAt: '2026-03-20', organiser: 'Tom Brown' },
-])
-
-const selectedCategory = ref('')
-const startDate = ref('')
-const endDate = ref('')
-
-const categories = computed(() => [...new Set(fraList.value.map(f => f.category))])
-const totalRaised = computed(() => fraList.value.reduce((sum, f) => sum + f.raisedAmount, 0))
-
-// FR-5-01 + FR-5-02: Filter via fraController -> fraService
-const filteredFra = computed(() => {
-  return fraController.searchFraByAllFilters(
-    selectedCategory.value,
-    startDate.value,
-    endDate.value,
-    fraList.value
-  )
-})
-
-function resetFilters() {
-  selectedCategory.value = ''
-  startDate.value = ''
-  endDate.value = ''
-}
-
-// FR-5-05: View detail via fraController -> fraService
-function selectFra(f: any) {
-  selectedFra.value = fraController.getFraById(f.fraId, fraList.value)
-}
-
-function formatDate(dateStr: string) {
-  return new Date(dateStr).toLocaleDateString('en-AU', { day: 'numeric', month: 'short', year: 'numeric' })
-}
-</script>
 
 <style scoped>
 .history-page {
