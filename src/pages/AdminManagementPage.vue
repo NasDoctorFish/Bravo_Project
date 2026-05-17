@@ -37,7 +37,7 @@ const filterStatus = ref('')
 const selected = ref([])
 const showCreateModal = ref(false)
 const editingUser = ref(null)
-const modalForm = ref({ name: '', email: '', role: 'Fund Raiser', password: '' })
+const modalForm = ref({ name: '', email: '', role: 'DR', password: '', status: 'active' })
 
 const roles = [
   { label: 'User Admin', value: 'UA' },
@@ -142,7 +142,7 @@ function toggleAll(e) {
 
 function editUser(user) {
   editingUser.value = user
-  modalForm.value = { name: user.name, email: user.email, role: user.role }
+  modalForm.value = { name: user.name, email: user.email, role: user.role, status: user.status }
   showCreateModal.value = true
 }
 
@@ -162,8 +162,9 @@ async function saveUser() {
       if (u) {
         u.name = modalForm.value.name;
         u.role = modalForm.value.role;
+        u.status = modalForm.value.status;
       }
-      alert('User role updated successfully!');
+      alert('User updated successfully!');
      }
     } catch(err) {
       alert("Update Error: " + err.message);
@@ -202,7 +203,7 @@ async function saveUser() {
 }
   showCreateModal.value = false
   editingUser.value = null
-  modalForm.value = { id: '', name: '', email: '', role: 'Fund Raiser', password: '' }
+  modalForm.value = { id: '', name: '', email: '', role: 'DR', password: '', status: 'active' }
 }
 
 function toggleSuspend(user) {
@@ -210,13 +211,13 @@ function toggleSuspend(user) {
 }
 
 function suspendSelected() {
-  users.value = users.value.map(user =>
+  Users.value = Users.value.map(user =>
     selected.value.includes(user.id) ? { ...user, status: 'suspended' } : user
   )
 }
 
 function deleteSelected() {
-  users.value = users.value.filter(user => !selected.value.includes(user.id))
+  Users.value = Users.value.filter(user => !selected.value.includes(user.id))
   selected.value = []
 }
 
@@ -436,9 +437,17 @@ onMounted(() => {
           <div class="form-group">
             <label>Role</label>
             <select v-model="modalForm.role" class="form-select">
-              <option v-for="r in roles" :key="r.value" :value="r.value"> 
+              <option v-for="r in roles" :key="r.value" :value="r.value">
                 {{ r.label }}
               </option>
+            </select>
+          </div>
+          <div class="form-group" v-if="editingUser">
+            <label>Status</label>
+            <select v-model="modalForm.status" class="form-select">
+              <option value="active">Active</option>
+              <option value="suspended">Suspended</option>
+              <option value="pending">Pending</option>
             </select>
           </div>
         </div>

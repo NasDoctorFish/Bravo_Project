@@ -33,6 +33,7 @@ const errors = reactive({
 })
 const showPw = ref(false)
 const loading = ref(false)
+const signupError = ref('')
 
 const passwordStrength = computed(() => {
   const p = form.password
@@ -78,6 +79,7 @@ function validateSignup() {
 
 async function handleSignup() {
   errors.password = ''
+  signupError.value = ''
 
   if (form.password !== form.confirm) {
     errors.password = 'Password confirmation does not match the password.'
@@ -107,6 +109,7 @@ async function handleSignup() {
     router.push('/login')
   } catch (err) {
     console.log('UNEXPECTED SIGN UP ERROR:', err)
+    signupError.value = err.message || 'Sign up failed. Please try again.'
   } finally {
     loading.value = false
   }
@@ -248,6 +251,9 @@ async function handleSignup() {
               I agree to the <a href="#" class="terms-link">Terms of Service</a> and <a href="#" class="terms-link">Privacy Policy</a>
             </label>
           </div>
+
+          <!-- Signup Error -->
+          <p v-if="signupError" class="field-error" style="margin-bottom: 8px;">{{ signupError }}</p>
 
           <!-- Submit -->
           <div class="form-actions">

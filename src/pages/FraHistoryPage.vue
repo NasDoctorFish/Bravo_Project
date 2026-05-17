@@ -78,8 +78,8 @@ async function loadFraList(): Promise<void> {
       raisedAmount: row.currentamount ?? 0,
       completedAt: row.enddate ?? row.createdat ?? '',
       organiser: row.createdby ?? 'Unknown',
-      startdate: row.startdate ?? row.createdAt,
-      enddate: row.enddate ?? row.completedAt
+      startdate: row.startdate ?? row.createdat,
+      enddate: row.enddate
     }))
   } catch (e: any) {
     fetchError.value = e.message
@@ -266,6 +266,7 @@ function formatDate(dateStr: string) {
           <button class="drawer-close" @click="selectedFra = null">✕</button>
         </div>
         <div class="drawer-body">
+          <RouterLink :to="`/fra/${selectedFra.fraId}`" class="btn-view-full">View Full Details →</RouterLink>
           <div class="drawer-section">
             <div class="dl"><span class="dt">FRA Name</span><span class="dd">{{ selectedFra.title }}</span></div>
             <div class="dl"><span class="dt">Category</span><span class="dd">{{ selectedFra.category }}</span></div>
@@ -652,6 +653,22 @@ function formatDate(dateStr: string) {
   display: flex;
   flex-direction: column;
   gap: 16px;
+}
+
+.btn-view-full {
+  display: block;
+  text-align: center;
+  padding: 10px 16px;
+  background: #2563eb;
+  color: #fff;
+  border-radius: 8px;
+  font-size: 0.88rem;
+  font-weight: 600;
+  text-decoration: none;
+  transition: background 0.15s;
+}
+.btn-view-full:hover {
+  background: #1d4ed8;
 }
 
 .drawer-section {
