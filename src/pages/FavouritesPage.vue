@@ -295,7 +295,7 @@ function progressWidth(value: number | undefined) {
 .nav, .nav-actions { display: flex; align-items: center; gap: 20px; }
 .nav-link     { text-decoration: none; font-size: 0.9rem; color: #374151; }
 .nav-link:hover { color: #2563eb; }
-.logout-link  { color: #6b7280; }
+.logout-link  { color: #e53e3e; }
 
 /* Footer */
 .footer { background: #1e293b; color: #94a3b8; text-align: center; padding: 20px; font-size: 0.82rem; }

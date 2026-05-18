@@ -1,6 +1,7 @@
 // FraDetailPage.vue
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
+import { useRoute } from 'vue-router'
 import { fraController } from '../controllers/fraController'
 import { useAuth } from '../composables/useAuth'
 const { isLoggedIn, userId: authUserId, userRole, sessionReady, signOut } = useAuth()
@@ -12,7 +13,7 @@ import { useRouter } from 'vue-router'
 import { useFraDetailController } from '../controllers/FraDetailPage_Control'
 
 const props = defineProps<{
-  fraid: string
+  fraId: string,
 }>()
 
 const router = useRouter()
@@ -30,7 +31,9 @@ else {
   console.log('Logged Out')
 }
 
-const routeFraId = Number(props.fraid)
+// Auth & Route
+const route = useRoute()
+const routeFraId = Number(props.fraId)
 const userId = ref<number | null>(null)
 
 // Owner status toggle (FR-2-08)
@@ -67,12 +70,12 @@ const copied    = ref(false)
 const tabs      = ['About', 'Updates', 'Donors']
 
 onMounted(async () => {
-  const id = String(props.fraid)
+  const id = props.fraId ?? String(route.params.id)
+  console.log('Loading campaign id:', id)
   await getCampaignDetail(id)
   await getDonations(id)
   if (authUserId.value) {
-    console.log('🔍 calling checkFavorite with:', authUserId.value, id)
-    await checkFavorite(String(authUserIdValue.value), id)
+    await checkFavorite(String(authUserId.value), id)
   }
 })
 
@@ -105,6 +108,8 @@ function shareCampaign(platform: 'instagram' | 'facebook') {
   window.open(shareUrl, '_blank', 'noopener,noreferrer')
 }
 
+const fraId = computed(() => Number(props.fraid || route.params.fraid))
+
 // FR-2-08: Mark as Completed
 async function handleMarkAsCompleted() {
   if (!campaign.value || isCompleted.value) return
@@ -113,7 +118,7 @@ async function handleMarkAsCompleted() {
 
   try {
     const controller = new fraController()
-    await controller.updateFraStatus(fraId, 'COMPLETED')
+    await controller.updateFraStatus(fraId.value, 'COMPLETED')
     campaign.value.status = 'COMPLETED'
   } catch (err: any) {
     statusError.value = err.message || 'Failed to update campaign status.'
@@ -124,7 +129,7 @@ async function handleMarkAsCompleted() {
 
 // FR-2-02: Go to edit
 function handleEditFra() {
-  router.push(`/fra/create`)
+  emit('go-edit', fraId.value)
 }
 </script>
 
@@ -143,9 +148,9 @@ function handleEditFra() {
       </nav>
       <nav class="nav-actions">
         <RouterLink to="/" class="nav-link" @click="emit('go-home')">Home</RouterLink>
-        <button class="nav-link logout-link" @click="async () => { await signOut(); router.push('/') }">
+        <RouterLink to="/" class="nav-link logout-link" @click="emit('go-logout')">
           <span class="logout-icon">⇢</span> Logout
-        </button>
+        </RouterLink>
       </nav>
     </header>
 
@@ -230,8 +235,6 @@ function handleEditFra() {
               <!-- About -->
               <div v-if="activeTab === 'About'" class="tab-content">
                 <h3>About This Campaign</h3>
-                <p class="tab-text">{{campaign.title}}</p>
-                <p class="tab-text">{{campaign.createdBy}}</p>
                 <p class="tab-text">{{campaign.title}}</p>
                 <p class="tab-text">{{campaign.createdBy}}</p>
                 <p class="tab-text">{{ campaign.description }}</p>
