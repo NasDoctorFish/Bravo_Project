@@ -2,298 +2,337 @@
 import { useAuth } from '../composables/useAuth'
 const { isLoggedIn, userId, userRole, sessionReady, signOut } = useAuth()
 import { useRouter } from 'vue-router'
-import { ref, computed, watch } from 'vue'
-import { generateReportData, exportReportAsDocx } from '../controllers/reportController'
+import { ref, computed, watch, onMounted } from 'vue'
+import { supabase } from '../lib/supabaseClient'
+import { exportReportAsDocx } from '../controllers/reportController'
+
+import {
+  Chart as ChartJS, Title, Tooltip, Legend,
+  BarElement, CategoryScale, LinearScale
+} from 'chart.js'
+import { Bar } from 'vue-chartjs'
+ChartJS.register(Title, Tooltip, Legend, BarElement, CategoryScale, LinearScale)
 
 const router = useRouter()
 const emit = defineEmits(['go-home', 'go-login', 'go-signup', 'go-search', 'go-logout'])
 
 if (isLoggedIn.value) {
-  console.log(
-    'Logged in as...\n',
-    'userid: ', userId.value,
-    '\nRole: ', userRole.value,
-    '\nsessionReady: ', sessionReady.value
-  )
-}
-else {
+  console.log('Logged in as...\n', 'userid: ', userId.value, '\nRole: ', userRole.value)
+} else {
   console.log('Logged Out')
 }
 
-// Redirect unauthenticated users; restrict to PM (Platform Manager) role only
 watch(sessionReady, (ready) => {
   if (!ready) return
-  if (!isLoggedIn.value) {
-    router.push('/login')
-  } else if (userRole.value !== 'PM') {
-    router.push('/')
-  }
+  if (!isLoggedIn.value) router.push('/login')
+  else if (userRole.value !== 'PM') router.push('/')
 }, { immediate: true })
 
-// For Chart
-import {
-  Chart as ChartJS,
-  Title,
-  Tooltip,
-  Legend,
-  BarElement,
-  CategoryScale,
-  LinearScale
-} from 'chart.js'
-import { Bar } from 'vue-chartjs'
-
-ChartJS.register(
-  Title,
-  Tooltip,
-  Legend,
-  BarElement,
-  CategoryScale,
-  LinearScale
-)
-//
-
-// For Document (exportReportAsDocx is imported from reportController above)
-//
-
-// -- Types (from ReportMgntDEV) --
+// ── Types ──────────────────────────────────────────────────────────────────
 type PeriodType = 'DAILY' | 'MONTHLY' | 'YEARLY' | 'CUSTOM'
 
 type Report = {
-  reportid?: number
-  targetid: string
-  targettype: string
-  periodtype: PeriodType
-  startdate: string
-  enddate: string
+  reportid?:     number
+  targetid:      string
+  targettype:    string
+  periodtype:    PeriodType
+  startdate:     string
+  enddate:       string
   reportsummary: string
   reportcontent: string
-  created_at?: string
+  created_at?:   string
+  chartdata?:    any
 }
 
 type ReportChartPoint = {
-  period: string
-  totalLogs: number
-  totalViews: number
+  period:      string
+  totalLogs:   number
+  totalViews:  number
   totalClicks: number
   uniqueUsers: number
 }
 
-type ReportResult = {
-  report: Report
-  chartData: ReportChartPoint[]
+type KpiItem = { icon: string; value: string; label: string }
+
+// ── Live KPI State ─────────────────────────────────────────────────────────
+const period           = ref('30')
+const liveKpis         = ref({ raised: 0, active: 0, donors: 0, completion: 0 })
+const weeklyChartData  = ref<{ label: string; value: number }[]>([])
+const categoryBreakdown = ref<{ name: string; pct: number; amount: number; color: string }[]>([])
+const campaignReport   = ref<any[]>([])
+const isLoadingLive    = ref(false)
+
+const CATEGORY_COLORS = ['#2d6a4f','#2b6cb0','#276749','#b7791f','#6b46c1','#c53030','#2c7a7b']
+
+async function loadLiveDashboard() {
+  isLoadingLive.value = true
+  const days = Number(period.value)
+  const since = new Date(Date.now() - days * 86400000).toISOString()
+
+  // Campaigns
+  const { data: fraData } = await supabase
+    .from('fundraisingactivity')
+    .select('fraid, title, targetamount, currentamount, status, createdat, categoryid, category(categoryname)')
+    .gte('createdat', since)
+
+  const fra = fraData ?? []
+
+  liveKpis.value.raised     = fra.reduce((s, c) => s + Number(c.currentamount ?? 0), 0)
+  liveKpis.value.active     = fra.filter(c => c.status?.toUpperCase() === 'ACTIVE').length
+  liveKpis.value.completion = fra.length
+    ? Math.round(fra.filter(c => Number(c.currentamount) >= Number(c.targetamount)).length / fra.length * 100)
+    : 0
+
+  // Donors (unique)
+  const { data: donorData } = await supabase
+    .from('donation')
+    .select('userid')
+    .gte('donatedat', since)
+  liveKpis.value.donors = new Set((donorData ?? []).map(d => d.userid)).size
+
+  // Weekly chart — group donations by week
+  const { data: weekData } = await supabase
+    .from('donation')
+    .select('amount, donatedat')
+    .gte('donatedat', since)
+    .order('donatedat')
+
+  const weekMap: Record<string, number> = {}
+  ;(weekData ?? []).forEach(d => {
+    const date  = new Date(d.donatedat)
+    const wk    = `W${Math.ceil(date.getDate() / 7)}-${date.getMonth() + 1}`
+    weekMap[wk] = (weekMap[wk] ?? 0) + Number(d.amount ?? 0)
+  })
+  weeklyChartData.value = Object.entries(weekMap).map(([label, value]) => ({ label, value }))
+
+  // Category breakdown
+  const catMap: Record<string, number> = {}
+  fra.forEach(c => {
+    const name = (c.category as any)?.categoryname ?? 'Other'
+    catMap[name] = (catMap[name] ?? 0) + Number(c.currentamount ?? 0)
+  })
+  const total = Object.values(catMap).reduce((s, v) => s + v, 0) || 1
+  categoryBreakdown.value = Object.entries(catMap).map(([name, amount], i) => ({
+    name, amount,
+    pct:   Math.round(amount / total * 100),
+    color: CATEGORY_COLORS[i % CATEGORY_COLORS.length],
+  }))
+
+  // Campaign performance table
+  campaignReport.value = fra.slice(0, 10).map(c => ({
+    name:     c.title,
+    category: (c.category as any)?.categoryname ?? '—',
+    raised:   Number(c.currentamount ?? 0),
+    goal:     Number(c.targetamount  ?? 0),
+    donors:   0,
+    trend:    0,
+  }))
+
+  isLoadingLive.value = false
 }
 
-type KpiItem = {
-  icon: string
-  value: string
-  label: string
-}
+const maxBar = computed(() => Math.max(...weeklyChartData.value.map(d => d.value), 1))
 
-// -- Static Dashboard Data (from ReportDashboardPage) --
-const period = ref('30')
+const staticKpis = computed(() => [
+  { icon: '💰', value: `$${liveKpis.value.raised.toLocaleString()}`,  label: 'Total Raised',         change: '', positive: true },
+  { icon: '📋', value: String(liveKpis.value.active),                  label: 'Active Campaigns',      change: '', positive: true },
+  { icon: '👥', value: String(liveKpis.value.donors),                  label: 'Total Donors',          change: '', positive: true },
+  { icon: '🎯', value: `${liveKpis.value.completion}%`,                label: 'Avg. Completion Rate',  change: '', positive: true },
+])
 
-const staticKpis = [
-  { icon: '💰', value: '$86,400', label: 'Total Raised', change: '18%', positive: true },
-  { icon: '📋', value: '24', label: 'Active Campaigns', change: '4', positive: true },
-  { icon: '👥', value: '1,248', label: 'Total Donors', change: '22%', positive: true },
-  { icon: '🎯', value: '68%', label: 'Avg. Completion Rate', change: '5%', positive: true },
-]
+// ── Report Generation ──────────────────────────────────────────────────────
+const periodType  = ref<PeriodType>('MONTHLY')
+const startDate   = ref('')
+const endDate     = ref('')
+const targetId    = ref('PLATFORM')
+const targetType  = ref('platform')
 
-const weeklyChartData = [
-  { label: 'W1', value: 4200 }, { label: 'W2', value: 7800 },
-  { label: 'W3', value: 5400 }, { label: 'W4', value: 9200 },
-  { label: 'W5', value: 6600 }, { label: 'W6', value: 11000 },
-  { label: 'W7', value: 8400 }, { label: 'W8', value: 13200 },
-]
+const isLoading           = ref(false)
+const errorMessage        = ref('')
+const selectedReport      = ref<Report | null>(null)
+const reportSummaryText   = ref('')
+const reportDetailsVisible = ref(false)
+const reports             = ref<Report[]>([])
 
-const maxBar = computed(() => Math.max(...weeklyChartData.map(d => d.value)))
-
-const categoryBreakdown = [
-  { name: 'Education', pct: 34, amount: 29376, color: '#2d6a4f' },
-  { name: 'Healthcare', pct: 28, amount: 24192, color: '#2b6cb0' },
-  { name: 'Environment', pct: 18, amount: 15552, color: '#276749' },
-  { name: 'Disaster Relief', pct: 12, amount: 10368, color: '#b7791f' },
-  { name: 'Community', pct: 8, amount: 6912, color: '#6b46c1' },
-]
-
-const campaignReport = [
-  { name: 'Clean Water Initiative', category: 'Education', raised: 7400, goal: 10000, donors: 88, trend: 12 },
-  { name: 'Medical Aid Fund', category: 'Healthcare', raised: 9200, goal: 20000, donors: 74, trend: -3 },
-  { name: 'Flood Relief Fund', category: 'Disaster Relief', raised: 22000, goal: 30000, donors: 210, trend: 28 },
-  { name: 'Reforestation Project', category: 'Environment', raised: 4800, goal: 15000, donors: 43, trend: 7 },
-]
-
-function exportCSV() {
-  const rows = [
-    ['Campaign', 'Category', 'Raised', 'Goal', '% Funded', 'Donors', 'Trend'],
-    ...campaignReport.map(c => [
-      c.name, c.category, c.raised, c.goal,
-      Math.round(c.raised / c.goal * 100) + '%',
-      c.donors, (c.trend > 0 ? '+' : '') + c.trend + '%'
-    ])
-  ]
-  const csv = rows.map(r => r.join(',')).join('\n')
-  const blob = new Blob([csv], { type: 'text/csv' })
-  const url = URL.createObjectURL(blob)
-  const a = document.createElement('a')
-  a.href = url; a.download = 'report.csv'; a.click()
-  URL.revokeObjectURL(url)
-}
-
-// -- Report Generation (from ReportMgntDEV) --
-const periodType = ref<PeriodType>('MONTHLY')
-const startDate = ref<string>('')
-const endDate = ref<string>('')
-const targetId = ref<string>('PLATFORM')
-const targetType = ref<string>('platform')
-
-const isLoading = ref<boolean>(false)
-const errorMessage = ref<string>('')
-const selectedReport = ref<Report | null>(null)
-const reportSummaryText = ref<string>('')
-const reportDetailsVisible = ref<boolean>(false)
-
-const reports = ref<Report[]>([])
-
-const periodOptions: { value: PeriodType; label: string }[] = [
-  { value: 'DAILY', label: 'Daily' },
+const periodOptions = [
+  { value: 'DAILY',   label: 'Daily'   },
   { value: 'MONTHLY', label: 'Monthly' },
-  { value: 'YEARLY', label: 'Yearly' },
-  { value: 'CUSTOM', label: 'Custom' },
+  { value: 'YEARLY',  label: 'Yearly'  },
+  { value: 'CUSTOM',  label: 'Custom'  },
 ]
 
-const kpis = computed<KpiItem[]>(() => {
-  if (!selectedReport.value) {
-    return [
-      { icon: '📊', value: '-', label: 'Total Activity Logs' },
-      { icon: '👁️', value: '-', label: 'Total Views' },
-      { icon: '🖱️', value: '-', label: 'Total Clicks' },
-      { icon: '👥', value: '-', label: 'Unique Users' },
-    ]
-  }
-
-  const summary = selectedReport.value.reportsummary || ''
-
-  return [
-    { icon: '📊', value: extractSummaryValue(summary, 'Total Activity Logs'), label: 'Total Activity Logs' },
-    { icon: '👁️', value: extractSummaryValue(summary, 'Total Views'), label: 'Total Views' },
-    { icon: '🖱️', value: extractSummaryValue(summary, 'Total Clicks'), label: 'Total Clicks' },
-    { icon: '👥', value: extractSummaryValue(summary, 'Unique Users'), label: 'Unique Users' },
-  ]
-})
-
-// Chart Section
-const chartData = ref<ReportChartPoint[]>([])
-
-const chartDisplayData = computed(() => ({
-  labels: chartData.value.map((item) => item.period),
-  datasets: [
-    {
-      label: 'Total Views',
-      data: chartData.value.map((item) => item.totalViews)
-    },
-    {
-      label: 'Total Clicks',
-      data: chartData.value.map((item) => item.totalClicks)
-    },
-    {
-      label: 'Unique Users',
-      data: chartData.value.map((item) => item.uniqueUsers)
-    }
-  ]
-}))
-
-const chartOptions = {
-  responsive: true,
-  maintainAspectRatio: false
-}
-//
-
-function extractSummaryValue(summary: string, label: string): string {
-  const line = summary
-    .split('\n')
-    .find((item) => item.toLowerCase().includes(label.toLowerCase()))
-
-  if (!line) {
-    return '-'
-  }
-
-  return line.split(':')[1]?.trim() || '-'
+// Load existing reports from Supabase
+async function loadReports() {
+  const { data, error } = await supabase
+    .from('report')
+    .select('*')
+    .order('created_at', { ascending: false })
+    .limit(20)
+  if (error) { console.error(error); return }
+  reports.value = data ?? []
 }
 
-/**
- * handleGenerateReport()
- * Calls reportController.generateReportData()
- */
-async function handleGenerateReport(): Promise<void> {
-  errorMessage.value = ''
+// Generate report from activityviewlog
+async function handleGenerateReport() {
+  if (!startDate.value || !endDate.value) {
+    errorMessage.value = 'Please select a start and end date.'
+    return
+  }
+  errorMessage.value        = ''
   reportDetailsVisible.value = false
-  isLoading.value = true
+  isLoading.value           = true
 
   try {
-    const result = await generateReportData(
-      startDate.value,
-      endDate.value,
-      periodType.value,
-      targetType.value,
-      targetId.value
-    ) as ReportResult
+    // Fetch activity logs for the period
+    let query = supabase
+      .from('activityviewlog')
+      .select('*')
+      .gte('timestamp', startDate.value)
+      .lte('timestamp', endDate.value + 'T23:59:59')
 
-    selectedReport.value = result.report
-    reports.value.unshift(result.report)
-    chartData.value = result.chartData ?? []
-
-    displayReportSummary(result.report)
-  } catch (error: unknown) {
-    if (error instanceof Error) {
-      errorMessage.value = error.message
-    } else {
-      errorMessage.value = 'Failed to generate report.'
+    if (targetType.value !== 'platform') {
+      query = query.eq('targetid', Number(targetId.value))
     }
+
+    const { data: logs, error: logsError } = await query
+    if (logsError) throw logsError
+
+    const logList = logs ?? []
+
+    // Build summary
+    const totalLogs   = logList.length
+    const totalViews  = logList.filter(l => l.eventtype === 'VIEW').length
+    const totalClicks = logList.filter(l => l.eventtype === 'CLICK').length
+    const uniqueUsers = new Set(logList.map(l => l.userid)).size
+
+    const summary = [
+      `Total Activity Logs: ${totalLogs}`,
+      `Total Views: ${totalViews}`,
+      `Total Clicks: ${totalClicks}`,
+      `Unique Users: ${uniqueUsers}`,
+    ].join('\n')
+
+    const content = `Report generated for ${targetType.value} (${targetId.value})\nPeriod: ${startDate.value} to ${endDate.value}\n\n${summary}`
+
+    // Build chart data grouped by period
+    const periodMap: Record<string, ReportChartPoint> = {}
+    logList.forEach(l => {
+      const key = periodType.value === 'DAILY'
+        ? l.timestamp?.split('T')[0]
+        : periodType.value === 'MONTHLY'
+          ? l.timestamp?.substring(0, 7)
+          : l.timestamp?.substring(0, 4)
+
+      if (!key) return
+      if (!periodMap[key]) periodMap[key] = { period: key, totalLogs: 0, totalViews: 0, totalClicks: 0, uniqueUsers: 0 }
+      periodMap[key].totalLogs++
+      if (l.eventtype === 'VIEW')  periodMap[key].totalViews++
+      if (l.eventtype === 'CLICK') periodMap[key].totalClicks++
+    })
+    const chartPoints = Object.values(periodMap).sort((a, b) => a.period.localeCompare(b.period))
+
+    // Save to Supabase
+    const { data: saved, error: saveError } = await supabase
+      .from('report')
+      .insert({
+        targetid:      targetId.value,
+        targettype:    targetType.value,
+        periodtype:    periodType.value,
+        startdate:     startDate.value,
+        enddate:       endDate.value,
+        reportsummary: summary,
+        reportcontent: content,
+        chartdata:     chartPoints,
+      })
+      .select()
+      .single()
+
+    if (saveError) throw saveError
+
+    chartData.value       = chartPoints
+    selectedReport.value  = saved
+    reportSummaryText.value = summary
+    reports.value.unshift(saved)
+
+  } catch (e: any) {
+    errorMessage.value = e.message || 'Failed to generate report.'
   } finally {
     isLoading.value = false
   }
 }
 
-/**
- * displayReportSummary(reportData)
- */
-function displayReportSummary(reportData: Report): void {
-  reportSummaryText.value = reportData.reportsummary
-}
+// Chart data for report section
+const chartData = ref<ReportChartPoint[]>([])
 
-/**
- * viewReportDetails(report)
- */
-function viewReportDetails(report: Report): void {
-  selectedReport.value = report
-  reportSummaryText.value = report.reportsummary
+const chartDisplayData = computed(() => ({
+  labels: chartData.value.map(d => d.period),
+  datasets: [
+    { label: 'Total Views',  data: chartData.value.map(d => d.totalViews)  },
+    { label: 'Total Clicks', data: chartData.value.map(d => d.totalClicks) },
+    { label: 'Unique Users', data: chartData.value.map(d => d.uniqueUsers) },
+  ]
+}))
+
+const chartOptions = { responsive: true, maintainAspectRatio: false }
+
+const kpis = computed<KpiItem[]>(() => {
+  if (!selectedReport.value) return [
+    { icon: '📊', value: '-', label: 'Total Activity Logs' },
+    { icon: '👁️', value: '-', label: 'Total Views'         },
+    { icon: '🖱️', value: '-', label: 'Total Clicks'        },
+    { icon: '👥', value: '-', label: 'Unique Users'         },
+  ]
+  const s = selectedReport.value.reportsummary ?? ''
+  const extract = (label: string) => {
+    const line = s.split('\n').find(l => l.toLowerCase().includes(label.toLowerCase()))
+    return line?.split(':')[1]?.trim() ?? '-'
+  }
+  return [
+    { icon: '📊', value: extract('Total Activity Logs'), label: 'Total Activity Logs' },
+    { icon: '👁️', value: extract('Total Views'),         label: 'Total Views'         },
+    { icon: '🖱️', value: extract('Total Clicks'),        label: 'Total Clicks'        },
+    { icon: '👥', value: extract('Unique Users'),         label: 'Unique Users'        },
+  ]
+})
+
+function viewReportDetails(report: Report) {
+  selectedReport.value      = report
+  reportSummaryText.value   = report.reportsummary
+  chartData.value           = report.chartdata ?? []
   reportDetailsVisible.value = true
 }
 
-
-/**
- * exportReport()
- * Calls exportReportAsDocx from reportExportUtils
- */
-async function exportReport(): Promise<void> {
-  if (!selectedReport.value) {
-    errorMessage.value = 'No report selected.'
-    return
-  }
+async function exportReport() {
+  if (!selectedReport.value) { errorMessage.value = 'No report selected.'; return }
   await exportReportAsDocx(selectedReport.value)
 }
 
-/**
- * downloadReport(report)
- * Sets selectedReport to the given report and triggers export
- */
-async function downloadReport(report: Report): Promise<void> {
+async function downloadReport(report: Report) {
   selectedReport.value = report
   await exportReport()
 }
 
+function exportCSV() {
+  const rows = [
+    ['Campaign', 'Category', 'Raised', 'Goal', '% Funded'],
+    ...campaignReport.value.map(c => [
+      c.name, c.category, c.raised, c.goal,
+      Math.round(c.raised / (c.goal || 1) * 100) + '%',
+    ])
+  ]
+  const csv  = rows.map(r => r.join(',')).join('\n')
+  const blob = new Blob([csv], { type: 'text/csv' })
+  const url  = URL.createObjectURL(blob)
+  const a    = document.createElement('a')
+  a.href = url; a.download = 'report.csv'; a.click()
+  URL.revokeObjectURL(url)
+}
 
+onMounted(async () => {
+  await Promise.all([loadLiveDashboard(), loadReports()])
+})
+
+watch(period, loadLiveDashboard)
 </script>
 
 <template>
