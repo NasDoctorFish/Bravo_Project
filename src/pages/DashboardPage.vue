@@ -53,12 +53,12 @@ function formatTime(dateString: string): string {
 // Helper to get the first FundRaisingActivity ID
 async function getFirstFraId(): Promise<string | null> {
   const { data, error } = await supabase
-    .from('FundRaisingActivity')
-    .select('id')
+    .from('fundraisingactivity')
+    .select('fraid')
     .limit(1)
-    .single()
+    .maybeSingle()
   if (error || !data) return null
-  return data.id
+  return String(data.fraid)
 }
 
 // Update dashboard
@@ -74,25 +74,25 @@ async function updateDashboard(): Promise<void> {
   totalViews.value = 0 //use the version from feature/dashboard_totalviews
 
   // Get all campaigns
-  const { data, error } = await supabase.from('FundRaisingActivity').select('*')
+  const { data, error } = await supabase.from('fundraisingactivity').select('*')
   if (error || !data) {
-    console.error(error)
+    console.error('updateDashboard error:', error)
     return
   }
 
-  // Filter campaigns by date if filter applied
+  // Filter campaigns by date if filter applied (DB column is createdat)
   const filtered = data.filter(c =>
-    new Date(c.created_at) >= new Date(startDate.value) &&
-    new Date(c.created_at) <= new Date(endDate.value)
+    new Date(c.createdat) >= new Date(startDate.value) &&
+    new Date(c.createdat) <= new Date(endDate.value)
   )
 
-  totalRaised.value = filtered.reduce((sum, fra) => sum + fra.currentAmount, 0)
-  activeCampaigns.value = filtered.filter(fra => fra.status === 'active').length
-  goalsReached.value = filtered.filter(fra => fra.currentAmount >= fra.targetAmount).length
+  totalRaised.value = filtered.reduce((sum, fra) => sum + (fra.currentamount ?? 0), 0)
+  activeCampaigns.value = filtered.filter(fra => fra.status?.toLowerCase() === 'active').length
+  goalsReached.value = filtered.filter(fra => (fra.currentamount ?? 0) >= (fra.targetamount ?? 1)).length
   campaigns.value = filtered.map(fra => ({
     name: fra.title,
-    goal: fra.targetAmount,
-    raised: fra.currentAmount,
+    goal: fra.targetamount ?? 0,
+    raised: fra.currentamount ?? 0,
     status: fra.status
   }))
 }
@@ -104,24 +104,6 @@ const emit = defineEmits(['go-home', 'go-logout', 'go-search', 'go-create', 'go-
 <template>
   <div class="dashboard-page">
 
-    <!-- Header -->
-    <header class="header">
-      <RouterLink to="/" class="brand">
-        <span class="logo">♥</span>
-        <span>FundRise</span>
-      </RouterLink>
-      <nav class="nav">
-        <RouterLink to="/fra/search" class="nav-link">⌕ Donate</RouterLink>
-        <RouterLink to="/fra/create" class="nav-link">Fundraising</RouterLink>
-      </nav>
-      <nav class="nav-actions">
-        <RouterLink to="/favourites" class="nav-link">♥ Favourites</RouterLink>
-        <RouterLink to="/" class="nav-link">Home</RouterLink>
-        <button class="nav-link logout-link" @click="async () => { await signOut(); router.push('/') }">
-          <span class="logout-icon">⇢</span> Logout
-        </button>
-      </nav>
-    </header>
 
     <!-- Main Content -->
     <main class="dash-main">

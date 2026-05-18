@@ -4,8 +4,7 @@ import { ref, computed, onMounted, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import { fraController } from '../controllers/fraController'
 import { useAuth } from '../composables/useAuth'
-const { isLoggedIn, userId: authUserId, userRole, sessionReady, signOut } = useAuth()
-import { useRouter } from 'vue-router'
+const { isLoggedIn, userId: authUserId, userRole, sessionReady } = useAuth()
 
 //  BOUNDARY — FraDetailPage
 import { useFraDetailController } from '../controllers/FraDetailPage_Control'
@@ -13,8 +12,6 @@ import { useFraDetailController } from '../controllers/FraDetailPage_Control'
 const props = defineProps<{
   fraId: string,
 }>()
-
-const router = useRouter()
 const emit = defineEmits(['go-home', 'go-logout', 'go-search', 'go-edit', 'go-login', 'go-signup'])
 
 if (isLoggedIn.value) {
@@ -95,6 +92,10 @@ function handleDonate() {
   submitDonation(authUserId.value ?? 'guest')
 }
 
+function handleToggleFavorite() {
+  toggleFavorite(authUserId.value)
+}
+
 // Share
 function copyLink() {
   navigator.clipboard.writeText(window.location.href)
@@ -111,7 +112,7 @@ function shareCampaign(platform: 'instagram' | 'facebook') {
   window.open(shareUrl, '_blank', 'noopener,noreferrer')
 }
 
-const fraId = computed(() => Number(props.fraid || route.params.fraid))
+const fraId = computed(() => Number(props.fraId || route.params.id))
 
 // FR-2-08: Mark as Completed
 async function handleMarkAsCompleted() {
@@ -139,30 +140,6 @@ function handleEditFra() {
 <template>
   <div class="detail-page">
 
-    <!-- ── Header ── -->
-    <header class="header">
-      <RouterLink to="/" class="brand" @click="emit('go-home')">
-        <span class="logo">♥</span>
-        <span>FundRise</span>
-      </RouterLink>
-      <nav class="nav">
-        <RouterLink to="/fra/search" class="nav-link" @click="emit('go-search')">⌕ Donate</RouterLink>
-        <RouterLink to="/fra/create" class="nav-link">Fundraising</RouterLink>
-      </nav>
-      <nav class="nav-actions">
-        <RouterLink to="/favourites" class="nav-link">♥ Favourites</RouterLink>
-        <RouterLink to="/" class="nav-link" @click="emit('go-home')">Home</RouterLink>
-        <template v-if="isLoggedIn">
-          <button class="nav-link logout-link" @click="async () => { await signOut(); router.push('/') }">
-            <span class="logout-icon">⇢</span> Logout
-          </button>
-        </template>
-        <template v-else>
-          <RouterLink to="/login" class="nav-link" @click="emit('go-login')">Login</RouterLink>
-          <RouterLink to="/signup" class="nav-link" @click="emit('go-signup')">Sign Up</RouterLink>
-        </template>
-      </nav>
-    </header>
 
     <div class="detail-container">
 
@@ -192,7 +169,7 @@ function handleEditFra() {
               class="favorite-btn"
               :class="{ saved: isFavorited }"
               type="button"
-              @click="toggleFavorite(authUserId.value)"
+              @click="handleToggleFavorite()"
             >
               <span class="favorite-icon">{{ isFavorited ? '♥' : '♡' }}</span>
               {{ isFavorited ? 'Saved' : 'Save' }}

@@ -88,24 +88,6 @@ async function handleLogin() {
 <template>
   <div class="login-page">
 
-    <!-- Header -->
-    <header class="header">
-      <RouterLink to="/" class="brand" @click="emit('go-home')">
-        <span class="logo">♥</span>
-        <span>FundRise</span>
-      </RouterLink>
-
-      <nav class="nav">
-        <RouterLink to="/fra/search" class="nav-link">⌕ Donate</RouterLink>
-        <RouterLink to="/fra/create" class="nav-link">Fundraising</RouterLink>
-      </nav>
-
-      <nav class="nav-actions">
-        <RouterLink to="/favourites" class="nav-link">♥ Favourites</RouterLink>
-        <RouterLink to="/login" class="nav-link" @click="emit('go-login')">Login</RouterLink>
-        <RouterLink to="/signup" class="btn btn-primary" @click="emit('go-signup')">Sign Up</RouterLink>
-      </nav>
-    </header>
 
     <!-- Login Card -->
     <div class="login-wrapper">

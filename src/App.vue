@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref } from 'vue'
+import AppTopBar from './components/AppTopBar.vue'
 
 import LoginPage from './pages/LoginPage.vue'
 import HomePage from './pages/HomePage.vue'
@@ -74,7 +75,7 @@ function goFavourites() {
 </script>
 
 <template>
-
+  <AppTopBar />
    <!-- Added for router, this will automatically route pages -->
   <RouterView />
 <!--   

@@ -61,24 +61,6 @@ const progressPercent = (c: FundRaisingActivity): number => c.progressPercent ??
 <template>
   <div class="search-page">
 
-    <!-- Header -->
-    <header class="header">
-      <RouterLink to="/" class="brand" @click="emit('go-home')">
-        <span class="logo">♥</span>
-        <span>FundRise</span>
-      </RouterLink>
-
-      <nav class="nav">
-        <RouterLink to="/fra/search" class="nav-link">⌕ Donate</RouterLink>
-        <RouterLink to="/fra/create" class="nav-link" @click="emit('go-create')">Fundraising</RouterLink>
-      </nav>
-
-      <nav class="nav-actions">
-        <RouterLink to="/favourites" class="nav-link">♥ Favourites</RouterLink>
-        <RouterLink to="/" class="nav-link" @click="emit('go-home')">Home</RouterLink>
-        <RouterLink to="/fra/create" class="btn btn-primary" @click="emit('go-create')">Start Campaign</RouterLink>
-      </nav>
-    </header>
 
     <div class="search-container">
 

@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { useAuth } from '../composables/useAuth'
-const { isLoggedIn, userId, userRole, sessionReady, signOut } = useAuth()
+const { isLoggedIn, userId, userRole, sessionReady } = useAuth()
 import { loadCampaigns } from '../controllers/fraController'
 import { useRouter } from 'vue-router'
 import { ref, onMounted } from 'vue'
@@ -32,34 +32,6 @@ else {
 
 <template>
   <div class="homepage">
-    <header class="header">
-      <RouterLink to="/" class="brand" @click="emit('go-home')">
-        <span class="logo">♥</span>
-        <span>FundRise</span>
-      </RouterLink>
-
-      <nav class="nav">
-        <RouterLink to="/fra/search" class="nav-link" @click="emit('go-search')">⌕ Donate</RouterLink>
-        <RouterLink to="/fra/create" class="nav-link" @click="emit('go-signup')">Fundraising</RouterLink>
-      </nav>
-
-      <nav class="nav-actions">
-        <RouterLink to="/favourites" class="nav-link">♥ Favourites</RouterLink>
-        <template v-if="!sessionReady">
-          <!-- Optional: keep empty while checking session -->
-        </template>
-        <template v-if="!isLoggedIn">
-          <RouterLink to="/login" class="nav-link">Login</RouterLink>
-          <RouterLink to="/signup" class="btn btn-primary">Sign Up</RouterLink>
-        </template>
-
-        <template v-else>
-          <button class="btn btn-primary" @click="signOut">
-            Logout
-          </button>
-        </template>
-      </nav>
-    </header>
 
     <section class="hero">
       <div class="hero-content">

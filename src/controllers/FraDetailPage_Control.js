@@ -98,12 +98,18 @@ export function useFraDetailController() {
     return `${Math.floor(diff / 1440)}d ago`
   }
 
-  async function submitDonation(userId = 'guest') {
+  async function submitDonation(userId = null) {
     donateError.value   = null
     donateSuccess.value = false
 
     if (!donateAmount.value || donateAmount.value < 1) {
       donateError.value = 'Please enter a valid donation amount.'
+      return
+    }
+
+    const numericUserId = Number(userId)
+    if (!userId || !Number.isFinite(numericUserId) || numericUserId <= 0) {
+      donateError.value = 'You must be logged in to donate.'
       return
     }
 
@@ -113,10 +119,10 @@ export function useFraDetailController() {
       const { error: err } = await supabase
         .from('donation')
         .insert({
-          userid:      Number(userId),
+          userid:      numericUserId,
           fraid:       Number(fraId.value),
           amount:      donateAmount.value,
-          donatedAt:   new Date().toISOString(),
+          donatedat:   new Date().toISOString(),
           message:     donateMessage.value || null,
           donorname:   'Anonymous',
           isanonymous: false,

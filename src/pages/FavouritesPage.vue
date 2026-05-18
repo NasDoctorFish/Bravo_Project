@@ -68,24 +68,6 @@ function progressWidth(value: number | undefined) {
 <template>
   <div class="favourites-page">
 
-    <!-- Header -->
-    <header class="header">
-      <RouterLink to="/" class="brand" @click="emit('go-home')">
-        <span class="logo">♥</span>
-        <span>FundRise</span>
-      </RouterLink>
-      <nav class="nav">
-        <RouterLink to="/fra/search" class="nav-link" @click="emit('go-search')">⌕ Donate</RouterLink>
-        <RouterLink to="/fra/create" class="nav-link">Fundraising</RouterLink>
-      </nav>
-      <nav class="nav-actions">
-        <RouterLink to="/favourites" class="nav-link">♥ Favourites</RouterLink>
-        <RouterLink to="/" class="nav-link" @click="emit('go-home')">Home</RouterLink>
-        <button class="nav-link logout-link" @click="async () => { await signOut(); router.push('/') }">
-          <span class="logout-icon">⇢</span> Logout
-        </button>
-      </nav>
-    </header>
 
     <div class="favourites-container">
 
@@ -191,7 +173,7 @@ function progressWidth(value: number | undefined) {
                   </button>
                   <button
                     class="btn btn-remove"
-                    @click.stop="clickSaveFavourite(item.favourite.fraId)"
+                    @click.stop="clickSaveFavourite(item.favourite.fraid)"
                     title="Remove from favourites"
                   >
                     Remove
