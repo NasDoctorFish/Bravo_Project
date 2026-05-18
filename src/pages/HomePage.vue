@@ -44,6 +44,7 @@ else {
       </nav>
 
       <nav class="nav-actions">
+        <RouterLink to="/favourites" class="nav-link">♥ Favourites</RouterLink>
         <template v-if="!sessionReady">
           <!-- Optional: keep empty while checking session -->
         </template>

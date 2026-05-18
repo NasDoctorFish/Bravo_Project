@@ -101,6 +101,7 @@ async function handleLogin() {
       </nav>
 
       <nav class="nav-actions">
+        <RouterLink to="/favourites" class="nav-link">♥ Favourites</RouterLink>
         <RouterLink to="/login" class="nav-link" @click="emit('go-login')">Login</RouterLink>
         <RouterLink to="/signup" class="btn btn-primary" @click="emit('go-signup')">Sign Up</RouterLink>
       </nav>

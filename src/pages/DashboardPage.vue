@@ -115,6 +115,7 @@ const emit = defineEmits(['go-home', 'go-logout', 'go-search', 'go-create', 'go-
         <RouterLink to="/fra/create" class="nav-link">Fundraising</RouterLink>
       </nav>
       <nav class="nav-actions">
+        <RouterLink to="/favourites" class="nav-link">♥ Favourites</RouterLink>
         <RouterLink to="/" class="nav-link">Home</RouterLink>
         <button class="nav-link logout-link" @click="async () => { await signOut(); router.push('/') }">
           <span class="logout-icon">⇢</span> Logout

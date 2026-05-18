@@ -74,6 +74,7 @@ const progressPercent = (c: FundRaisingActivity): number => c.progressPercent ??
       </nav>
 
       <nav class="nav-actions">
+        <RouterLink to="/favourites" class="nav-link">♥ Favourites</RouterLink>
         <RouterLink to="/" class="nav-link" @click="emit('go-home')">Home</RouterLink>
         <RouterLink to="/fra/create" class="btn btn-primary" @click="emit('go-create')">Start Campaign</RouterLink>
       </nav>

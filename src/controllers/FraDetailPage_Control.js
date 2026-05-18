@@ -116,7 +116,7 @@ export function useFraDetailController() {
           userid:      Number(userId),
           fraid:       Number(fraId.value),
           amount:      donateAmount.value,
-          donatedat:   new Date().toISOString(),
+          donatedAt:   new Date().toISOString(),
           message:     donateMessage.value || null,
           donorname:   'Anonymous',
           isanonymous: false,
