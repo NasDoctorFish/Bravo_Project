@@ -91,7 +91,6 @@ export function useFraDetailController() {
     }
   }
 
-  // ADD this helper anywhere before the return
   function getTimeAgo(timestamp) {
     const diff = Math.floor((Date.now() - new Date(timestamp).getTime()) / 60000)
     if (diff < 60)   return `${diff}m ago`
@@ -110,25 +109,54 @@ export function useFraDetailController() {
 
     isDonating.value = true
     try {
+      // 1. Insert donation record
       const { error: err } = await supabase
         .from('donation')
         .insert({
-          userid:  Number(userId),
-          fraid:   Number(fraId.value),
-          amount:  donateAmount.value,
-          message: donateMessage.value,
+          userid:      Number(userId),
+          fraid:       Number(fraId.value),
+          amount:      donateAmount.value,
+          donatedat:   new Date().toISOString(),
+          message:     donateMessage.value || null,
+          donorname:   'Anonymous',
+          isanonymous: false,
         })
 
       if (err) throw err
 
+      // 2. Fetch latest currentamount from DB
+      const { data: fra, error: fraErr } = await supabase
+        .from('fundraisingactivity')
+        .select('currentamount, targetamount')
+        .eq('fraid', Number(fraId.value))
+        .single()
+
+      if (fraErr) throw fraErr
+
+      const newAmount = Number(fra.currentamount ?? 0) + donateAmount.value
+
+      // 3. Update currentamount in DB
+      const { error: updateErr } = await supabase
+        .from('fundraisingactivity')
+        .update({ currentamount: newAmount })
+        .eq('fraid', Number(fraId.value))
+
+      if (updateErr) throw updateErr
+
+      // 4. Update local campaign state
       if (campaign.value) {
-        campaign.value.currentAmount  += donateAmount.value
-        campaign.value.progressPercent = Math.min(
-          Math.round((campaign.value.currentAmount / campaign.value.targetAmount) * 100),
+        const newPercent = Math.min(
+          Math.round((newAmount / Number(fra.targetamount)) * 100),
           100
         )
+        campaign.value = {
+          ...campaign.value,
+          currentAmount:   newAmount,
+          progressPercent: newPercent,
+        }
       }
 
+      // 5. Refresh donations list
       await getDonations(fraId.value)
       donateSuccess.value = true
       donateMessage.value = ''
@@ -138,19 +166,19 @@ export function useFraDetailController() {
       isDonating.value = false
     }
   }
-  
+
   async function checkFavorite(userId, fid) {
-  const uid = Number(userId)
-  const fraid = Number(fid)
-  console.log('🔍 checkFavorite uid:', uid, 'fraid:', fraid)
-  const { data } = await supabase
-    .from('favourites')
-    .select('favouriteid')
-    .eq('userid', uid)
-    .eq('fraid', fraid)
-    .maybeSingle()
-  isFavorited.value = !!data
-}
+    const uid   = Number(userId)
+    const fraid = Number(fid)
+    console.log('🔍 checkFavorite uid:', uid, 'fraid:', fraid)
+    const { data } = await supabase
+      .from('favourites')
+      .select('favouriteid')
+      .eq('userid', uid)
+      .eq('fraid', fraid)
+      .maybeSingle()
+    isFavorited.value = !!data
+  }
 
   async function toggleFavorite(userId) {
     if (!campaign.value || !userId) {
@@ -190,8 +218,6 @@ export function useFraDetailController() {
     setTimeout(() => { favoriteMessage.value = '' }, 2200)
   }
 
-
-  /** Calculated days remaining until campaign end date */
   const daysLeft = computed(() => {
     if (!campaign.value?.endDate) return 0
     const end  = new Date(campaign.value.endDate)
@@ -199,39 +225,28 @@ export function useFraDetailController() {
     return Math.max(diff, 0)
   })
 
-  /** Total number of unique donors */
   const donorCount = computed(() => donations.value.length)
-
-  /** Whether an error state exists */
-  const hasError = computed(() => !!error.value)
+  const hasError   = computed(() => !!error.value)
 
   return {
-    // State
     fraId,
     campaign,
     donations,
     error,
     isLoading,
-
-    // Donate form state
     donateAmount,
     donateMessage,
     isDonating,
     donateSuccess,
     donateError,
-
-    // Favorites state
     isFavorited,
     favoriteMessage,
-
     daysLeft,
     donorCount,
     hasError,
-
     getCampaignDetail,
     checkFavorite,
     getDonations,
-
     submitDonation,
     toggleFavorite,
   }

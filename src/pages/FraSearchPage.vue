@@ -158,7 +158,7 @@ const progressPercent = (c: FundRaisingActivity): number => c.progressPercent ??
 
           <!-- Body -->
           <div class="campaign-body">
-            <span class="campaign-category">{{ c.categoryId }}</span>
+            <span class="campaign-category">{{ c.category?.categoryname ?? c.categoryId }}</span>
             <h4 class="campaign-title">{{ c.title }}</h4>
             <p class="campaign-desc">{{ c.description }}</p>
 
