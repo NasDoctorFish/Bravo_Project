@@ -3,11 +3,18 @@ import { ActivityViewLog } from '../models/ActivityViewLog.ts'
 import { supabase } from '../lib/supabaseClient'
 
 export async function getStoryData(storyId: string, eventType: string = 'VIEW'): Promise<Story | null> {
+  const res = await supabase.from('story').select('*').eq('storyid', storyId).maybeSingle()
+
   if (eventType === 'VIEW') {
-    await supabase.from('activityviewlog').insert([{ targetid: storyId, eventtype: eventType, timestamp: new Date().toISOString() }])
+    const targetName = (res.data as any)?.title ?? String(storyId)
+    await supabase.from('activityviewlog').insert([{
+      targetid:   storyId,
+      targetname: targetName,
+      eventtype:  eventType,
+      timestamp:  new Date().toISOString(),
+    }])
   }
 
-  const res = await supabase.from('story').select('*').eq('storyid', storyId).maybeSingle()
   return res.data as Story | null
 }
 
