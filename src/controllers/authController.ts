@@ -1,6 +1,10 @@
 // src/controllers/authController.ts
 import { supabase } from '../lib/supabaseClient'
-import bcrypt from "bcryptjs"; //for password hash
+import bcrypt from 'bcryptjs'
+
+export let userid: number
+export let password: string = ''
+export let isAdmin: boolean = false
 
 export async function create(
   name: string,
@@ -8,15 +12,11 @@ export async function create(
   password: string,
   email: string
 ): Promise<number> {
-  // Validate required fields
-  if (
-    !name?.trim() ||
-    !role?.trim() ||
-    !password?.trim() ||
-    !email?.trim()
-  ) {
+  if (!name?.trim() || !role?.trim() || !password?.trim() || !email?.trim()) {
     throw new Error('Incorrect format data: All required fields must be filled.')
   }
+
+  console.log('Create input:', { name, role, email })
 
   // Check duplicate email
   const { data: existingUser, error: checkError } = await supabase
@@ -25,37 +25,24 @@ export async function create(
     .eq('email', email.trim())
     .maybeSingle()
 
-  if (checkError) {
-    throw checkError
-  }
+  if (checkError) throw checkError
+  if (existingUser) throw new Error('This email is already registered.')
 
-  if (existingUser) {
-    throw new Error('This email is already registered.')
-  }
-  // hash password
-  const password_hash = await hashPassword(password.trim())
+  // Hash password
+  const password_hash = await bcrypt.hash(password.trim(), 10)
 
   // Insert email and password into useraccount
   const { data: accountData, error: accountError } = await supabase
     .from('useraccount')
-    .insert([
-      {
-        email: email.trim(),
-        password_hash: password_hash
-      }
-    ])
+    .insert([{ email: email.trim(), password_hash }])
     .select('userid')
     .single()
 
   if (accountError) {
-  console.log('ACCOUNT INSERT ERROR FULL:', accountError)
-
-  if (accountError.code === '23505') {
-    throw new Error(accountError.message)
+    console.log('ACCOUNT INSERT ERROR FULL:', accountError)
+    if (accountError.code === '23505') throw new Error(accountError.message)
+    throw accountError
   }
-
-  throw accountError
-}
 
   if (!accountData?.userid) {
     throw new Error('User account was created, but userid was not returned.')
@@ -72,103 +59,68 @@ export async function create(
   const dbRole = roleMap[role.trim()]
   if (!dbRole) throw new Error('Invalid role selected.')
 
-  // Insert name and role into userprofile
   const { error: profileError } = await supabase
     .from('userprofile')
-    .insert([
-      {
-        userid: newId,
-        name:   name.trim(),
-        role:   dbRole,
-      }
-    ])
+    .insert([{ userid: newId, name: name.trim(), role: dbRole }])
 
-  if (profileError) {
-    throw profileError
-  }
+  if (profileError) throw profileError
 
   return newId
 }
 
-
-/**
- * Clean and Delete all expired authsessions before logging in()
- * executes the sql trigger registered on supabase DB: delete_expired_authsessions()s
- */
 export async function cleanupExpiredSessions() {
-  
-  // executes the sql trigger registered on supabase DB: delete_expired_authsessions()
   const { error } = await supabase.rpc('delete_expired_authsessions')
-
-  if (error) {
-    throw error
-  }
+  if (error) throw error
 }
-
 
 export async function validateUser(id: number, pass: string): Promise<boolean> {
   const { data, error } = await supabase
     .from('useraccount')
     .select('userid, password_hash, userprofile(role)')
     .eq('userid', id)
-    .eq('password_hash', pass)
-    .single()
+    .maybeSingle()
 
   if (error || !data) return false
-  if (data.password_hash !== pass) return false
 
+  const match = await bcrypt.compare(pass, data.password_hash)
+  if (!match) return false
+
+  userid = id
+  password = pass
+  isAdmin = data.userprofile?.role === 'User Admin'
   return true
 }
 
-const saltRounds = 10;
-
-/**
- * Generate password hash
- */
-async function hashPassword(password: string): Promise<string> {
-  // Hash password before saving to database
-  return await bcrypt.hash(password, saltRounds);
-}
-
-  /**
-   * comparePassword
-   */
-export async function comparePassword(
-    plainPassword: string,
-    hashedPassword: string,
-  ): Promise<boolean> {
-    // Compare plain password with stored hash
-    return await bcrypt.compare(plainPassword, hashedPassword);
-  }
-
-
-// Look up user by email + password in useraccount table (no Supabase auth service)
 export async function login(
   email: string,
   password: string
 ): Promise<{ userid: number; role: string }> {
-  
-
-  const { data: user, error } = await supabase
+  const { data, error } = await supabase
     .from('useraccount')
-    .select('*')
+    .select('userid, password_hash, userprofile(role)')
     .eq('email', email.trim())
     .maybeSingle()
 
-  if (error || !user) {
-  throw new Error('Invalid email or password.')
-}
+  if (error) throw error
+  if (!data) throw new Error('Invalid email or password.')
 
-const isPasswordCorrect = await comparePassword(
-  password.trim(),
-  user.password_hash
-)
+  // Support both bcrypt hashes and legacy plain text
+  let match = false
+  if (data.password_hash?.startsWith('$2')) {
+    match = await bcrypt.compare(password.trim(), data.password_hash)
+  } else {
+    match = data.password_hash === password.trim()
+  }
 
-if (!isPasswordCorrect) {
-  throw new Error('Invalid email or password.')
-}
+  if (!match) throw new Error('Invalid email or password.')
 
-return { userid: user.userid, role: user.role}
+  const profile = (data as any).userprofile
+  const role = (Array.isArray(profile) ? profile[0]?.role : profile?.role) ?? ''
+
+  userid = data.userid
+  isAdmin = role === 'User Admin'
+
+  return { userid: data.userid, role }
 }
 
 // Check whether a session is valid for the given user
