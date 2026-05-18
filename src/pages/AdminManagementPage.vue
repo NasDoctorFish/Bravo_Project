@@ -235,7 +235,7 @@ const roleLabels = {
   'DO': 'Donee'
 }
 
-function getRoleLabel(code) {
+function getRoleDropdown(code) {
   return roleLabels[code] || code 
 }
 
@@ -366,7 +366,7 @@ onMounted(() => {
                     </div>
                   </div>
                 </td>
-                <td class="td-center"><span class="role-tag">{{ getRoleLabel(user.role) }}</span></td>
+                <td class="td-center"><span class="role-tag">{{ getRoleDropdown(user.role) }}</span></td>
                 <td class="td-center"><span :class="['badge', 'badge-' + user.status]">{{ user.status }}</span></td>
                 <td class="td-center td-muted">{{ user.joined }}</td>
                 <td class="td-center td-muted">{{ user.lastActive }}</td>

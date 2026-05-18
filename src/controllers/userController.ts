@@ -108,7 +108,6 @@ export const handleDoneeProfileApproveClick = async (reg: any, adminUsername: st
       bio: reg.bio,
       bankaccount: reg.bankaccount,
       totalreceived: 0,
-      createdat: new Date().toISOString()
     }])
 
   if (profileError) throw profileError

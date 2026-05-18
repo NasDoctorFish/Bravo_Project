@@ -14,9 +14,9 @@ export interface Story {
 export class Story {
   static async readByFra(fraId: string): Promise<Story[]> {
     const { data, error } = await supabase
-      .from('Story')
+      .from('story')
       .select('*')
-      .eq('fraId', fraId)
+      .eq('fraid', fraId)
 
 
     if (error) {

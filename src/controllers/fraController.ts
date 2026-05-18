@@ -97,13 +97,13 @@ export class fraController {
     const { data, error } = await supabase
       .from('fundraisingactivity')
       .insert({
-        userid:        userId,
+        userid:        Number(userId),
         createdby:     userId,
         title:         details.title,
         description:   details.description,
         targetamount:  details.targetAmount,
         categoryid:    details.categoryId,
-        status:        'Active',
+        status:        'ACTIVE',
         currentamount: 0.0
       })
       .select()

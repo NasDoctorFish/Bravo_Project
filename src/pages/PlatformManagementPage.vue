@@ -181,10 +181,10 @@ async function fetchDoneeRegistrations() {
 async function approveDonee(reg: any) {
   const { error } = await supabase
     .from('doneeregistration')
-    .update({ status: 'ACTIVE', reviewedby: String(userId.value), reviewedat: new Date().toISOString() })
+    .update({ status: 'APPROVED', reviewedby: userRole.value ?? 'PM', reviewedat: new Date().toISOString() })
     .eq('donee_reg_id', reg.donee_reg_id)
   if (error) { console.error(error.message); return }
-  reg.status = 'ACTIVE'
+  reg.status = 'APPROVED'
 }
 
 async function rejectDonee(reg: any) {
@@ -192,7 +192,7 @@ async function rejectDonee(reg: any) {
   if (!reason) return
   const { error } = await supabase
     .from('doneeregistration')
-    .update({ status: 'REJECTED', notes: reason, reviewedby: String(userId.value), reviewedat: new Date().toISOString() })
+    .update({ status: 'REJECTED', notes: reason, reviewedby: userRole.value ?? 'PM', reviewedat: new Date().toISOString() })
     .eq('donee_reg_id', reg.donee_reg_id)
   if (error) { console.error(error.message); return }
   reg.status = 'REJECTED'

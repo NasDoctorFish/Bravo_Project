@@ -118,7 +118,7 @@ export async function login(
   const role = (Array.isArray(profile) ? profile[0]?.role : profile?.role) ?? ''
 
   userid = data.userid
-  isAdmin = role === 'User Admin'
+  isAdmin = role === 'UA'
 
   return { userid: data.userid, role }
 }

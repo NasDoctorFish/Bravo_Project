@@ -78,12 +78,12 @@ export class FundRaisingActivityClass {
     const newFraData = {
       userid:        userId,
       createdby:     userId,
-      status:        'active',
+      status:        'ACTIVE',
       currentamount: 0.0,
       title:         '',
       description:   '',
       targetamount:  0.0,
-      categoryid:    '',
+      categoryid:    null,
     };
 
     const { data, error } = await supabase
@@ -142,7 +142,6 @@ export class FundRaisingActivityClass {
         status:        rest.status,
         createdby:     rest.createdBy,
         categoryid:    rest.categoryId,
-        name:          rest.name,
       })
       .eq('fraid', fraId)
       .eq('userid', userId)
@@ -170,7 +169,7 @@ export class FundRaisingActivityClass {
       return true;
     } else {
       const { error } = await query
-        .update({ status: 'Archived' })
+        .update({ status: 'CANCELLED' })
         .eq('fraid', fraId)
         .eq('userid', userId);
 

@@ -13,7 +13,7 @@ export interface ActivityViewLog {
 export class ActivityViewLog {
   static async getActivityViewLogData(): Promise<ActivityViewLog[]> {
     const { data, error } = await supabase
-      .from('ActivityViewLog')
+      .from('activityviewlog')
       .select('*')
 
 

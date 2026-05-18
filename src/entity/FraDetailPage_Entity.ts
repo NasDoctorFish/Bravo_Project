@@ -183,8 +183,8 @@ export function useFraDetailController() {
         const { data: fav } = await supabase
           .from('favourites')
           .select('favouriteid')
-          .eq('userid', authUserId.value)
-          .eq('fraid', id)
+          .eq('userid', Number(authUserId.value))
+          .eq('fraid', Number(id))
           .maybeSingle()
         _isFavorited.value = !!fav
       }
@@ -229,8 +229,8 @@ export function useFraDetailController() {
       const { error: err } = await supabase
         .from('donation')
         .insert({
-          userid:    actualUserId,
-          fraid:     fraId.value,
+          userid:    Number(actualUserId),
+          fraid:     Number(fraId.value),
           amount:    donateAmount.value,
           donatedat: new Date().toISOString(),
         })
@@ -265,11 +265,11 @@ export function useFraDetailController() {
     }
 
     if (_isFavorited.value) {
-      await supabase.from('favourites').delete().eq('userid', authUserId.value).eq('fraid', id)
+      await supabase.from('favourites').delete().eq('userid', Number(authUserId.value)).eq('fraid', Number(id))
       _isFavorited.value    = false
       favoriteMessage.value = 'Removed from favourites'
     } else {
-      await supabase.from('favourites').insert({ userid: authUserId.value, fraid: id })
+      await supabase.from('favourites').insert({ userid: Number(authUserId.value), fraid: Number(id) })
       _isFavorited.value    = true
       favoriteMessage.value = 'Saved to favourites'
     }

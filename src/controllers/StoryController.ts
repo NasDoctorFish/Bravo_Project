@@ -6,10 +6,9 @@ export async function getStoryData(storyId: string, eventType: string = 'VIEW'):
   const res = await supabase.from('story').select('*').eq('storyid', storyId).maybeSingle()
 
   if (eventType === 'VIEW') {
-    const targetName = (res.data as any)?.title ?? String(storyId)
     await supabase.from('activityviewlog').insert([{
-      targetid:   storyId,
-      targetname: targetName,
+      targetid:   Number(storyId),
+      targetname: 'storyId',
       eventtype:  eventType,
       timestamp:  new Date().toISOString(),
     }])
